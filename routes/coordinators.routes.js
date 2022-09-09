@@ -7,14 +7,14 @@ const {
   update_coordinator_details
 } = require('./../controllers/coordinators.controller');
 
-router.get('/coordinators', get_all_coordinators);
+router.get('/getAll', get_all_coordinators);
 
-router.get('/coordinators/:id', get_a_specific_coordinator);
+router.get('/get/:id', get_a_specific_coordinator);
 
-router.post('/coordinators', add_a_new_coordinator);
+router.post('/add', add_a_new_coordinator);
 
-router.delete('/coordinators/:id', delete_a_coordinator);
+router.delete('/delete/:id', delete_a_coordinator);
 
-router.patch('/coordinators/:id', update_coordinator_details);
+router.patch('/update/:id', update_coordinator_details);
 
 module.exports = router;
