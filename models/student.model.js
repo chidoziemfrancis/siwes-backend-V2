@@ -76,23 +76,19 @@ const StudentSchema = new mongoose.Schema({
   }
 }, { timestamps: true })
 
-// Hash password before saving
 StudentSchema.pre('save', async function(next) {
+  // Hash password before saving
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-  
-  next();
-});
 
-// Generate student code before saving
-StudentSchema.pre('save', async function(next) {
+  // genereate student code
   const year = new Date(Date.now).getFullYear();
 
   const studentCode =  `${this.department}-${year}-${this.matricNo.slice(3, 7)}`;
   this.studentCode = studentCode;
   
   next();
-})
+});
 
 const Student = mongoose.model('Student', StudentSchema);
 

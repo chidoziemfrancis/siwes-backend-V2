@@ -1,5 +1,5 @@
 const Coordinators = require('../models/coordinator.model');
-const { handleError } = require('../utils/handleDBError');
+const { handleError } = require('../utils/handleError');
 const mongoose = require('mongoose');
 
 // add a new coordinator
