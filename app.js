@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const compression = require('compression');
 const mongoose = require('mongoose');
+const cookieParser = require('cookie-parser');
 const apiRoutes = require('./routes/general.routes');
 
 require('dotenv').config();
@@ -16,6 +17,7 @@ app.use(cors());
 app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser())
 
 // connect to database and start app
 const PORT = process.env.PORT || 3000;
@@ -27,7 +29,7 @@ async function main() {
     console.log('Connecting to database...');
     
     await mongoose.connect(DB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
-    console.log('Connected to database...');
+    console.log('Connected to database');
 
     console.log('Starting app...');
     app.listen(PORT, () => {

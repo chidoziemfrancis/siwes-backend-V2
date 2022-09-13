@@ -2,7 +2,11 @@ const COORDINATORS = require('../models/coordinator.model');
 const { handleError } = require('../utils/handleError');
 const mongoose = require('mongoose');
 
-// add a new coordinator
+/**
+ * adds a new coordinator
+ * @param {request} req
+ * @param {response} res
+ */
 const add_a_new_coordinator = async function(req, res) {
   try {
     const coordinator = await COORDINATORS.create(req.body);
@@ -13,7 +17,11 @@ const add_a_new_coordinator = async function(req, res) {
   }
 };
 
-// get all coordinators
+/**
+ * gets all coordinators
+ * @param {request} req
+ * @param {response} res
+ */
 const get_all_coordinators = async function(req, res) {
   try {
     const coordinators = await COORDINATORS.find({}, { password: 0 });
@@ -28,7 +36,11 @@ const get_all_coordinators = async function(req, res) {
   }
 };
 
-// get a specific coordinator
+/**
+ * gets a specific coordinator
+ * @param {request} req
+ * @param {response} res
+ */
 const get_a_specific_coordinator = async function(req, res) {
   try {
     const id = req.params.id;
@@ -50,7 +62,11 @@ const get_a_specific_coordinator = async function(req, res) {
   }
 };  
 
-// delete a coordinator
+/**
+ * delete a coordinator
+ * @param {request} req
+ * @param {response} res
+ */
 const delete_a_coordinator = async function(req, res) {
   try {
     const id = req.params.id;
@@ -72,7 +88,11 @@ const delete_a_coordinator = async function(req, res) {
   }
 };
 
-// update coordinator details
+/**
+ * update coordinator details
+ * @param {request} req
+ * @param {response} res
+ */
 const update_coordinator_details = async function(req, res) {
   try {
     const id = req.params.id;
