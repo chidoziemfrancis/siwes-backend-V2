@@ -36,7 +36,8 @@ const StudentSchema = new mongoose.Schema({
     lowercase: true,
     minLength: [3, 'Email must be at least 3 characters'],
     unique: true,
-    validate: [isEmail, 'Email must be a valid email']
+    validate: [isEmail, 'Email must be a valid email'],
+    match: [/babcock.edu.ng$/, 'Invalid email type']
   },
   matricNo: {
     type: String,
@@ -76,7 +77,6 @@ const StudentSchema = new mongoose.Schema({
   },
   studentCode: {
     type: String,
-    required: [true, 'Student code is required'],
     unique: true
   }
 }, { timestamps: true })
@@ -87,9 +87,9 @@ StudentSchema.pre('save', async function(next) {
   this.password = await bcrypt.hash(this.password, salt);
 
   // genereate student code
-  const year = new Date(Date.now).getFullYear();
+  const year = new Date(Date.now()).getFullYear();
 
-  const studentCode =  `${this.department}-${year}-${this.matricNo.slice(3, 7)}`;
+  const studentCode =  `${this.department.split(' ').join('-')}-${year}-${this.matricNo.slice(3, 7)}`;
   this.studentCode = studentCode;
   
   next();

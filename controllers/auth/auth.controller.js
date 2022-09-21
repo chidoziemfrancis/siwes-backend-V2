@@ -74,6 +74,30 @@ const create_tokens = function(user, res, type) {
 }
 
 /**
+ * Register's a new student
+ * @param {request} req
+ * @param {response} res
+ */
+const register = async function(req, res) {
+  const studentInfo = req.body;
+
+  try {
+    if (typeof studentInfo !== 'object' || Object.keys(studentInfo).length === 0) {
+      res.status(400).json({ message: 'Please fill all the required fields' });
+      return;
+    }
+
+    const student = await STUDENTS.create(studentInfo);
+
+    await create_tokens(student, res, 'student');
+
+    res.status(200).json({ message: "Registration successfull", data: student._id });
+  } catch (error) {
+    handleError(error, res);
+  }
+}
+
+/**
  * Login with email and password
  * @param {request} req
  * @param {response} res
@@ -153,5 +177,6 @@ const logout = async function(req, res) {
 
 module.exports = {
   login,
-  logout
+  logout,
+  register
 }
