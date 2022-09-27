@@ -11,8 +11,7 @@ const StudentSchema = new mongoose.Schema({
   },
   middleName: {
     type: String,
-    lowercase: true,
-    minLength: [3, 'Middle name must be at least 3 characters'],
+    lowercase: true
   },
   lastName: {
     type: String,
@@ -37,7 +36,7 @@ const StudentSchema = new mongoose.Schema({
     minLength: [3, 'Email must be at least 3 characters'],
     unique: true,
     validate: [isEmail, 'Email must be a valid email'],
-    match: [/babcock.edu.ng$/, 'Invalid email type']
+    match: [/student.babcock.edu.ng$/, 'Invalid email type']
   },
   matricNo: {
     type: String,

@@ -1,3 +1,10 @@
+const { response } = require('express');
+
+/**
+ * Transforms and send back a readable error message to the frontend client
+ * @param {Error} error 
+ * @param {response} res 
+ */
 const handleError = async function (error, res) {
   // process error from mongodb schema validation
   if (error.name === 'ValidationError') {

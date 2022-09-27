@@ -173,9 +173,11 @@ const isStudent = async function (req, res, next) {
       throw Error('access denied');
     }
 
+    req.user = user;
+
     next();
   } catch (error) {
-    res.status(401).send({ message: error.message })
+    res.status(401).json({ message: error.message })
     return;
   }
 }
@@ -196,9 +198,11 @@ const isSupervisor = async function (req, res, next) {
       throw Error('access denied');
     }
 
+    req.user = user;
+
     next();
   } catch (error) {
-    res.status(401).send({ message: error.message })
+    res.status(401).json({ message: error.message })
     return;
   }
 }
@@ -219,9 +223,11 @@ const isSupervisor = async function (req, res, next) {
       throw Error('access denied');
     }
 
+    req.user = user;
+
     next();
   } catch (error) {
-    res.status(401).send({ message: error.message })
+    res.status(401).json({ message: error.message })
     return;
   }
 }

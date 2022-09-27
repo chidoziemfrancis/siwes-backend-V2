@@ -17,4 +17,11 @@ router.delete('/delete/:id', delete_a_coordinator);
 
 router.patch('/update/:id', update_coordinator_details);
 
+//TODO: finish up
+router.patch('/changePassword');
+
+router.post('/uploadInspectionForms');
+
+router.post('/createSupervisor');
+
 module.exports = router;
