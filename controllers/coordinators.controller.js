@@ -2,6 +2,7 @@ const COORDINATORS = require('../models/coordinator.model');
 const { handleError } = require('../utils/handleError');
 const mongoose = require('mongoose');
 const { request, response } = require('express')
+const bcrypt = require('bcrypt');
 
 /**
  * adds a new coordinator
@@ -133,10 +134,87 @@ const update_coordinator_details = async function(req, res) {
   }
 };
 
+/**
+ * Changes coordinators password
+ * @param {request} req
+ * @param {response} res
+ */
+const change_password = async function(req, res) {
+  let { oldPassword, newPassword } = req.body;
+  const { _id } = req.user;
+
+  if (typeof oldPassword === 'string') {
+    oldPassword = oldPassword.trim();
+  }
+
+  if (typeof newPassword === 'string') {
+    newPassword = newPassword.trim();
+  }
+
+  if (!(oldPassword && newPassword)) {
+    res.status(400).json({ message: "Incomplete request, please specify all required parameters" });
+    return;
+  }
+
+  try {
+    const coordinator = await COORDINATORS.findOne({ _id });
+
+    if (coordinator === null) {
+      res.status(401).json({ message: "Something unusual happened to your authentication status while trying to chaneg your password, so we couldn't process your request" })
+      return;
+    }
+
+    const passwordIsValid = await bcrypt.compare(oldPassword, coordinator.password);
+
+    if (!passwordIsValid) {
+      res.status(400).json({ message: "Incorrect password" });
+      return;
+    }
+
+    // Hash password before saving
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    const { modifiedCount } = await COORDINATORS.updateOne({ _id }, { password: hashedPassword });
+
+    if (!modifiedCount) {
+      res.status(500).json({ message: "Something went wrong, please try again" });
+      return;
+    }
+
+    res.status(200).json({ message: "Password was changed successfully" });
+    
+  } catch (error) {
+    console.log(error);
+    handleError(error, res);
+  }
+}
+
+/**
+ * Allows the upload of an inspection form after passing through the upload middleware
+ * @param {request} req
+ * @param {response} res
+ */
+ const upload_inspection_forms = async function(req, res) {
+
+}
+
+/**
+ * Allows a coordinator to create a supervisor
+ * @param {request} req
+ * @param {response} res
+ */
+ const create_supervisor = async function(req, res) {
+
+}
+
 module.exports = {
   add_a_new_coordinator,
   get_all_coordinators,
   delete_a_coordinator,
   update_coordinator_details,
-  get_a_specific_coordinator
+  get_a_specific_coordinator,
+  change_password,
+  upload_inspection_forms,
+  create_supervisor
 }

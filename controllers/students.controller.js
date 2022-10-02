@@ -3,6 +3,7 @@ const { handleError } = require('../utils/handleError');
 const mongoose = require('mongoose');
 const STUDENTS = require('./../models/student.model');
 const COMPANY = require('./../models/company.model');
+const bcrypt = require('bcrypt');
 
 /**
  * Gets the details of a specific student
@@ -93,7 +94,7 @@ const get_details = async function(req, res) {
 }
 
 /**
- * Gets the details of a specific student
+ * Registers work information for a student
  * @param {request} req
  * @param {response} res
  */
@@ -127,7 +128,7 @@ const add_work_details = async function(req, res) {
 }
 
 /**
- * Gets the details of a specific student
+ * Adds weekly report for each student
  * @param {request} req
  * @param {response} res
  */
@@ -135,8 +136,65 @@ const add_weekly_reports = async function(req, res) {
 
 }
 
+/**
+ * Changes student password
+ * @param {request} req
+ * @param {response} res
+ */
+const change_password = async function(req, res) {
+  let { oldPassword, newPassword } = req.body;
+  const { _id } = req.user;
+
+  if (typeof oldPassword === 'string') {
+    oldPassword = oldPassword.trim();
+  }
+
+  if (typeof newPassword === 'string') {
+    newPassword = newPassword.trim();
+  }
+
+  if (!(oldPassword && newPassword)) {
+    res.status(400).json({ message: "Incomplete request, please specify all required parameters" });
+    return;
+  }
+
+  try {
+    const student = await STUDENTS.findOne({ _id });
+
+    if (student === null) {
+      res.status(401).json({ message: "Something unusual happened to your authentication status while trying to chaneg your password, so we couldn't process your request" })
+      return;
+    }
+
+    const passwordIsValid = await bcrypt.compare(oldPassword, student.password);
+
+    if (!passwordIsValid) {
+      res.status(400).json({ message: "Incorrect password" });
+      return;
+    }
+
+    // Hash password before saving
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    const { modifiedCount } = await STUDENTS.updateOne({ _id }, { password: hashedPassword });
+
+    if (!modifiedCount) {
+      res.status(500).json({ message: "Something went wrong, please try again" });
+      return;
+    }
+
+    res.status(200).json({ message: "Password was changed successfully" });
+    
+  } catch (error) {
+    console.log(error);
+    handleError(error, res);
+  }
+}
+
 module.exports = {
   get_details,
   add_work_details,
-  add_weekly_reports
+  add_weekly_reports,
+  change_password
 }

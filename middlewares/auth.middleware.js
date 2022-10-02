@@ -167,7 +167,7 @@ const isStudent = async function (req, res, next) {
   try {
     const data = await decode_jwt(req, res, 'student');
 
-    const user = await STUDENTS.findById(data.id);
+    const user = await STUDENTS.findOne({ _id: data.id });
 
     if (user === null) {
       throw Error('access denied');
@@ -192,7 +192,7 @@ const isSupervisor = async function (req, res, next) {
   try {
     const data = await decode_jwt(req, res, 'supervisor');
 
-    const user = await SUPERVISORS.findById(data.id);
+    const user = await SUPERVISORS.findOne({ _id: data.id });
 
     if (user === null) {
       throw Error('access denied');
@@ -217,7 +217,7 @@ const isSupervisor = async function (req, res, next) {
   try {
     const data = await decode_jwt(req, res, 'coordinator');
 
-    const user = await COORDINATORS.findById(data.id);
+    const user = await COORDINATORS.findOne({ _id: data.id });
 
     if (user === null) {
       throw Error('access denied');
