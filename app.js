@@ -5,6 +5,7 @@ const cors = require('cors');
 const compression = require('compression');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
+const fileUpload = require('express-fileupload');
 const apiRoutes = require('./routes/general.routes');
 
 require('dotenv').config();
@@ -18,6 +19,15 @@ app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser())
+app.use(fileUpload({
+  limits: { 
+    fileSize: 5 * 1024 * 1024
+  },
+  safeFileNames: true,
+  preserveExtension: true,
+  abortOnLimit: true,
+  responseOnLimit: 'Max file size is 5mb'
+}))
 
 // connect to database and start app
 const PORT = process.env.PORT || 3000;

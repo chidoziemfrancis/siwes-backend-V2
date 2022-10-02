@@ -6,7 +6,6 @@ const FormSchema = new mongoose.Schema({
     required: [true, 'Form name is required'],
     lowercase: true,
     minLength: [3, 'Form name must be at least 3 characters'],
-    unique: true
   },
   description: {
     type: String,

@@ -8,7 +8,6 @@ router.post('/workDetails', isStudent, add_work_details);
 
 router.patch('/changePassword', isStudent, change_password);
 
-//TODO: finish up
 router.post('/weeklyReports', isStudent, add_weekly_reports);
 
 module.exports = router;

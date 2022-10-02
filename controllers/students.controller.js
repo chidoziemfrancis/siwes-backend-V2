@@ -3,6 +3,7 @@ const { handleError } = require('../utils/handleError');
 const mongoose = require('mongoose');
 const STUDENTS = require('./../models/student.model');
 const COMPANY = require('./../models/company.model');
+const WEEKLY_REPORTS = require('./../models/weekly_report.model');
 const bcrypt = require('bcrypt');
 
 /**
@@ -133,7 +134,51 @@ const add_work_details = async function(req, res) {
  * @param {response} res
  */
 const add_weekly_reports = async function(req, res) {
+  const { studentCode } = req.user;
+  const report = req.body;
 
+  try {
+    if (typeof report !== 'object' || Object.keys(report).length === 0) {
+      res.status(400).json({ message: "Please specify all the neccesary fields" });
+      return;
+    }
+
+    const companyInfo = await COMPANY.findOne({ studentCode });
+
+    if (companyInfo === null) {
+      res.status(400).json({ message: "Unable to find a matching company attachement please add a company first" });
+      return;
+    }
+
+    const daysOfTheWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const companyId = companyInfo._id;
+    const currentDay = new Date(Date.now()).getDay();
+
+    if (currentDay === 0 || currentDay === 7) {
+      res.status(200).json({ message: "We appreciate your hardwork across the week, but submissions are now closed for this week" });
+      return;
+    }
+
+    const jobDescription = {};
+
+    for (let i = 1; i <= currentDay; i++) {
+      jobDescription[daysOfTheWeek[i]] = report[daysOfTheWeek[i]];
+    }
+
+    const processedReport = {
+      studentCode,
+      companyId,
+      weekId: 0, // will be determine based on when siwes starts
+      weekStart: 0,
+      ...jobDescription
+    }
+
+    await WEEKLY_REPORTS.updateOne({ studentCode, companyId, weekId: 0 }, processedReport, { upsert: true });
+
+    res.status(200).json({ message: "Upload successful" });
+  } catch (error) {
+    handleError(error, res);
+  }
 }
 
 /**

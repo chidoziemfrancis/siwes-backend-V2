@@ -10,6 +10,7 @@ const {
   create_supervisor
 } = require('./../controllers/coordinators.controller');
 const { isCoordinator } = require('./../middlewares/auth.middleware');
+const { processFileUpload } = require('./../middlewares/media_upload.middleware');
 
 
 // might need to change all /:id to refrence req.user._id to prevent accidentally creating a super admin and IDOR
@@ -27,7 +28,6 @@ router.patch('/changePassword', isCoordinator, change_password);
 
 router.post('/createSupervisor', isCoordinator, create_supervisor);
 
-//TODO: finish up
-router.post('/uploadInspectionForms', isCoordinator, upload_inspection_forms);
+router.post('/uploadInspectionForms', isCoordinator, processFileUpload, upload_inspection_forms);
 
 module.exports = router;

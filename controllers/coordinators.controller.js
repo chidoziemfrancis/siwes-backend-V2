@@ -1,5 +1,6 @@
 const COORDINATORS = require('../models/coordinator.model');
 const SUPERVISORS = require('./../models/supervisor.model');
+const FORMS = require('./../models/form.model');
 const { handleError } = require('../utils/handleError');
 const mongoose = require('mongoose');
 const { request, response } = require('express')
@@ -196,8 +197,22 @@ const change_password = async function(req, res) {
  * @param {request} req
  * @param {response} res
  */
- const upload_inspection_forms = async function(req, res) {
+const upload_inspection_forms = async function(req, res) {
+  const formInfo = req.body;
+  const { _id } = req.user;
 
+  try {
+    if (typeof formInfo !== 'object' || Object.keys(formInfo).length === 0) {
+      res.status(400).json({ message: "Please fill all the fields" });
+      return;
+    }
+
+    await FORMS.create({ ...formInfo, uploadedBy: _id });
+
+    return res.status(200).json({ message: "Form was added successfully" })
+  } catch (error) {
+    handleError(error, res);  
+  }
 }
 
 /**

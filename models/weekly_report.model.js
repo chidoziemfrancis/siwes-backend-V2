@@ -10,30 +10,34 @@ const Weekly_ReportSchema = new mongoose.Schema({
     ref: 'Company',
     required: [true, 'Company ID is required'],
   },
-  report: {
-    type: {
-      monday: {
-        type: String,
-        default: '',
-      },
-      tuesday: {
-        type: String,
-        default: '',
-      },
-      wednesday: {
-        type: String,
-        default: '',
-      },
-      thursday: {
-        type: String,
-        default: '',
-      },
-      friday: {
-        type: String,
-        default: '',
-      }
-    }
-  }    
+  weekId: {
+    type: Number,
+    required: true
+  },
+  weekStart: {
+    type: Date,
+    required: true
+  },
+  monday: {
+    type: String,
+    default: ''
+  },
+  tuesday: {
+    type: String,
+    default: ''
+  },
+  wednesday: {
+    type: String,
+    default: ''
+  },
+  thursday: {
+    type: String,
+    default: ''
+  },
+  friday: {
+    type: String,
+    default: ''
+  }
 }, { timestamps: true })
 
 const Weekly_Report = mongoose.model('Weekly_Report', Weekly_ReportSchema);
