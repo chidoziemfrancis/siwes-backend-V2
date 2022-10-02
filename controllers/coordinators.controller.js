@@ -1,4 +1,5 @@
 const COORDINATORS = require('../models/coordinator.model');
+const SUPERVISORS = require('./../models/supervisor.model');
 const { handleError } = require('../utils/handleError');
 const mongoose = require('mongoose');
 const { request, response } = require('express')
@@ -204,8 +205,14 @@ const change_password = async function(req, res) {
  * @param {request} req
  * @param {response} res
  */
- const create_supervisor = async function(req, res) {
+const create_supervisor = async function(req, res) {
+  try {
+    const supervisor = await SUPERVISORS.create(req.body);
 
+    return res.status(201).json({ 'message': 'Supervisor added successfully', 'supervisor': supervisor._id });
+  } catch (error) {
+    handleError(error, res);
+  }
 }
 
 module.exports = {

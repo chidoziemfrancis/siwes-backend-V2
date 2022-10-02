@@ -23,11 +23,11 @@ router.delete('/delete/:id', isCoordinator, delete_a_coordinator);
 
 router.patch('/update/:id', isCoordinator, update_coordinator_details);
 
-//TODO: finish up
 router.patch('/changePassword', isCoordinator, change_password);
 
-router.post('/uploadInspectionForms', isCoordinator, upload_inspection_forms);
-
 router.post('/createSupervisor', isCoordinator, create_supervisor);
+
+//TODO: finish up
+router.post('/uploadInspectionForms', isCoordinator, upload_inspection_forms);
 
 module.exports = router;
