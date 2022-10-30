@@ -21,7 +21,8 @@ const handleError = async function (error, res) {
 
   // process error from mongodb duplicate key
   if (error.code === 11000) {
-    return res.status(400).json({ 'message': 'Email already exists' });
+    let duplicateField = Object.keys(error.keyPattern)[0];
+    return res.status(400).json({ 'message': `${duplicateField} already exists` });
   }
 
   // process error from mongodb

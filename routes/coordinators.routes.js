@@ -11,8 +11,10 @@ const {
   get_all_supervisors,
   get_defense_list,
   get_inspection_list,
-  assigned_defense_supervisor,
-  assigned_inspection_supervisor
+  assign_defense_supervisor,
+  assign_inspection_supervisor,
+  get_all_students,
+  get_a_student
 } = require('./../controllers/coordinators.controller');
 const { isCoordinator } = require('./../middlewares/auth.middleware');
 const { processFileUpload } = require('./../middlewares/media_upload.middleware');
@@ -37,15 +39,19 @@ router.post('/uploadInspectionForms', isCoordinator, processFileUpload, upload_i
 
 router.get('/supervisors', isCoordinator, get_all_supervisors);
 
-// TODO: complete this
+router.get('/students', isCoordinator, get_all_students);
+
+router.get('/students/:id', isCoordinator, get_a_student);
+
+router.post('/assignInspectionSupervisor', isCoordinator, assign_inspection_supervisor);
+
+router.post('/assignDefenseSupervisor', isCoordinator, assign_defense_supervisor);
+
 router.get('/defenseList', isCoordinator, get_defense_list);
 
 router.get('/inspectionList', isCoordinator, get_inspection_list);
 
+// TODO: complete this
 router.post('/setRegistrationDeadline', isCoordinator);
-
-router.post('/assignInspectionSupervisor', isCoordinator);
-
-router.post('/assignDefenseSupervisor', isCoordinator);
 
 module.exports = router;

@@ -1,5 +1,8 @@
 const COORDINATORS = require('../models/coordinator.model');
 const SUPERVISORS = require('./../models/supervisor.model');
+const STUDENTS = require('./../models/student.model');
+const DEFENSE_LIST = require('./../models/defense_list.model');
+const INSPECTION_LIST = require('./../models/inspection_list.model');
 const FORMS = require('./../models/form.model');
 const { handleError } = require('../utils/handleError');
 const mongoose = require('mongoose');
@@ -28,7 +31,7 @@ const add_a_new_coordinator = async function(req, res) {
  */
 const get_all_coordinators = async function(req, res) {
   try {
-    const coordinators = await COORDINATORS.find({}, { password: 0, validation_secret: 0, createdAt: 0, UpdatedAt: 0 });
+    const coordinators = await COORDINATORS.find({}, { password: 0, validation_secret: 0, createdAt: 0, updatedAt: 0 });
 
     if (coordinators.length === 0) {
       return res.status(404).json({ 'message': 'No coordinators found' });
@@ -54,9 +57,9 @@ const get_a_specific_coordinator = async function(req, res) {
       return res.status(400).json({ 'message': 'Invalid id' });
     }
 
-    const coordinator = await COORDINATORS.findOne({ _id: id }, { password: 0 });
+    const coordinator = await COORDINATORS.findOne({ _id: id }, { password: 0, validation_secret: 0, createdAt: 0, updatedAt: 0 });
 
-    if (!coordinator) {
+    if (coordinator === null) {
       return res.status(404).json({ 'message': 'Coordinator not found' });
     }
 
@@ -237,7 +240,7 @@ const create_supervisor = async function(req, res) {
  */
 const get_all_supervisors = async function(req, res) {
   try {
-    const supervisors = await SUPERVISORS.find({}, { password: 0, validation_secret: 0, createdAt: 0, UpdatedAt: 0 })
+    const supervisors = await SUPERVISORS.find({}, { password: 0, validation_secret: 0, createdAt: 0, updatedAt: 0 })
 
     if (supervisors.length === 0) {
       return res.status(404).json({ message: "No supervisors found" });
@@ -250,12 +253,234 @@ const get_all_supervisors = async function(req, res) {
 }
 
 /**
+ * Assigns a student to a supervisor for defense, can also be used to overwrite previous assignment
+ * @param {request} req
+ * @param {response} res 
+ */
+const assign_defense_supervisor = async function(req, res) {
+  const { studentCode, supervisorId } = req.body;
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(supervisorId)) {
+      return res.status(400).json({ message: "Invalid supervisor id" });
+    }
+
+    if (/\w+\-\d+\-\d+/.test(studentCode) === false) {
+      return res.status(400).json({ message: "Invalid student code" });
+    }
+
+    const supervisorExists = await SUPERVISORS.findOne({ _id: supervisorId });
+
+    if (supervisorExists === null) {
+      return res.status(400).json({ message: "No supervisor was found with that id" });
+    }
+
+    const studentExists = await STUDENTS.findOne({ studentCode });
+
+    if (studentExists === null) {
+      return res.status(400).json({ message: "No studet was found with that student code" });
+    }
+
+    const studentSupervisionList = await INSPECTION_LIST.findOne({ studentCode });
+
+    if (studentSupervisionList && studentSupervisionList.supervisorId.equals(supervisorId)) {
+      return res.status(400).json({ message: "The same supetvisor can not inspect and be in charge of defense for the same student" })
+    }
+
+    await DEFENSE_LIST.updateOne({ studentCode }, { supervisorId }, { upsert: true });
+
+    return res.status(200).json({ message: "Defense supervisor was successfully assigned" })
+  } catch (error) {
+    handleError(error, res);
+  }
+}
+
+/**
+ *  Assigns a student to a supervisor for inspection, can also be used to overwrite previous assignment
+ * @param {request} req
+ * @param {response} res 
+ */
+const assign_inspection_supervisor = async function(req, res) {
+  const { studentCode, supervisorId } = req.body;
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(supervisorId)) {
+      return res.status(400).json({ message: "Invalid supervisor id" });
+    }
+
+    if (/\w+\-\d+\-\d+/.test(studentCode) === false) {
+      return res.status(400).json({ message: "Invalid student code" });
+    }
+
+    const supervisorExists = await SUPERVISORS.findOne({ _id: supervisorId });
+
+    if (supervisorExists === null) {
+      return res.status(400).json({ message: "No supervisor was found with that id" });
+    }
+
+    const studentExists = await STUDENTS.findOne({ studentCode });
+
+    if (studentExists === null) {
+      return res.status(400).json({ message: "No studet was found with that student code" });
+    }
+
+    const studentSupervisionList = await DEFENSE_LIST.findOne({ studentCode });
+
+    if (studentSupervisionList && studentSupervisionList.supervisorId.equals(supervisorId)) {
+      return res.status(400).json({ message: "The same supetvisor can not inspect and be in charge of defense for the same student" })
+    }
+
+    await INSPECTION_LIST.updateOne({ studentCode }, { supervisorId }, { upsert: true });
+
+    return res.status(200).json({ message: "Inspection supervisor was successfully assigned" })
+  } catch (error) {
+    handleError(error, res);
+  }
+}
+
+/**
+ * Returns a list containing all students
+ * @param {request} req
+ * @param {response} res 
+ */
+const get_all_students = async function(req, res) {
+  try {
+    const students = await STUDENTS.find({}, { password: 0, validation_secret: 0, createdAt: 0, updatedAt: 0 })
+
+    if (students.length === 0) {
+      return res.status(404).json({ message: "No students found" });
+    }
+
+    return res.status(200).json(students)
+  } catch (error) {
+    handleError(error, res);
+  }
+}
+
+/**
+ * Returns the details of a particular student
+ * @param {request} req
+ * @param {response} res 
+ */
+const get_a_student = async function(req, res) {
+  const { id } = req.params;
+
+  try {
+    // check if the id is valid mongodb document id
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 'message': 'Invalid id' });
+    }
+
+    const student = await STUDENTS.findOne({ _id: id }, { password: 0, validation_secret: 0, createdAt: 0, updatedAt: 0 });
+
+    if (student === null) {
+      return res.status(404).json({ 'message': 'Coordinator not found' });
+    }
+
+    return res.status(200).json(student);
+  } catch (error) {
+    handleError(error, res);
+  }
+}
+
+/**
  * Returns a list containing all students and thier assigned supervisors for defense
  * @param {request} req
  * @param {response} res 
  */
 const get_defense_list = async function(req, res) {
+  try {
+    // TODO: remove extra space when there is no middlename
+    const pipeline = [
+      {
+        '$lookup': {
+          'from': 'students', 
+          'localField': 'studentCode', 
+          'foreignField': 'studentCode', 
+          'as': 'studentDetails', 
+          'pipeline': [
+            {
+              '$project': {
+                'name': {
+                  '$concat': [
+                    '$firstName', ' ', '$middleName', ' ', '$lastName'
+                  ]
+                }, 
+                'matricNo': 1, 
+                'studentCode': 1, 
+                'course': 1
+              }
+            }
+          ]
+        }
+      }, {
+        '$unwind': {
+          'path': '$studentDetails'
+        }
+      }, {
+        '$lookup': {
+          'from': 'companies', 
+          'localField': 'studentCode', 
+          'foreignField': 'studentCode', 
+          'as': 'companyDetails', 
+          'pipeline': [
+            {
+              '$project': {
+                'name': 1
+              }
+            }
+          ]
+        }
+      }, {
+        '$project': {
+          'studentCode': 0, 
+          'updatedAt': 0, 
+          'createdAt': 0
+        }
+      }, {
+        '$unwind': {
+          'path': '$companyDetails', 
+          'preserveNullAndEmptyArrays': true
+        }
+      }, {
+        '$lookup': {
+          'from': 'supervisors', 
+          'localField': 'supervisorId', 
+          'foreignField': '_id', 
+          'as': 'supervisorDetails', 
+          'pipeline': [
+            {
+              '$project': {
+                'name': {
+                  '$concat': [
+                    '$firstName', ' ', '$lastName'
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }, {
+        '$unwind': {
+          'path': '$supervisorDetails'
+        }
+      }, {
+        '$project': {
+          'supervisorId': 0
+        }
+      }
+    ]
 
+    const defenseList = await DEFENSE_LIST.aggregate(pipeline);
+
+    if (defenseList.length === 0) {
+      return res.status(404).json({ message: "Defense list is empty" });
+    }
+
+    return res.status(200).json(defenseList);
+  } catch (error) {
+    handleError(error, res);
+  }
 }
 
 /**
@@ -264,25 +489,98 @@ const get_defense_list = async function(req, res) {
  * @param {response} res 
  */
 const get_inspection_list = async function(req, res) {
+  try {
+    // TODO: remove extra space when there is no middlename
+    const pipeline = [
+      {
+        '$lookup': {
+          'from': 'students', 
+          'localField': 'studentCode', 
+          'foreignField': 'studentCode', 
+          'as': 'studentDetails', 
+          'pipeline': [
+            {
+              '$project': {
+                'name': {
+                  '$concat': [
+                    '$firstName', ' ', '$middleName', ' ', '$lastName'
+                  ]
+                }, 
+                'matricNo': 1, 
+                'studentCode': 1, 
+                'course': 1
+              }
+            }
+          ]
+        }
+      }, {
+        '$unwind': {
+          'path': '$studentDetails'
+        }
+      }, {
+        '$lookup': {
+          'from': 'companies', 
+          'localField': 'studentCode', 
+          'foreignField': 'studentCode', 
+          'as': 'companyDetails', 
+          'pipeline': [
+            {
+              '$project': {
+                'name': 1
+              }
+            }
+          ]
+        }
+      }, {
+        '$project': {
+          'studentCode': 0, 
+          'updatedAt': 0, 
+          'createdAt': 0
+        }
+      }, {
+        '$unwind': {
+          'path': '$companyDetails', 
+          'preserveNullAndEmptyArrays': true
+        }
+      }, {
+        '$lookup': {
+          'from': 'supervisors', 
+          'localField': 'supervisorId', 
+          'foreignField': '_id', 
+          'as': 'supervisorDetails', 
+          'pipeline': [
+            {
+              '$project': {
+                'name': {
+                  '$concat': [
+                    '$firstName', ' ', '$lastName'
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }, {
+        '$unwind': {
+          'path': '$supervisorDetails'
+        }
+      }, {
+        '$project': {
+          'supervisorId': 0
+        }
+      }
+    ]
 
-}
+    const inspectionList = await INSPECTION_LIST.aggregate(pipeline);
 
-/**
- * Assigns a student to a supervisor for defense, can also be used to overwrite previous assignment
- * @param {request} req
- * @param {response} res 
- */
-const assigned_defense_supervisor = async function(req, res) {
+    if (inspectionList.length === 0) {
+      return res.status(404).json({ message: "Inspection list is empty" });
+    }
 
-}
-
-/**
- *  Assigns a student to a supervisor for inspection, can also be used to overwrite previous assignment
- * @param {request} req
- * @param {response} res 
- */
-const assigned_inspection_supervisor = async function(req, res) {
-  
+    return res.status(200).json(inspectionList);
+  } catch (error) {
+    handleError(error, res);
+  }
 }
 
 module.exports = {
@@ -297,6 +595,8 @@ module.exports = {
   get_all_supervisors,
   get_defense_list,
   get_inspection_list,
-  assigned_defense_supervisor,
-  assigned_inspection_supervisor
+  assign_defense_supervisor,
+  assign_inspection_supervisor,
+  get_all_students,
+  get_a_student
 }
