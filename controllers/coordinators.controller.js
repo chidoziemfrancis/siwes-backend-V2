@@ -28,7 +28,7 @@ const add_a_new_coordinator = async function(req, res) {
  */
 const get_all_coordinators = async function(req, res) {
   try {
-    const coordinators = await COORDINATORS.find({}, { password: 0 });
+    const coordinators = await COORDINATORS.find({}, { password: 0, validation_secret: 0, createdAt: 0, UpdatedAt: 0 });
 
     if (coordinators.length === 0) {
       return res.status(404).json({ 'message': 'No coordinators found' });
@@ -230,6 +230,61 @@ const create_supervisor = async function(req, res) {
   }
 }
 
+/**
+ * Returns a list of all the supervisors
+ * @param {request} req
+ * @param {response} res 
+ */
+const get_all_supervisors = async function(req, res) {
+  try {
+    const supervisors = await SUPERVISORS.find({}, { password: 0, validation_secret: 0, createdAt: 0, UpdatedAt: 0 })
+
+    if (supervisors.length === 0) {
+      return res.status(404).json({ message: "No supervisors found" });
+    }
+
+    return res.status(200).json(supervisors)
+  } catch (error) {
+    handleError(error, res);
+  }
+}
+
+/**
+ * Returns a list containing all students and thier assigned supervisors for defense
+ * @param {request} req
+ * @param {response} res 
+ */
+const get_defense_list = async function(req, res) {
+
+}
+
+/**
+ * Returns a list of all students and thier assigned supervisors for inspection
+ * @param {request} req
+ * @param {response} res 
+ */
+const get_inspection_list = async function(req, res) {
+
+}
+
+/**
+ * Assigns a student to a supervisor for defense, can also be used to overwrite previous assignment
+ * @param {request} req
+ * @param {response} res 
+ */
+const assigned_defense_supervisor = async function(req, res) {
+
+}
+
+/**
+ *  Assigns a student to a supervisor for inspection, can also be used to overwrite previous assignment
+ * @param {request} req
+ * @param {response} res 
+ */
+const assigned_inspection_supervisor = async function(req, res) {
+  
+}
+
 module.exports = {
   add_a_new_coordinator,
   get_all_coordinators,
@@ -238,5 +293,10 @@ module.exports = {
   get_a_specific_coordinator,
   change_password,
   upload_inspection_forms,
-  create_supervisor
+  create_supervisor,
+  get_all_supervisors,
+  get_defense_list,
+  get_inspection_list,
+  assigned_defense_supervisor,
+  assigned_inspection_supervisor
 }

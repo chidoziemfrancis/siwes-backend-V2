@@ -7,7 +7,12 @@ const {
   update_coordinator_details,
   change_password,
   upload_inspection_forms,
-  create_supervisor
+  create_supervisor,
+  get_all_supervisors,
+  get_defense_list,
+  get_inspection_list,
+  assigned_defense_supervisor,
+  assigned_inspection_supervisor
 } = require('./../controllers/coordinators.controller');
 const { isCoordinator } = require('./../middlewares/auth.middleware');
 const { processFileUpload } = require('./../middlewares/media_upload.middleware');
@@ -29,5 +34,18 @@ router.patch('/changePassword', isCoordinator, change_password);
 router.post('/createSupervisor', isCoordinator, create_supervisor);
 
 router.post('/uploadInspectionForms', isCoordinator, processFileUpload, upload_inspection_forms);
+
+router.get('/supervisors', isCoordinator, get_all_supervisors);
+
+// TODO: complete this
+router.get('/defenseList', isCoordinator, get_defense_list);
+
+router.get('/inspectionList', isCoordinator, get_inspection_list);
+
+router.post('/setRegistrationDeadline', isCoordinator);
+
+router.post('/assignInspectionSupervisor', isCoordinator);
+
+router.post('/assignDefenseSupervisor', isCoordinator);
 
 module.exports = router;
