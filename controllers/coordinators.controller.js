@@ -3,6 +3,7 @@ const SUPERVISORS = require('./../models/supervisor.model');
 const STUDENTS = require('./../models/student.model');
 const DEFENSE_LIST = require('./../models/defense_list.model');
 const INSPECTION_LIST = require('./../models/inspection_list.model');
+const DEADLINE = require('./../models/deadline.model');
 const FORMS = require('./../models/form.model');
 const { handleError } = require('../utils/handleError');
 const mongoose = require('mongoose');
@@ -583,6 +584,37 @@ const get_inspection_list = async function(req, res) {
   }
 }
 
+/**
+ * Accepts the deadline date and updates the deadline document
+ * @param {request} req 
+ * @param {response} res 
+ */
+const set_registration_deadline = async function(req, res) {
+  const { time } = req.body;
+  const { _id:updatedBy } = req.user;
+
+  try {
+    let currentTime = Date.now();
+
+    if (time < currentTime) {
+      return res.status(400).json({ message: "You cannot set a deadline into the past" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(updatedBy)) {
+      return res.status(400).json({ message: "Something went wrong while authenticating your request" });
+    }
+
+    // clears the entire collection
+    await DEADLINE.deleteMany({});
+
+    await DEADLINE.create({ time, updatedBy });
+
+    return res.status(200).json({ message: "Registration deadline has been assigned" })
+  } catch (error) {
+    handleError(error, res);
+  }
+}
+
 module.exports = {
   add_a_new_coordinator,
   get_all_coordinators,
@@ -598,5 +630,6 @@ module.exports = {
   assign_defense_supervisor,
   assign_inspection_supervisor,
   get_all_students,
-  get_a_student
+  get_a_student,
+  set_registration_deadline
 }

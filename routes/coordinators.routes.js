@@ -14,7 +14,8 @@ const {
   assign_defense_supervisor,
   assign_inspection_supervisor,
   get_all_students,
-  get_a_student
+  get_a_student,
+  set_registration_deadline
 } = require('./../controllers/coordinators.controller');
 const { isCoordinator } = require('./../middlewares/auth.middleware');
 const { processFileUpload } = require('./../middlewares/media_upload.middleware');
@@ -51,7 +52,6 @@ router.get('/defenseList', isCoordinator, get_defense_list);
 
 router.get('/inspectionList', isCoordinator, get_inspection_list);
 
-// TODO: complete this
-router.post('/setRegistrationDeadline', isCoordinator);
+router.post('/setRegistrationDeadline', isCoordinator, set_registration_deadline);
 
 module.exports = router;

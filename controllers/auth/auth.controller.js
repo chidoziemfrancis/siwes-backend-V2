@@ -1,6 +1,7 @@
 const COORDINATORS = require('./../../models/coordinator.model');
 const STUDENTS = require('./../../models/student.model');
 const SUPERVISORS = require('./../../models/supervisor.model');
+const DEADLINE = require('./../../models/deadline.model');
 const { request, response } = require('express');
 const { handleError } = require('./../../utils/handleError');
 const jwt = require('jsonwebtoken');
@@ -85,6 +86,17 @@ const register = async function(req, res) {
     if (typeof studentInfo !== 'object' || Object.keys(studentInfo).length === 0) {
       res.status(400).json({ message: 'Please fill all the required fields' });
       return;
+    }
+
+    let currentTime = Date.now();
+    const deadline = await DEADLINE.findOne({});
+
+    if (deadline === null) {
+      return res.status(400).json({ message: "We couldn't find a registration deadline, this may be because it is not yet open Please contact your SIWES coordinator" })
+    }
+
+    if (currentTime > deadline.time) {
+      return res.status(400).json({ message: "Registration couldn't be completed as it is closed" });
     }
 
     const student = await STUDENTS.create(studentInfo);
