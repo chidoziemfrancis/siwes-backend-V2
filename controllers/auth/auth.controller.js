@@ -124,7 +124,7 @@ const login = async function(req, res) {
     }
 
     if (email.trim().length === 0 || password.length === 0) {
-      res.status(401).json({ message: "Invalid credentials" });
+      res.status(401).json({ message: "Invalid request" });
       return;
     }
 
