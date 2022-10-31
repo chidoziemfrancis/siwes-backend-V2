@@ -9,7 +9,7 @@ There 4 sections to this API:
  4. Student's API
 
 ## Getting started with Authentication
-The API uses token based authentication but doesn't the require the frontend application to manually send back any token to it at any point, as tokens will automatically always be attached the cookies sent along with each request.
+The API uses token based authentication so it doesn't require the frontend application to manually send back any token to it at any point, as tokens will automatically always be attached the cookies sent along with each request.
 Under the authetication there are 3 functions
 
  - Registration
@@ -39,7 +39,7 @@ Under the authetication there are 3 functions
 		- Response body
 		```json
 		{ 
-			"message": "Login successful",
+			"message": "Registration successful",
 			"data": "631b4162deab9b9ec49dd014"
 		}
 		```
