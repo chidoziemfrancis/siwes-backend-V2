@@ -191,7 +191,6 @@ const change_password = async function(req, res) {
     res.status(200).json({ message: "Password was changed successfully" });
     
   } catch (error) {
-    console.log(error);
     handleError(error, res);
   }
 }
@@ -601,7 +600,7 @@ const set_registration_deadline = async function(req, res) {
     }
 
     if (!mongoose.Types.ObjectId.isValid(updatedBy)) {
-      return res.status(400).json({ message: "Something went wrong while authenticating your request" });
+      return res.status(401).json({ message: "Something went wrong while authenticating your request, re-authenticate and try again" });
     }
 
     // clears the entire collection

@@ -232,7 +232,6 @@ const change_password = async function(req, res) {
     res.status(200).json({ message: "Password was changed successfully" });
     
   } catch (error) {
-    console.log(error);
     handleError(error, res);
   }
 }
