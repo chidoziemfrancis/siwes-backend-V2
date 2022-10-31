@@ -41,8 +41,13 @@ const CoordinatorSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
-    minLength: [8, 'Password must be at least 8 characters'],
+    required: [true, 'Please specifiy a password'],
+    minLength: [8, 'password must be at least 8 characters long'],
+    maxLength: [32, 'Password must be less than 32 characters'],
+    // match: [/^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[*.!@$%^&(){}[]:;<,>,.?\/~_\+-=\|\\])$/, 'Password must contain numbers, symbols and letters (upper and lowercase)']
+  },
+  validation_secret: {
+    type: String
   }
 }, { timestamps: true })
 

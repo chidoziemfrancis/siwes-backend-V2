@@ -11,8 +11,7 @@ const StudentSchema = new mongoose.Schema({
   },
   middleName: {
     type: String,
-    lowercase: true,
-    minLength: [3, 'Middle name must be at least 3 characters'],
+    lowercase: true
   },
   lastName: {
     type: String,
@@ -36,7 +35,8 @@ const StudentSchema = new mongoose.Schema({
     lowercase: true,
     minLength: [3, 'Email must be at least 3 characters'],
     unique: true,
-    validate: [isEmail, 'Email must be a valid email']
+    validate: [isEmail, 'Email must be a valid email'],
+    match: [/student.babcock.edu.ng$/, 'Invalid email type']
   },
   matricNo: {
     type: String,
@@ -66,33 +66,33 @@ const StudentSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
-    minLength: [8, 'Password must be at least 8 characters']
+    required: [true, 'Please specifiy a password'],
+    minLength: [8, 'password must be at least 8 characters long'],
+    maxLength: [32, 'Password must be less than 32 characters'],
+    // match: [/^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[*.!@$%^&(){}[]:;<,>,.?\/~_\+-=\|\\])$/, 'Password must contain numbers, symbols and letters (upper and lowercase)']
+  },
+  validation_secret: {
+    type: String
   },
   studentCode: {
     type: String,
-    required: [true, 'Student code is required'],
     unique: true
   }
 }, { timestamps: true })
 
-// Hash password before saving
 StudentSchema.pre('save', async function(next) {
+  // Hash password before saving
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-  
-  next();
-});
 
-// Generate student code before saving
-StudentSchema.pre('save', async function(next) {
-  const year = new Date(Date.now).getFullYear();
+  // genereate student code
+  const year = new Date(Date.now()).getFullYear();
 
-  const studentCode =  `${this.department}-${year}-${this.matricNo.slice(3, 7)}`;
+  const studentCode =  `${this.department.split(' ').join('-')}-${year}-${this.matricNo.slice(3, 7)}`;
   this.studentCode = studentCode;
   
   next();
-})
+});
 
 const Student = mongoose.model('Student', StudentSchema);
 

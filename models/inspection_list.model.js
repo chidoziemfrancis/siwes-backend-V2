@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const Supervision_ListSchema = new mongoose.Schema({
+const Inspection_listSchema = new mongoose.Schema({
   studentCode: {
     type: String,
     required: [true, 'Student code is required'],
@@ -13,6 +13,6 @@ const Supervision_ListSchema = new mongoose.Schema({
   }
 }, { timestamps: true })
 
-const Supervision_List = mongoose.model('Supervision_List', Supervision_ListSchema);
+const Inspection_list = mongoose.model('Inspection_list', Inspection_listSchema);
 
-module.exports = Supervision_List;
+module.exports = Inspection_list;

@@ -45,11 +45,10 @@ const CompanySchema = new mongoose.Schema({
     required: [true, 'Student code is required'],
     unique: true
   },
-  studentRole: {
+  assignedDepartment: {
     type: String,
-    required: [true, 'Student role is required'],
+    required: [true, 'Assigned department is required'],
     lowercase: true,
-    minLength: [3, 'Student role must be at least 3 characters'],
   },
   jobDescription: {
     type: String,

@@ -1,3 +1,10 @@
+const { response } = require('express');
+
+/**
+ * Transforms and send back a readable error message to the frontend client
+ * @param {Error} error 
+ * @param {response} res 
+ */
 const handleError = async function (error, res) {
   // process error from mongodb schema validation
   if (error.name === 'ValidationError') {
@@ -14,7 +21,8 @@ const handleError = async function (error, res) {
 
   // process error from mongodb duplicate key
   if (error.code === 11000) {
-    return res.status(400).json({ 'message': 'Coordinator\'s email already exists' });
+    let duplicateField = Object.keys(error.keyPattern)[0];
+    return res.status(400).json({ 'message': `${duplicateField} already exists` });
   }
 
   // process error from mongodb
