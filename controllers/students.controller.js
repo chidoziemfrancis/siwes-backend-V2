@@ -1,37 +1,37 @@
-const { request, response } = require('express');
-const { handleError } = require('../utils/handleError');
-const mongoose = require('mongoose');
-const STUDENTS = require('./../models/student.model');
-const COMPANY = require('./../models/company.model');
-const WEEKLY_REPORTS = require('./../models/weekly_report.model');
-const bcrypt = require('bcrypt');
+const { request, response } = require("express");
+const { handleError } = require("../utils/handleError");
+const mongoose = require("mongoose");
+const STUDENTS = require("./../models/student.model");
+const COMPANY = require("./../models/company.model");
+const WEEKLY_REPORTS = require("./../models/weekly_report.model");
+const bcrypt = require("bcrypt");
 
 /**
  * Gets the details of a specific student
  * @param {request} req
  * @param {response} res
  */
-const get_details = async function(req, res) {
-  const { _id:id  } = req.user;
+const get_details = async function (req, res) {
+  const { _id: id } = req.user;
 
   try {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      res.status(400).json({ message: 'Invalid student id' });
+      res.status(400).json({ message: "Invalid student id" });
       return;
     }
 
     const data = await STUDENTS.aggregate([
       {
         $match: {
-          '_id': mongoose.Types.ObjectId(id)
-        }
+          _id: mongoose.Types.ObjectId(id),
+        },
       },
       {
         $addFields: {
           name: {
-            $concat: ['$firstName', ' ', '$middleName', ' ', '$lastName']
-          }
-        }
+            $concat: ["$firstName", " ", "$middleName", " ", "$lastName"],
+          },
+        },
       },
       {
         $project: {
@@ -42,71 +42,76 @@ const get_details = async function(req, res) {
           createdAt: 0,
           _v: 0,
           validation_secret: 0,
-          password: 0
-        }
+          password: 0,
+        },
       },
       {
         $lookup: {
-          from: 'companies',
-          localField: 'studentCode',
-          foreignField: 'studentCode',
-          as: 'company'
-        }
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
+        },
       },
       {
         $lookup: {
-          from: 'supervision_lists',
-          localField: 'studentCode',
-          foreignField: 'studentCode',
-          as: 'supervisor'
-        }
+          from: "supervision_lists",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "supervisor",
+        },
       },
       {
         $addFields: {
           company: {
-            $arrayElemAt: [ '$company', 0 ]
+            $arrayElemAt: ["$company", 0],
           },
           supervisor: {
-            $arrayElemAt: [ '$supervisor', 0 ]
-          }
-        }
+            $arrayElemAt: ["$supervisor", 0],
+          },
+        },
       },
       {
         $lookup: {
-          from: 'supervisor',
-          localField: 'supervisor._id',
-          foreignField: '_id',
-          as: 'supervisor'
-        }
+          from: "supervisor",
+          localField: "supervisor._id",
+          foreignField: "_id",
+          as: "supervisor",
+        },
       },
       {
         $addFields: {
           supervisor: {
-            $arrayElemAt: [ '$supervisor', 0 ]
-          }
-        }
-      }
-    ])
+            $arrayElemAt: ["$supervisor", 0],
+          },
+        },
+      },
+    ]);
 
     res.status(200).json({ data: data[0] });
   } catch (error) {
-    handleError(error, res)
+    handleError(error, res);
   }
-}
+};
 
 /**
  * Registers work information for a student
  * @param {request} req
  * @param {response} res
  */
-const add_work_details = async function(req, res) {
+const add_work_details = async function (req, res) {
   const { studentCode } = req.user;
-  
+
   try {
     const workDetails = req.body;
 
-    if (typeof workDetails !== 'object' || Object.keys(workDetails).length === 0) {
-      res.status(400).json({ message: 'Please make sure you have filled all the required fields' });
+    if (
+      typeof workDetails !== "object" ||
+      Object.keys(workDetails).length === 0
+    ) {
+      res.status(400).json({
+        message: "Please make sure you have filled all the required fields",
+      });
       return;
     }
 
@@ -114,48 +119,67 @@ const add_work_details = async function(req, res) {
     const hasUploadedBefore = (await COMPANY.exists({ studentCode })) !== null;
 
     if (hasUploadedBefore) {
-      res.status(400).json({ message: 'You can not upload multiple work details, contact support if you have an issue' })
+      res.status(400).json({
+        message:
+          "You can not upload multiple work details, contact support if you have an issue",
+      });
       return;
     }
-    
+
     workDetails.studentCode = studentCode;
 
     await COMPANY.create(workDetails);
 
-    res.status(200).json({ message: 'Work details was uploaded successfully' });
+    res.status(200).json({ message: "Work details was uploaded successfully" });
   } catch (error) {
     handleError(error, res);
   }
-}
+};
 
 /**
  * Adds weekly report for each student
  * @param {request} req
  * @param {response} res
  */
-const add_weekly_reports = async function(req, res) {
+const add_weekly_reports = async function (req, res) {
   const { studentCode } = req.user;
   const report = req.body;
 
   try {
-    if (typeof report !== 'object' || Object.keys(report).length === 0) {
-      res.status(400).json({ message: "Please specify all the neccesary fields" });
+    if (typeof report !== "object" || Object.keys(report).length === 0) {
+      res
+        .status(400)
+        .json({ message: "Please specify all the neccesary fields" });
       return;
     }
 
     const companyInfo = await COMPANY.findOne({ studentCode });
 
     if (companyInfo === null) {
-      res.status(400).json({ message: "Unable to find a matching company attachement please add a company first" });
+      res.status(400).json({
+        message:
+          "Unable to find a matching company attachement please add a company first",
+      });
       return;
     }
 
-    const daysOfTheWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const daysOfTheWeek = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
     const companyId = companyInfo._id;
     const currentDay = new Date(Date.now()).getDay();
 
     if (currentDay === 0 || currentDay === 7) {
-      res.status(200).json({ message: "We appreciate your hardwork across the week, but submissions are now closed for this week" });
+      res.status(200).json({
+        message:
+          "We appreciate your hardwork across the week, but submissions are now closed for this week",
+      });
       return;
     }
 
@@ -170,36 +194,42 @@ const add_weekly_reports = async function(req, res) {
       companyId,
       weekId: 0, // will be determine based on when siwes starts
       weekStart: 0,
-      ...jobDescription
-    }
+      ...jobDescription,
+    };
 
-    await WEEKLY_REPORTS.updateOne({ studentCode, companyId, weekId: 0 }, processedReport, { upsert: true });
+    await WEEKLY_REPORTS.updateOne(
+      { studentCode, companyId, weekId: 0 },
+      processedReport,
+      { upsert: true }
+    );
 
     res.status(200).json({ message: "Upload successful" });
   } catch (error) {
     handleError(error, res);
   }
-}
+};
 
 /**
  * Changes student password
  * @param {request} req
  * @param {response} res
  */
-const change_password = async function(req, res) {
+const change_password = async function (req, res) {
   let { oldPassword, newPassword } = req.body;
   const { _id } = req.user;
 
-  if (typeof oldPassword === 'string') {
+  if (typeof oldPassword === "string") {
     oldPassword = oldPassword.trim();
   }
 
-  if (typeof newPassword === 'string') {
+  if (typeof newPassword === "string") {
     newPassword = newPassword.trim();
   }
 
   if (!(oldPassword && newPassword)) {
-    res.status(400).json({ message: "Incomplete request, please specify all required parameters" });
+    res.status(400).json({
+      message: "Incomplete request, please specify all required parameters",
+    });
     return;
   }
 
@@ -207,7 +237,10 @@ const change_password = async function(req, res) {
     const student = await STUDENTS.findOne({ _id });
 
     if (student === null) {
-      res.status(401).json({ message: "Something unusual happened to your authentication status while trying to chaneg your password, so we couldn't process your request" })
+      res.status(401).json({
+        message:
+          "Something unusual happened to your authentication status while trying to chaneg your password, so we couldn't process your request",
+      });
       return;
     }
 
@@ -222,23 +255,27 @@ const change_password = async function(req, res) {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    const { modifiedCount } = await STUDENTS.updateOne({ _id }, { password: hashedPassword });
+    const { modifiedCount } = await STUDENTS.updateOne(
+      { _id },
+      { password: hashedPassword }
+    );
 
     if (!modifiedCount) {
-      res.status(500).json({ message: "Something went wrong, please try again" });
+      res
+        .status(500)
+        .json({ message: "Something went wrong, please try again" });
       return;
     }
 
     res.status(200).json({ message: "Password was changed successfully" });
-    
   } catch (error) {
     handleError(error, res);
   }
-}
+};
 
 module.exports = {
   get_details,
   add_work_details,
   add_weekly_reports,
-  change_password
-}
+  change_password,
+};
