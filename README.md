@@ -213,17 +213,17 @@ There are 4 endpoints under the students sections of the API.
 		- Status code - 200
 		- Response body
 		```json
-		{ message:  "Work details was uploaded successfully" }
+		{ "message":  "Work details was uploaded successfully" }
 		```
 	- Failed request
 		This request may fail for multiple reasons with status code of `400`, below are some of them
 		- If the request payload is incomplete missing some fields 
 		```json
-		{ message:  "Please make sure you have filled all the required fields" }
+		{ "message":  "Please make sure you have filled all the required fields" }
 		```
 		- Attempting to upload work details multiple times
 		```json
-		{ message: "You can not upload multiple work details, contact support if you have an issue" }
+		{ "message": "You can not upload multiple work details, contact support if you have an issue" }
 		```
 3. Upload weekly reports
 	This route allows students to upload weekly reports it has some constraints e.g reports cannot be uploaded after the due date, reports cannot be uploaded without uploading company details first etc.
@@ -243,21 +243,21 @@ There are 4 endpoints under the students sections of the API.
 		- Status code - 200
 		- Response body
 		```json
-		{ message:  "Upload successful" }
+		{ "message":  "Upload successful" }
 		```
 	- Failed request
 	All route failures return a `400` status code
 		- Incomplete payload
 		```json
-		{ message:  "Please specify all the neccesary fields" }
+		{ "message":  "Please specify all the neccesary fields" }
 		```
 		- No company upload matches the student
 		```json
-		{ message: "Unable to find a matching company attachement please add a company first" }
+		{ "message": "Unable to find a matching company attachement please add a company first" }
 		```
 		- Upload date has passed
 		```json
-		{ message: "We appreciate your hardwork across the week, but submissions are now closed for this week" }
+		{ "message": "We appreciate your hardwork across the week, but submissions are now closed for this week" }
 		```
 		
 4. Change password
@@ -275,21 +275,21 @@ It accepts a payload like so:
 		- Status code - 200
 		- Response body
 		```json
-		{ message:  "Password was changed successfully" }
+		{ "message":  "Password was changed successfully" }
 		```
 	- Failed request
 		There are a lot of reasons why this request can failed they are listed below
 		- Missing fields
 		```json
-		{ message:  "Incomplete request, please specify all required parameters" }
+		{ "message":  "Incomplete request, please specify all required parameters" }
 		```
 		- If the `oldPassword` is wrong
 		```json
-		{ message:  "Incorrect password" }
+		{ "message":  "Incorrect password" }
 		```
 		- A weird case where the student gets deleted before his changes was processed or the token used for authetication was falsified.
 		```json
-		{ message: "Something unusual happened to your authentication status while trying to chaneg your password, so we couldn't process your request" }
+		{ "message": "Something unusual happened to your authentication status while trying to chaneg your password, so we couldn't process your request" }
 		```
 
 ## Working with the Coordinator API
