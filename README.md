@@ -186,7 +186,7 @@ There are 4 endpoints under the students sections of the API.
 		A request to get student detail may fail for one of two reasons
 		- The token is invalid this returns an error like so
 			```json
-			{ message:  "Invalid student id" }
+			{ "message":  "Invalid student id" }
 			``` 
 
 2. Add work details 
