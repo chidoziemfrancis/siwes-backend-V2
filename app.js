@@ -14,7 +14,12 @@ require("dotenv").config();
 const app = express();
 
 // set up middlewares
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:3000"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
+  })
+);
 app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -32,7 +37,7 @@ app.use(
 );
 
 // connect to database and start app
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const DB_URI = process.env.DB_URI;
 
 async function main() {
