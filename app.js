@@ -37,7 +37,7 @@ app.use(
 );
 
 // connect to database and start app
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 const DB_URI = process.env.DB_URI;
 
 async function main() {
