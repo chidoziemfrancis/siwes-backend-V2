@@ -79,17 +79,14 @@ const create_tokens = function (user, res, type) {
 
       const cookieOptions = {
         httpOnly: true,
-        // secure: true,
-        sameSite: "Strict",
+        secure: true,
+        sameSite: "none",
         maxAge: 604800000, // 7 days
       };
 
       res.cookie("umis_siwesA", accessToken, cookieOptions);
       res.cookie("umis_siwesR", refreshToken, cookieOptions);
-      res.cookie("umis_siwesC", clientToken, {
-        sameSite: "Strict",
-        maxAge: 604800000,
-      });
+      res.cookie("umis_siwesC", clientToken, cookieOptions);
 
       resolve();
     } catch (error) {
@@ -158,7 +155,7 @@ const login = async function (req, res) {
     }
 
     if (email.trim().length === 0 || password.length === 0) {
-      res.status(401).json({ message: "Invalid request" });
+      res.status(400).json({ message: "Invalid request" });
       return;
     }
 
@@ -182,14 +179,14 @@ const login = async function (req, res) {
     }
 
     if (user === null) {
-      res.status(401).json({ message: "Invalid credentials" });
+      res.status(400).json({ message: "Invalid credentials" });
       return;
     }
 
     const passwordIsValid = await bcrypt.compare(password, user.password);
 
     if (!passwordIsValid) {
-      res.status(401).json({ message: "Invalid credentials" });
+      res.status(400).json({ message: "Invalid credentials" });
       return;
     }
 

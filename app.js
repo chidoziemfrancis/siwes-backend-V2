@@ -16,8 +16,9 @@ const app = express();
 // set up middlewares
 app.use(
   cors({
-    origin: ["http://localhost:3000"],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
+    origin: ["http://localhost:3001"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    credentials: true    
   })
 );
 app.use(compression());
