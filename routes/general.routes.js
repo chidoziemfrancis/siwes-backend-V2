@@ -4,6 +4,11 @@ const studentsRoutes = require("./students.routes");
 const supervisorsRoutes = require("./supervisors.routes");
 const authRoutes = require("./auth.routes");
 
+// render needs a route that will always return success
+router.get('/router', (req, res) => {
+  res.status(200).send();
+})
+
 // Coordinator specific routes
 router.use("/coordinators", coordinatorsRoutes);
 
