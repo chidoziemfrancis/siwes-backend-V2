@@ -5,7 +5,7 @@ const supervisorsRoutes = require("./supervisors.routes");
 const authRoutes = require("./auth.routes");
 
 // render needs a route that will always return success
-router.get('/router', (req, res) => {
+router.get('/render', (req, res) => {
   res.status(200).send();
 })
 
