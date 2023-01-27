@@ -317,7 +317,7 @@ const assign_defense_supervisor = async function (req, res) {
     if (studentExists === null) {
       return res
         .status(400)
-        .json({ message: "No studet was found with that student code" });
+        .json({ message: "No student was found with that student code" });
     }
 
     const studentSupervisionList = await INSPECTION_LIST.findOne({
@@ -330,7 +330,7 @@ const assign_defense_supervisor = async function (req, res) {
     ) {
       return res.status(400).json({
         message:
-          "The same supetvisor can not inspect and be in charge of defense for the same student",
+          "The same supervisor can not inspect and be in charge of defense for the same student",
       });
     }
 
@@ -443,13 +443,77 @@ const get_a_student = async function (req, res) {
       return res.status(400).json({ message: "Invalid id" });
     }
 
-    const student = await STUDENTS.findOne(
-      { _id: id },
-      { password: 0, validation_secret: 0, createdAt: 0, updatedAt: 0 }
-    );
+    // when a specific student is queried the coordinator needs to see all his info
+    const student = await STUDENTS.aggregate([
+      {
+        $match: {
+          _id: mongoose.Types.ObjectId(id),
+        },
+      },
+      {
+        $addFields: {
+          name: {
+            $concat: ["$firstName", " ", "$middleName", " ", "$lastName"],
+          },
+        },
+      },
+      {
+        $project: {
+          firstName: 0,
+          lastName: 0,
+          middleName: 0,
+          updatedAt: 0,
+          createdAt: 0,
+          _v: 0,
+          validation_secret: 0,
+          password: 0,
+        },
+      },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
+        },
+      },
+      {
+        $lookup: {
+          from: "supervision_lists",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "supervisor",
+        },
+      },
+      {
+        $addFields: {
+          company: {
+            $arrayElemAt: ["$company", 0],
+          },
+          supervisor: {
+            $arrayElemAt: ["$supervisor", 0],
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "supervisor",
+          localField: "supervisor._id",
+          foreignField: "_id",
+          as: "supervisor",
+        },
+      },
+      {
+        $addFields: {
+          supervisor: {
+            $arrayElemAt: ["$supervisor", 0],
+          },
+        },
+      },
+    ]);
 
     if (student === null) {
-      return res.status(404).json({ message: "Coordinator not found" });
+      return res.status(404).json({ message: "Student not found" });
     }
 
     return res.status(200).json(student);
