@@ -431,7 +431,7 @@ const update_inspection_time = async function (req, res) {
     const isInCharge = await INSPECTION_LIST.findOne({ supervisorId, studentCode });
 
     if (isInCharge === null) {
-      res.status(400).json({ message: "Action failed, you are not the defense supervisor of this student" });
+      res.status(400).json({ message: "Action failed, you are not the inspection supervisor of this student" });
       return;
     }
 
@@ -454,7 +454,40 @@ const update_inspection_time = async function (req, res) {
  * @param {response} res
  */
 const update_defense_time = async function (req, res) {
+  try {
+    const { _id:supervisorId } = req.user;
+    const { date, studentCode } = req.body;
 
+    // checks if date is valid
+    if (typeof date == 'undefined') {
+      res.status(400).json({ message: "Invalid request" })
+      return;
+    }
+
+    if (new Date(date) < new Date(Date.now())) {
+      res.status(400).json({ message: "Defense date must be in the future" })
+      return;
+    }
+
+    // check if the supervisor is incharge of the student
+    const isInCharge = await DEFENSE_LIST.findOne({ supervisorId, studentCode });
+
+    if (isInCharge === null) {
+      res.status(400).json({ message: "Action failed, you are not the defense supervisor of this student" });
+      return;
+    }
+
+    const response = await DEFENSE_LIST.updateOne({ supervisorId, studentCode }, { $set: { assignedDate: date } });
+
+    if (response.acknowledged == false) {
+      res.status(500).json({ message: "Operation failed, please try again" })
+      return;
+    }
+
+    res.status(200).json({ message: "Defense date updated" })
+  } catch (error) {
+    handleError(error, res);
+  }
 }
 
 module.exports = {
