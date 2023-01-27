@@ -7,6 +7,8 @@ const {
   get_forms,
   change_password,
   update_supervisor_details,
+  update_defense_time,
+  update_inspection_time
 } = require("./../controllers/supervisors.controller");
 
 router.get("/get/:id", isSupervisor, get_a_supervisor);
@@ -28,5 +30,9 @@ router.get("/forms", isSupervisor, get_forms);
 router.patch("/changePassword", isSupervisor, change_password);
 
 router.patch("/update", isSupervisor, update_supervisor_details);
+
+router.patch("/updateInspectionTime", isSupervisor, update_inspection_time);
+
+router.patch("/updateDefenseTime", isSupervisor, update_defense_time);
 
 module.exports = router;

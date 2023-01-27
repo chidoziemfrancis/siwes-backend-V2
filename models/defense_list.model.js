@@ -12,6 +12,9 @@ const Defense_ListSchema = new mongoose.Schema(
       ref: "Supervisor",
       required: [true, "Supervisor ID is required"],
     },
+    assignedDate: {
+      type: Date
+    }
   },
   { timestamps: true }
 );
