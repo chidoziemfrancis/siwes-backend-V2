@@ -73,6 +73,8 @@ const get_assigned_students_for_defense = async function (req, res) {
                 matricNo: 1,
                 studentCode: 1,
                 course: 1,
+                email: 1, 
+                phone: 1
               },
             },
           ],
@@ -93,6 +95,11 @@ const get_assigned_students_for_defense = async function (req, res) {
             {
               $project: {
                 name: 1,
+                address: 1,
+                phone: 1,
+                state: 1,
+                LGA: 1,
+                email: 1
               },
             },
           ],
