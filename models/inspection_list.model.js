@@ -13,8 +13,8 @@ const Inspection_listSchema = new mongoose.Schema(
       required: [true, "Supervisor ID is required"],
     },
     assignedDate: {
-      type: Date
-    }
+      type: Date,
+    },
   },
   { timestamps: true }
 );

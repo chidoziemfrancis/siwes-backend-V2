@@ -51,14 +51,30 @@ const get_details = async function (req, res) {
           localField: "studentCode",
           foreignField: "studentCode",
           as: "company",
+          pipeline: [
+            {
+              $project: {
+                createdAt: 0,
+                updatedAt: 0,
+              },
+            },
+          ],
         },
       },
       {
         $lookup: {
-          from: "supervision_lists",
+          from: "inspection_lists",
           localField: "studentCode",
           foreignField: "studentCode",
-          as: "supervisor",
+          as: "inspection_supervisor",
+        },
+      },
+      {
+        $lookup: {
+          from: "defense_lists",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "defense_supervisor",
         },
       },
       {
@@ -66,23 +82,57 @@ const get_details = async function (req, res) {
           company: {
             $arrayElemAt: ["$company", 0],
           },
-          supervisor: {
-            $arrayElemAt: ["$supervisor", 0],
+          inspection_supervisor: {
+            $arrayElemAt: ["$inspection_supervisor", 0],
+          },
+          defense_supervisor: {
+            $arrayElemAt: ["$defense_supervisor", 0],
           },
         },
       },
       {
         $lookup: {
-          from: "supervisor",
-          localField: "supervisor._id",
+          from: "supervisors",
+          localField: "inspection_supervisor.supervisorId",
           foreignField: "_id",
-          as: "supervisor",
+          as: "inspection_supervisor",
+          pipeline: [
+            {
+              $project: {
+                createdAt: 0,
+                updatedAt: 0,
+                validation_secret: 0,
+                password: 0,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: "supervisors",
+          localField: "defense_supervisor.supervisorId",
+          foreignField: "_id",
+          as: "defense_supervisor",
+          pipeline: [
+            {
+              $project: {
+                createdAt: 0,
+                updatedAt: 0,
+                validation_secret: 0,
+                password: 0,
+              },
+            },
+          ],
         },
       },
       {
         $addFields: {
-          supervisor: {
-            $arrayElemAt: ["$supervisor", 0],
+          inspection_supervisor: {
+            $arrayElemAt: ["$inspection_supervisor", 0],
+          },
+          defense_supervisor: {
+            $arrayElemAt: ["$defense_supervisor", 0],
           },
         },
       },

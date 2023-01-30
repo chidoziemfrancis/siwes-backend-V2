@@ -8,7 +8,7 @@ const {
   change_password,
   update_supervisor_details,
   update_defense_time,
-  update_inspection_time
+  update_inspection_time,
 } = require("./../controllers/supervisors.controller");
 
 router.get("/get/:id", isSupervisor, get_a_supervisor);
