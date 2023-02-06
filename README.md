@@ -9,10 +9,10 @@ There 4 sections to this API:
  4. Student's API
 
 ## Getting started with Authentication
-The API uses token based authentication but doesn't the require the frontend application to manually send back any token to it at any point, as tokens will automatically always be attached the cookies sent along with each request.
+The API uses token based authentication so it doesn't require the frontend application to manually send back any token to it at any point, as tokens will automatically always be attached the cookies sent along with each request.
 Under the authetication there are 3 functions
 
- - Registration
+ 1. Registration
 	> POST - [https://www.domain.com/api/auth/register](https://www.domain.com/api/auth/register)
 
 	This route should only be accessible to students, it requires an object like below passed to it via the body of the request
@@ -39,7 +39,7 @@ Under the authetication there are 3 functions
 		- Response body
 		```json
 		{ 
-			"message": "Login successful",
+			"message": "Registration successful",
 			"data": "631b4162deab9b9ec49dd014"
 		}
 		```
@@ -74,7 +74,7 @@ Under the authetication there are 3 functions
 			```
 
  2. Login
-	 > POST - [https://www.domain.com/api/auth/login](https://www.domain.com/api/auth/register)
+	 > POST - [https://www.domain.com/api/auth/login](https://www.domain.com/api/auth/login)
 	 
 	 This route requires an object like below passed to it via the body of the request.
 	 ```json
@@ -118,13 +118,13 @@ Under the authetication there are 3 functions
 			```
 
  3. Logout
-	 > POST - [https://www.domain.com/api/auth/logout](https://www.domain.com/api/auth/register)
+	 > POST - [https://www.domain.com/api/auth/logout](https://www.domain.com/api/auth/logout)
 	 
 	 This route doesn't require any arguments to be sent along with it, It simply clears the cookies from the user's device.
 	 
 	**Possible responses**
 
-	 1. Successful request
+	 - Successful request
 		 - Response type - Success
 		 - Status code -  200
 		 - Response body
@@ -132,8 +132,166 @@ Under the authetication there are 3 functions
 		  { "message": "Success" }
 		 ```
 
+## Working with the Student API
+
+There are 4 endpoints under the students sections of the API.
+
+1. Get dashboard details
+	> POST - [http://localhost:3000/api/student/getDetails](http://localhost:3000/api/student/getDetails)
+
+	This route doesn't require any payload passed to it, it will automatically use the tokens in the client's cookies to find and retrieve the student's information.
+
+	**Possible responses**
+	- Sucessful request
+		- Reponse type - success
+		- Status code - 200
+		- Response body
+		```json
+		{
+			"data": {
+				"_id": "632b80178ef672fa87a03293",
+				"course": "software engineering",
+				"department": "software engineering",
+				"email": "barry@student.babcock.edu.ng",
+				"matricNo": "19/8731",
+				"sex": "Male",
+				"level": "400",
+				"faculty": "computer science",
+				"phone": "091314242112",
+				"studentCode": "software-engineering-2022-8731",
+				"__v": 0,
+				"name": "barry james allen",
+				"company": {
+					"_id": "632c3d3e47d7c2e3ba462f4b",
+					"name": "google llc",
+					"address": "no 5 test address",
+					"state": "akwa ibom",
+					"LGA": "ikot epkene",
+					"email": "recruiter@google.com",
+					"phone": "01031391123",
+					"studentCode": "software-engineering-2022-8731",
+					"assignedDepartment": "cyber security",
+					"jobDescription": "In publishing and graphic design, Lorem ipsum is a placeholder text commonly used to demonstrate the visual form of a document or a typeface without relying on meaningful content. Lorem ipsum may be used as a placeholder before final copy is available.",
+					"resumptionDate": "2022-09-22T10:29:23.012Z",
+					"expectedEndDate": "2022-09-22T16:02:43.012Z",
+					"createdAt": "2022-09-22T10:47:26.651Z",
+					"updatedAt": "2022-09-22T10:47:26.651Z",
+					"__v": 0
+				}
+			}
+		}
+		```
+		
+	- Failed request
+		A request to get student detail may fail for one of two reasons
+		- The token is invalid this returns an error like so
+			```json
+			{ "message":  "Invalid student id" }
+			``` 
+
+2. Add work details 
+	This route allows students to upload work details at the start of the SIWES program, it expects a payload similar to this one
+	```json
+	{
+		"name": "Google LLC",
+		"address": "No 5 test address",
+		"state": "Akwa Ibom",
+		"LGA": "Ikot Epkene",
+		"email": "recruiter@google.com",
+		"phone": "01031391123",
+		"assignedDepartment": "Cyber Security",
+		"jobDescription": "In publishing and graphic design, Lorem ipsum is a placeholder text commonly used to demonstrate the visual form of a document or a typeface without relying on meaningful content. Lorem ipsum may be used as a placeholder before final copy is available.",
+		"resumptionDate": 1663842563012,
+		"expectedEndDate": 1663862563012
+	}
+	```
+	`Note:` The `resumptionDate` and `expectedEndDate` values will be converted using JavaScript to standard date representation.
+	
+	**Possible responses**
+	- Sucessful request
+		- Reponse type - success
+		- Status code - 200
+		- Response body
+		```json
+		{ "message":  "Work details was uploaded successfully" }
+		```
+	- Failed request
+		This request may fail for multiple reasons with status code of `400`, below are some of them
+		- If the request payload is incomplete missing some fields 
+		```json
+		{ "message":  "Please make sure you have filled all the required fields" }
+		```
+		- Attempting to upload work details multiple times
+		```json
+		{ "message": "You can not upload multiple work details, contact support if you have an issue" }
+		```
+3. Upload weekly reports
+	This route allows students to upload weekly reports it has some constraints e.g reports cannot be uploaded after the due date, reports cannot be uploaded without uploading company details first etc.
+	The route expects a payload like follow:
+	```json
+	{
+		"monday": "In publishing and graphic design, Lorem ipsum is a placeholder text commonly used to demonstrate the visual form of a document or a typeface without relying on meaningful content. Lorem ipsum may be used as a placeholder before final copy is available.",
+		"tuesday": "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here',",
+		"wednesday": "making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).",
+		"thursday": "In publishing and graphic design, Lorem ipsum is a placeholder text commonly used to demonstrate the visual form of a document or a typeface without relying on meaningful content. Lorem ipsum may be used as a placeholder before final copy is available.",
+		"friday": "making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like)."
+	}
+	```
+	**Possible responses**
+	- Sucessful request
+		- Reponse type - success
+		- Status code - 200
+		- Response body
+		```json
+		{ "message":  "Upload successful" }
+		```
+	- Failed request
+	All route failures return a `400` status code
+		- Incomplete payload
+		```json
+		{ "message":  "Please specify all the neccesary fields" }
+		```
+		- No company upload matches the student
+		```json
+		{ "message": "Unable to find a matching company attachement please add a company first" }
+		```
+		- Upload date has passed
+		```json
+		{ "message": "We appreciate your hardwork across the week, but submissions are now closed for this week" }
+		```
+		
+4. Change password
+This route allows students to change their passwords (most likely not going to happen) access to it can easily be redirected to the coordinators.
+It accepts a payload like so:
+	```json
+	{
+		"oldPassword": "newPasswordText",
+		"newPassword": "passwordText"
+	}
+	```
+	**Possible responses**
+	- Sucessful request
+		- Reponse type - success
+		- Status code - 200
+		- Response body
+		```json
+		{ "message":  "Password was changed successfully" }
+		```
+	- Failed request
+		There are a lot of reasons why this request can failed they are listed below
+		- Missing fields
+		```json
+		{ "message":  "Incomplete request, please specify all required parameters" }
+		```
+		- If the `oldPassword` is wrong
+		```json
+		{ "message":  "Incorrect password" }
+		```
+		- A weird case where the student gets deleted before his changes was processed or the token used for authetication was falsified.
+		```json
+		{ "message": "Something unusual happened to your authentication status while trying to chaneg your password, so we couldn't process your request" }
+		```
+
 ## Working with the Coordinator API
 
 ## Working with the Supervisor API
-
-## Working with the Student API

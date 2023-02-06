@@ -1,0 +1,7 @@
+*.json
+*.md
+.env
+uploads/*
+node_modules/*
+.prettierignore
+.gitignore

@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "set IN_DEV_ENV=true && nodemon app.js",
+    "lint": "npx prettier -w */**"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +26,7 @@
     "validator": "^13.7.0"
   },
   "devDependencies": {
+    "prettier": "^2.7.1",
     "nodemon": "^2.0.16"
   }
 }
