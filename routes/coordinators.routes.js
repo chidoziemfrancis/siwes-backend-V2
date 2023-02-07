@@ -16,6 +16,10 @@ const {
   get_all_students,
   get_a_student,
   set_registration_deadline,
+  get_weekly_reports,
+  assign_grade,
+  collate_grades,
+  collate_all_grades,
 } = require("./../controllers/coordinators.controller");
 const { isCoordinator } = require("./../middlewares/auth.middleware");
 const {
@@ -27,13 +31,19 @@ router.get("/getAll", isCoordinator, get_all_coordinators);
 
 router.get("/get/:id", isCoordinator, get_a_specific_coordinator);
 
+router.get("/defenseList", isCoordinator, get_defense_list);
+
+router.get("/inspectionList", isCoordinator, get_inspection_list);
+
+router.get("/supervisors", isCoordinator, get_all_supervisors);
+
+router.get("/students", isCoordinator, get_all_students);
+
+router.get("/students/:id", isCoordinator, get_a_student);
+
+router.get('/getWeeklyReports/:studentCode', isCoordinator, get_weekly_reports);
+
 router.post("/add", isCoordinator, add_a_new_coordinator);
-
-router.delete("/delete/:id", isCoordinator, delete_a_coordinator);
-
-router.patch("/update/:id", isCoordinator, update_coordinator_details);
-
-router.patch("/changePassword", isCoordinator, change_password);
 
 router.post("/createSupervisor", isCoordinator, create_supervisor);
 
@@ -43,12 +53,6 @@ router.post(
   processFileUpload,
   upload_inspection_forms
 );
-
-router.get("/supervisors", isCoordinator, get_all_supervisors);
-
-router.get("/students", isCoordinator, get_all_students);
-
-router.get("/students/:id", isCoordinator, get_a_student);
 
 router.post(
   "/assignInspectionSupervisor",
@@ -62,14 +66,22 @@ router.post(
   assign_defense_supervisor
 );
 
-router.get("/defenseList", isCoordinator, get_defense_list);
-
-router.get("/inspectionList", isCoordinator, get_inspection_list);
-
 router.post(
   "/setRegistrationDeadline",
   isCoordinator,
   set_registration_deadline
 );
+
+router.post('/assignGrade', isCoordinator, assign_grade);
+
+router.delete("/delete/:id", isCoordinator, delete_a_coordinator);
+
+router.patch('/collateGrades/:studentId', isCoordinator, collate_grades);
+
+router.patch('/collateAllGrades', isCoordinator, collate_all_grades);
+
+router.patch("/update/:id", isCoordinator, update_coordinator_details);
+
+router.patch("/changePassword", isCoordinator, change_password);
 
 module.exports = router;

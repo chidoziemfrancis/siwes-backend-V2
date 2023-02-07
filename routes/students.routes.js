@@ -11,8 +11,8 @@ router.get("/getDetails", isStudent, get_details);
 
 router.post("/workDetails", isStudent, add_work_details);
 
-router.patch("/changePassword", isStudent, change_password);
-
 router.post("/weeklyReports", isStudent, add_weekly_reports);
+
+router.patch("/changePassword", isStudent, change_password);
 
 module.exports = router;

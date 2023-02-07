@@ -5,6 +5,8 @@ const DEFENSE_LIST = require("./../models/defense_list.model");
 const INSPECTION_LIST = require("./../models/inspection_list.model");
 const DEADLINE = require("./../models/deadline.model");
 const FORMS = require("./../models/form.model");
+const GRADES = require('../models/grade.model');
+const WEEKLYREPORTS = require('./../models/weekly_report.model');
 const { handleError } = require("../utils/handleError");
 const mongoose = require("mongoose");
 const { request, response } = require("express");
@@ -766,6 +768,164 @@ const set_registration_deadline = async function (req, res) {
   }
 };
 
+/**
+ * Returns a list of all the weekly reports for the specified student
+ * @param {request} req
+ * @param {response} res
+ */
+const get_weekly_reports = async function (req, res) {
+  const { studentCode } = req.params;
+
+  try {
+    // match the pattern of the student code - deptname-year-last 4 digits matric no
+    if (/[A-Za-z]+\-\d{4}\-\d{4}/.test(studentCode) == false) {
+      res.status(400).json({ message: "Invalid student code" })
+      return;
+    }
+
+    const reports = await WEEKLYREPORTS.find({ studentCode });
+
+    if (reports.length == 0) {
+      res.status(404).json({ message: "No weekly reports submission found for the specified student" })
+      return;
+    }
+
+    res.status(200).json({ reports })
+  } catch (error) {
+    handleError(error, res);
+  }
+}
+
+/**
+ * Updates the student grade collections with the grades for inspection, reports and defense
+ * @param {request} req
+ * @param {response} res
+ */
+const assign_grade = async function (req, res) {
+  const { type, score, studentId } = req.body;
+  const { _id:lastUpdatedBy } = req.user;
+
+  try {
+    if (mongoose.Types.ObjectId.isValid(lastUpdatedBy) == false) {
+      res.status(401).json({ message: "Please re authenticate to proceed" })
+      return;
+    }
+
+    if (mongoose.Types.ObjectId.isValid(studentId) == false) {
+      res.status(400).json({ message: "Invalid student id" })
+      return;
+    }
+
+    const validTypes = { "inspection": "inspectionScore", "defense": "defenseScore", "reports": "weeklyReportsScore" }; 
+    if (Object.keys(validTypes).includes(type) == false) {
+      res.status(400).json({ message: "Invalid type specified, specify a valid type and try again" })
+      return;
+    }
+
+    if (score == null || typeof score == 'undefined') {
+      res.status(400).json({ message: "Please specify a score" })
+      return;
+    }
+
+    if ((type == 'inspection' || type == 'reports') && (score > 20 || score < 0)) {
+      res.status(400).json({ message: `${type} score must be between 0 and 20` })
+      return;
+    }
+
+    if (type == 'defense' && (score > 60 || score < 0)) {
+      res.status(400).json({ message: `${type} score must be between 0 and 60` })
+      return;
+    }
+
+    const studentGrade = await GRADES.findOne({ studentId });
+
+    // grades have been collated previously
+    if (studentGrade !== null && studentGrade.total !== null) {
+      res.status(400).json({ message: "Grades cannot be updated as they have been collated already" })
+      return;
+    }
+
+    const response = await GRADES.updateOne({ studentId }, { [validTypes[type]]: score, lastUpdatedBy }, { upsert: true });
+
+    if (response.acknowledged == false) {
+      res.status(500).json({ message: "Action failed, please try again or contact support" });
+      return;
+    }
+
+    res.status(200).json({ message: "Grades updated successfully" })
+  } catch (error) {
+    handleError(error, res);
+  }
+}
+
+/**
+ * Collates the grades and *locks the document
+ * @param {request} req
+ * @param {response} res
+ */
+const collate_grades = async function (req, res) {
+  const { studentId } = req.params;
+  const { _id:lastUpdatedBy } = req.user;
+
+  try {
+    if (mongoose.Types.ObjectId.isValid(studentId) == false) {
+      res.status(400).json({ message: "Invalid student id" })
+      return;
+    }
+
+    const response = await GRADES.updateOne({ studentId }, [
+      {
+        $set: {
+          'total': {
+            $sum: ['$inspectionScore', '$weeklyReportsScore', '$defenseScore']
+          },
+          'lastUpdatedBy': lastUpdatedBy
+        }
+      }
+    ]);
+    
+    if (response.acknowledged == false) {
+      res.status(500).json({ message: "Action failed, please try again or contact support" });
+      return;
+    }
+
+    res.status(200).json({ message: "Grades have been collated successfully" })
+  } catch (error) {
+    handleError(error, res);
+  }
+}
+
+/**
+ * Collates the grades of all students and *locks the document
+ * @param {request} req
+ * @param {response} res
+ */
+const collate_all_grades = async function (req, res) {
+  const { _id:lastUpdatedBy } = req.user;
+
+  try {
+    const response = await GRADES.updateMany({ }, [
+      {
+        $set: {
+          'total': {
+            $sum: ['$inspectionScore', '$weeklyReportsScore', '$defenseScore']
+          },
+          'lastUpdatedBy': lastUpdatedBy
+        }
+      }
+    ]);
+    
+    if (response.acknowledged == false) {
+      res.status(500).json({ message: "Action failed, please try again or contact support" });
+      return;
+    }
+
+    res.status(200).json({ message: "Grades have been collated successfully for all students" })
+  } catch (error) {
+    handleError(error, res);
+  }
+}
+
 module.exports = {
   add_a_new_coordinator,
   get_all_coordinators,
@@ -783,4 +943,8 @@ module.exports = {
   get_all_students,
   get_a_student,
   set_registration_deadline,
+  get_weekly_reports,
+  assign_grade,
+  collate_grades,
+  collate_all_grades
 };
