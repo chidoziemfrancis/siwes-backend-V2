@@ -512,6 +512,56 @@ const get_a_student = async function (req, res) {
           },
         },
       },
+      {
+        $lookup: {
+          from: "grades",
+          localField: "_id",
+          foreignField: "studentId",
+          as: "grades",
+          pipeline: [
+            {
+              $project: {
+                studentId: 0,
+                __v: 0,
+                createdAt: 0,
+                updatedAt: 0,
+              }
+            }
+          ]
+        }
+      },
+      {
+        $addFields: {
+          grades: {
+            $arrayElemAt: ["$grades", 0],
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: 'coordinators',
+          localField: 'grades.lastUpdatedBy',
+          foreignField: '_id',
+          as: 'lastUpdatedBy'
+        }
+      },
+      { 
+        $addFields: {
+          lastUpdatedBy: {
+            $arrayElemAt: ['$lastUpdatedBy', 0]
+          }
+        }
+      },
+      {
+        $set: {
+          'grades.lastUpdatedBy': {
+            $concat: ['$lastUpdatedBy.firstName', ' ', '$lastUpdatedBy.lastName']
+          }
+        }
+      },
+      {
+        $unset: 'lastUpdatedBy'
+      }
     ]);
 
     if (student === null) {
