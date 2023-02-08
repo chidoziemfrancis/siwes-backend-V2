@@ -191,8 +191,8 @@ const get_assigned_students_for_inspection = async function (req, res) {
                 matricNo: 1,
                 studentCode: 1,
                 course: 1,
-                email: 1, 
-                phone: 1
+                email: 1,
+                phone: 1,
               },
             },
           ],
@@ -217,7 +217,7 @@ const get_assigned_students_for_inspection = async function (req, res) {
                 phone: 1,
                 state: 1,
                 LGA: 1,
-                email: 1
+                email: 1,
               },
             },
           ],
@@ -443,12 +443,10 @@ const update_inspection_time = async function (req, res) {
     });
 
     if (isInCharge === null) {
-      res
-        .status(400)
-        .json({
-          message:
-            "Action failed, you are not the inspection supervisor of this student",
-        });
+      res.status(400).json({
+        message:
+          "Action failed, you are not the inspection supervisor of this student",
+      });
       return;
     }
 
@@ -496,12 +494,10 @@ const update_defense_time = async function (req, res) {
     });
 
     if (isInCharge === null) {
-      res
-        .status(400)
-        .json({
-          message:
-            "Action failed, you are not the defense supervisor of this student",
-        });
+      res.status(400).json({
+        message:
+          "Action failed, you are not the defense supervisor of this student",
+      });
       return;
     }
 
