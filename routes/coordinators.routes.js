@@ -41,7 +41,7 @@ router.get("/students", isCoordinator, get_all_students);
 
 router.get("/students/:id", isCoordinator, get_a_student);
 
-router.get('/getWeeklyReports/:studentCode', isCoordinator, get_weekly_reports);
+router.get("/getWeeklyReports/:studentCode", isCoordinator, get_weekly_reports);
 
 router.post("/add", isCoordinator, add_a_new_coordinator);
 
@@ -72,13 +72,13 @@ router.post(
   set_registration_deadline
 );
 
-router.post('/assignGrade', isCoordinator, assign_grade);
+router.post("/assignGrade", isCoordinator, assign_grade);
 
 router.delete("/delete/:id", isCoordinator, delete_a_coordinator);
 
-router.patch('/collateGrades/:studentId', isCoordinator, collate_grades);
+router.patch("/collateGrades/:studentId", isCoordinator, collate_grades);
 
-router.patch('/collateAllGrades', isCoordinator, collate_all_grades);
+router.patch("/collateAllGrades", isCoordinator, collate_all_grades);
 
 router.patch("/update/:id", isCoordinator, update_coordinator_details);
 

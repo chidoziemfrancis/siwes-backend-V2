@@ -9,6 +9,7 @@ const {
   update_supervisor_details,
   update_defense_time,
   update_inspection_time,
+  assign_grade
 } = require("./../controllers/supervisors.controller");
 
 router.get("/get/:id", isSupervisor, get_a_supervisor);
@@ -34,5 +35,7 @@ router.patch("/update", isSupervisor, update_supervisor_details);
 router.patch("/updateInspectionTime", isSupervisor, update_inspection_time);
 
 router.patch("/updateDefenseTime", isSupervisor, update_defense_time);
+
+router.post("/assignGrade", isSupervisor, assign_grade);
 
 module.exports = router;

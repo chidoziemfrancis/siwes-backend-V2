@@ -2,6 +2,7 @@ const SUPERVISORS = require("./../models/supervisor.model");
 const DEFENSE_LIST = require("../models/defense_list.model");
 const INSPECTION_LIST = require("../models/inspection_list.model");
 const FORMS = require("./../models/form.model");
+const GRADES = require("./../models/grade.model");
 const { handleError } = require("../utils/handleError");
 const mongoose = require("mongoose");
 const { request, response } = require("express");
@@ -191,8 +192,8 @@ const get_assigned_students_for_inspection = async function (req, res) {
                 matricNo: 1,
                 studentCode: 1,
                 course: 1,
-                email: 1, 
-                phone: 1
+                email: 1,
+                phone: 1,
               },
             },
           ],
@@ -217,7 +218,7 @@ const get_assigned_students_for_inspection = async function (req, res) {
                 phone: 1,
                 state: 1,
                 LGA: 1,
-                email: 1
+                email: 1,
               },
             },
           ],
@@ -443,12 +444,10 @@ const update_inspection_time = async function (req, res) {
     });
 
     if (isInCharge === null) {
-      res
-        .status(400)
-        .json({
-          message:
-            "Action failed, you are not the inspection supervisor of this student",
-        });
+      res.status(400).json({
+        message:
+          "Action failed, you are not the inspection supervisor of this student",
+      });
       return;
     }
 
@@ -496,12 +495,10 @@ const update_defense_time = async function (req, res) {
     });
 
     if (isInCharge === null) {
-      res
-        .status(400)
-        .json({
-          message:
-            "Action failed, you are not the defense supervisor of this student",
-        });
+      res.status(400).json({
+        message:
+          "Action failed, you are not the defense supervisor of this student",
+      });
       return;
     }
 
@@ -521,6 +518,97 @@ const update_defense_time = async function (req, res) {
   }
 };
 
+/**
+ * Updates the student grade collections with the grades for inspection, reports and defense
+ * @param {request} req
+ * @param {response} res
+ */
+const assign_grade = async function (req, res) {
+  const { type, score, studentId } = req.body;
+  const { _id: lastUpdatedBy } = req.user;
+
+  try {
+    if (mongoose.Types.ObjectId.isValid(lastUpdatedBy) == false) {
+      res.status(401).json({ message: "Please re authenticate to proceed" });
+      return;
+    }
+
+    if (mongoose.Types.ObjectId.isValid(studentId) == false) {
+      res.status(400).json({ message: "Invalid student id" });
+      return;
+    }
+
+    const validTypes = {
+      inspection: "inspectionScore",
+      defense: "defenseScore",
+      reports: "weeklyReportsScore",
+    };
+    if (Object.keys(validTypes).includes(type) == false) {
+      res
+        .status(400)
+        .json({
+          message: "Invalid type specified, specify a valid type and try again",
+        });
+      return;
+    }
+
+    if (score == null || typeof score == "undefined") {
+      res.status(400).json({ message: "Please specify a score" });
+      return;
+    }
+
+    if (
+      (type == "inspection" || type == "reports") &&
+      (score > 20 || score < 0)
+    ) {
+      res
+        .status(400)
+        .json({ message: `${type} score must be between 0 and 20` });
+      return;
+    }
+
+    if (type == "defense" && (score > 60 || score < 0)) {
+      res
+        .status(400)
+        .json({ message: `${type} score must be between 0 and 60` });
+      return;
+    }
+
+    const studentGrade = await GRADES.findOne({ studentId });
+
+    // grades have been collated previously
+    if (studentGrade !== null && studentGrade.total !== null) {
+      res
+        .status(400)
+        .json({
+          message:
+            "Grades cannot be updated as they have been collated already",
+        });
+      return;
+    }
+
+    const response = await GRADES.updateOne(
+      { studentId },
+      { [validTypes[type]]: score, lastUpdatedBy },
+      { upsert: true }
+    );
+
+    if (response.acknowledged == false) {
+      res
+        .status(500)
+        .json({
+          message: "Action failed, please try again or contact support",
+        });
+      return;
+    }
+
+    res.status(200).json({ message: "Grades updated successfully" });
+  } catch (error) {
+    console.log(error)
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   get_a_supervisor,
   get_assigned_students_for_defense,
@@ -530,4 +618,5 @@ module.exports = {
   update_supervisor_details,
   update_defense_time,
   update_inspection_time,
+  assign_grade
 };
