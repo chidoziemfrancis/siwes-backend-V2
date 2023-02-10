@@ -416,10 +416,41 @@ const assign_inspection_supervisor = async function (req, res) {
  */
 const get_all_students = async function (req, res) {
   try {
-    const students = await STUDENTS.find(
-      {},
-      { password: 0, validation_secret: 0, createdAt: 0, updatedAt: 0 }
-    );
+    const students = await STUDENTS.aggregate([
+      {
+        $project: { 
+          password: 0,
+          validation_secret: 0,
+          createdAt: 0,
+          updatedAt: 0
+        }
+      },
+      {
+        $lookup: {
+          from: 'grades',
+          localField: '_id',
+          foreignField: 'studentId',
+          as: 'grade',
+          pipeline: [
+            {
+              $project: {
+                studentId: 0,
+                __v: 0,
+                createdAt: 0,
+                updatedAt: 0,
+              }
+            }
+          ]
+        }
+      },
+      {
+        $addFields: {
+          grade: {
+            $arrayElemAt: ['$grade', 0]
+          }
+        }
+      }
+    ]);
 
     if (students.length === 0) {
       return res.status(404).json({ message: "No students found" });
