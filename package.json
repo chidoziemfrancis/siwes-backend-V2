@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
-    "dev": "set IN_DEV_ENV=true && nodemon app.js",
+    "dev": "export IN_DEV_ENV=true && nodemon app.js",
     "lint": "npx prettier -w */**"
   },
   "keywords": [],
