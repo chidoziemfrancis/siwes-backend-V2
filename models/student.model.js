@@ -2,6 +2,24 @@ const mongoose = require("mongoose");
 const { isMobilePhone, isEmail } = require("validator");
 const bcrypt = require("bcrypt");
 
+const bankDetailsSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    lowercase: true,
+    required: [true, "Bank name is required"]
+  },
+  accountNumber: {
+    type: String,
+    maxLength: [10, "Account number cannot exceed 10 digits"],
+    minLength: [10, "Account number must be 10 digits long"],
+    required: [true, "Account number is required"]
+  },
+  sortCode: {
+    type: String,
+    required: [true, "Bank sort code is required"]
+  }
+})
+
 const StudentSchema = new mongoose.Schema(
   {
     firstName: {
@@ -79,6 +97,10 @@ const StudentSchema = new mongoose.Schema(
       type: String,
       unique: true,
     },
+    bankDetails: {
+      type: bankDetailsSchema,
+      required: [true, "Bank details is required"]
+    }
   },
   { timestamps: true }
 );
