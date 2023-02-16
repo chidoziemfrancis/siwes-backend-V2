@@ -444,9 +444,28 @@ const get_all_students = async function (req, res) {
         }
       },
       {
+        $lookup: {
+          from: 'companies',
+          localField: 'studentCode',
+          foreignField: 'studentCode',
+          as: 'company',
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                address: 1,
+              }
+            }
+          ]
+        }
+      },
+      {
         $addFields: {
           grade: {
             $arrayElemAt: ['$grade', 0]
+          },
+          company: {
+            $arrayElemAt: ['$company', 0]
           }
         }
       }
