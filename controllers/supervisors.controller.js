@@ -7,6 +7,7 @@ const { handleError } = require("../utils/handleError");
 const mongoose = require("mongoose");
 const { request, response } = require("express");
 const bcrypt = require("bcrypt");
+const { existsSync } = require('fs');
 
 /**
  * Gets the details of a specific supervisor
@@ -609,6 +610,30 @@ const assign_grade = async function (req, res) {
   }
 };
 
+/**
+ * This routes send a downloadable object of the file to the user
+ * @param {request} req
+ * @param {response} res
+ */
+const download_form = function (req, res) {
+  const { filePath } = req.query;
+
+  if (/^uploads\/forms\//.test(filePath) == false) {
+    res.status(400).json({ message: "Please specify a valid form path to download" });
+    return;
+  }
+
+  const fullPath = __dirname + '/../' + filePath;
+
+  if (existsSync(fullPath) == false) {
+    res.status(404).json({ message: "Form doesn't exist, please refresh and try again" });
+    return;
+  }
+
+  res.download(fullPath);
+
+}
+
 module.exports = {
   get_a_supervisor,
   get_assigned_students_for_defense,
@@ -618,5 +643,6 @@ module.exports = {
   update_supervisor_details,
   update_defense_time,
   update_inspection_time,
-  assign_grade
+  assign_grade,
+  download_form
 };
