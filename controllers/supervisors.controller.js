@@ -615,22 +615,34 @@ const assign_grade = async function (req, res) {
  * @param {request} req
  * @param {response} res
  */
-const download_form = function (req, res) {
-  const { filePath } = req.query;
+const download_form = async function (req, res) {
+  const { formId } = req.query;
 
-  if (/^uploads\/forms\//.test(filePath) == false) {
-    res.status(400).json({ message: "Please specify a valid form path to download" });
-    return;
+  try {
+    if (mongoose.Types.ObjectId.isValid(formId) == false) {
+      res.status(400).json({ message: "Invalid form id" });
+      return;
+    }
+  
+    const form = await FORMS.findById(formId);
+  
+    if (form == null) {
+      res.status(404).json({ message: "Form not found" });
+      return;
+    }
+  
+    const filePath = form.pathToFile;
+    const fullPath = __dirname + '/../' + filePath;
+  
+    if (existsSync(fullPath) == false) {
+      res.status(404).json({ message: "Form doesn't exist, please refresh and try again" });
+      return;
+    }
+  
+    res.download(fullPath);
+  } catch (error) {
+    handleError(error, res);
   }
-
-  const fullPath = __dirname + '/../' + filePath;
-
-  if (existsSync(fullPath) == false) {
-    res.status(404).json({ message: "Form doesn't exist, please refresh and try again" });
-    return;
-  }
-
-  res.download(fullPath);
 
 }
 

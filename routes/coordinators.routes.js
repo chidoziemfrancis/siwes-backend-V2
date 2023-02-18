@@ -20,6 +20,8 @@ const {
   assign_grade,
   collate_grades,
   collate_all_grades,
+  get_forms,
+  delete_form
 } = require("./../controllers/coordinators.controller");
 const { isCoordinator } = require("./../middlewares/auth.middleware");
 const {
@@ -42,6 +44,8 @@ router.get("/students", isCoordinator, get_all_students);
 router.get("/students/:id", isCoordinator, get_a_student);
 
 router.get("/getWeeklyReports/:studentCode", isCoordinator, get_weekly_reports);
+
+router.get("/forms", isCoordinator, get_forms);
 
 router.post("/add", isCoordinator, add_a_new_coordinator);
 
@@ -75,6 +79,8 @@ router.post(
 router.post("/assignGrade", isCoordinator, assign_grade);
 
 router.delete("/delete/:id", isCoordinator, delete_a_coordinator);
+
+router.delete("/deleteForm", isCoordinator, delete_form);
 
 router.patch("/collateGrades/:studentId", isCoordinator, collate_grades);
 

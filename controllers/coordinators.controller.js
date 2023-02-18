@@ -11,6 +11,8 @@ const { handleError } = require("../utils/handleError");
 const mongoose = require("mongoose");
 const { request, response } = require("express");
 const bcrypt = require("bcrypt");
+const { existsSync, unlinkSync } = require('fs');
+const { ObjectId } = require('mongoose').Types;
 
 /**
  * adds a new coordinator
@@ -1075,6 +1077,68 @@ const collate_all_grades = async function (req, res) {
   }
 };
 
+/**
+ * Get the information about forms and the download urls
+ * @param {request} req
+ * @param {response} res
+ */
+const get_forms = async function (req, res) {
+  try {
+    const forms = await FORMS.find({});
+
+    if (forms.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "There are currently no forms available" });
+    }
+
+    return res.status(200).json(forms);
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * Deletes a specific form
+ * @param {request} req
+ * @param {response} res
+ */
+const delete_form = async function (req, res) {
+  const { formId } = req.query;
+
+  try {
+    if (mongoose.Types.ObjectId.isValid(formId) == false) {
+      res.status(400).json({ message: "Invalid form id" });
+      return;
+    }
+    
+    // I need some part of the form below
+    const form = await FORMS.findById(formId);
+
+    if (form == null) {
+      res.status(404).json({ message: "Form not found" });
+      return;
+    }
+
+    await FORMS.deleteOne({ _id: ObjectId(formId) });
+  
+    const filePath = form.pathToFile;
+    const fullPath = __dirname + '/../' + filePath;
+  
+    if (existsSync(fullPath) == false) {
+      res.status(404).json({ message: "Form doesn't exist, please refresh and try again" });
+      return;
+    }
+  
+    unlinkSync(fullPath);
+
+    res.status(201).json({ message: "Form has been deleted" });
+  } catch (error) {
+    console.log(error);
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   add_a_new_coordinator,
   get_all_coordinators,
@@ -1096,4 +1160,6 @@ module.exports = {
   assign_grade,
   collate_grades,
   collate_all_grades,
+  get_forms,
+  delete_form
 };
