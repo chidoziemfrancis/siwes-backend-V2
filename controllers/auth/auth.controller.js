@@ -81,13 +81,16 @@ const create_tokens = function (user, res, type) {
         httpOnly: true,
         secure: process.env.IN_DEV_ENV ? false : true,
         domain: process.env.IN_DEV_ENV ? process.env.DEV_SERVER : process.env.PROD_SERVER,
-        sameSite: "Lax",
+        sameSite: "none",
         maxAge: 604800000, // 7 days
       };
 
       res.cookie("umis_siwesA", accessToken, cookieOptions);
       res.cookie("umis_siwesR", refreshToken, cookieOptions);
-      res.cookie("umis_siwesC", clientToken, cookieOptions);
+      res.cookie("umis_siwesC", clientToken, {
+        sameSite: "Strict",
+        maxAge: 604800000,
+      });
 
       resolve();
     } catch (error) {
