@@ -88,7 +88,7 @@ const create_tokens = function (user, res, type) {
       res.cookie("umis_siwesA", accessToken, cookieOptions);
       res.cookie("umis_siwesR", refreshToken, cookieOptions);
       res.cookie("umis_siwesC", clientToken, {
-        sameSite: "Strict",
+        sameSite: "none",
         maxAge: 604800000,
       });
 
