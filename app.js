@@ -16,7 +16,7 @@ const app = express();
 // set up middlewares
 app.use(
   cors({
-    origin: ["http://localhost:3001", "https://siwes.netlify.app"],
+    origin: [process.env.FRONTEND_SERVER],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   })
