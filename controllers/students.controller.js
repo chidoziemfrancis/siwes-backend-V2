@@ -29,7 +29,12 @@ const get_details = async function (req, res) {
       {
         $addFields: {
           name: {
-            $concat: ["$firstName", " ", "$middleName", " ", "$lastName"],
+            $concat: [
+              "$firstName",
+              " ",
+              { $ifNull: [ { $concat: [ "$middleName", " "] }, ""] },
+              "$lastName",
+            ]
           },
         },
       },

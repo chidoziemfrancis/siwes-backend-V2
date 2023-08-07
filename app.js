@@ -7,6 +7,7 @@ const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const fileUpload = require("express-fileupload");
 const apiRoutes = require("./routes/general.routes");
+const path = require('path');
 
 require("dotenv").config();
 
@@ -14,13 +15,7 @@ require("dotenv").config();
 const app = express();
 
 // set up middlewares
-app.use(
-  cors({
-    origin: [process.env.FRONTEND_SERVER],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    credentials: true,
-  })
-);
+app.use(cors());
 app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -36,6 +31,8 @@ app.use(
     responseOnLimit: "Max file size is 5mb",
   })
 );
+
+app.use(express.static(path.join(__dirname, 'build')));
 
 // connect to database and start app
 const PORT = process.env.PORT || 3000;
@@ -58,6 +55,10 @@ async function main() {
 
     // re reoute to api
     app.use("/api", apiRoutes);
+
+    app.get('/', (req, res) => {
+      res.sendFile(path.join(__dirname, 'build', 'index.html'));
+    });
 
     app.all("*", (req, res) => {
       res.status(404).json({ message: "Route not found" });
