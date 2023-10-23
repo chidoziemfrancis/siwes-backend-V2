@@ -15,7 +15,10 @@ require("dotenv").config();
 const app = express();
 
 // set up middlewares
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000'],
+  credentials: true
+}));
 app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -53,15 +56,11 @@ async function main() {
       console.log(`App is live on port: ${PORT}`);
     });
 
-    // re reoute to api
+    // re route to api
     app.use("/api", apiRoutes);
 
-    app.get('/', (req, res) => {
+    app.get('*', (req, res) => {
       res.sendFile(path.join(__dirname, 'build', 'index.html'));
-    });
-
-    app.all("*", (req, res) => {
-      res.status(404).json({ message: "Route not found" });
     });
   } catch (error) {
     console.log(`App failed to start due to ${error}`);
