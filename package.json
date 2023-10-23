@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
+    "build": "git clone https://github.com/bucc-dev/siwes-website-frontend.git && cd siwes-website-frontend && npm install && npm run build && mv ./build ./../ && cd .. && rm -rf siwes-website-frontend",
     "dev": "export IN_DEV_ENV=true && node --watch --watch-preserve-output app",
     "lint": "npx prettier -w */**"
   },
