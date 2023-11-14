@@ -418,7 +418,29 @@ const assign_inspection_supervisor = async function (req, res) {
  */
 const get_all_students = async function (req, res) {
   try {
+    // get pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    if (page < 1) {
+      return res.status(400).json({ message: "Invalid page number" });
+    }
+
+    if (limit < 1) {
+      return res.status(400).json({ message: "Invalid limit" });
+    }
+
+    if (limit > 50) {
+      return res.status(400).json({ message: "Limit too large, maximum allowed limit is 50" });
+    }
+
     const students = await STUDENTS.aggregate([
+      {
+        $skip: (page - 1) * limit,
+      },
+      {
+        $limit: limit,
+      },
       {
         $project: { 
           password: 0,
@@ -477,7 +499,17 @@ const get_all_students = async function (req, res) {
       return res.status(404).json({ message: "No students found" });
     }
 
-    return res.status(200).json(students);
+    // get the total number of students
+    const totalStudents = await STUDENTS.countDocuments();
+
+    const data = {
+      students,
+      totalStudents,
+      currentPage: page,
+      currentLimit: limit
+    }
+
+    return res.status(200).json(data);
   } catch (error) {
     handleError(error, res);
   }
@@ -1134,10 +1166,25 @@ const delete_form = async function (req, res) {
 
     res.status(201).json({ message: "Form has been deleted" });
   } catch (error) {
-    console.log(error);
     handleError(error, res);
   }
 };
+
+/**
+ * Searches for students
+ * @param {request} req
+ * @param {response} res
+ */
+const search_for_students = async function (req, res) {
+  try {
+    // I need to escape the searched term so mongoDB can find it as an exact match when using $text
+    const searchQuery = `\"${req.query.q}\"`;
+
+
+  } catch (error) {
+    handleError(error, res);
+  }
+}
 
 module.exports = {
   add_a_new_coordinator,
@@ -1161,5 +1208,6 @@ module.exports = {
   collate_grades,
   collate_all_grades,
   get_forms,
-  delete_form
+  delete_form,
+  search_for_students
 };
