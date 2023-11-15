@@ -1177,15 +1177,8 @@ const search_for_students = async function (req, res) {
         .json({ message: "Search query must be at least 3 characters long" });
     }
 
-    // this holds the part of the pipeline that is common to all searches
-    const autocompleteOptions = {
-      query: `${searchQuery}`,
-      fuzzy: {
-        maxEdits: 2, // can change up to 2 characters
-        prefixLength: 2, // the first 2 characters must match
-        maxExpansions: 100, // considers a max result space of 100
-      },
-    };
+    // this holds the fields that I want to be able to search
+    const indexedFields = ["course", "department", "email", "faculty", "firstName", "lastName", "matricNo", "middleName", "phone", "studentCode"]
 
     const pipeline = [
       {
@@ -1193,66 +1186,21 @@ const search_for_students = async function (req, res) {
           index: "text-autocomplete", // name of the index
           compound: {
             should: [
-              {
-                autocomplete: {
-                  path: "course",
-                  ...autocompleteOptions,
-                },
-              },
-              {
-                autocomplete: {
-                  path: "department",
-                  ...autocompleteOptions,
-                },
-              },
-              {
-                autocomplete: {
-                  path: "email",
-                  ...autocompleteOptions,
-                },
-              },
-              {
-                autocomplete: {
-                  path: "faculty",
-                  ...autocompleteOptions,
-                },
-              },
-              {
-                autocomplete: {
-                  path: "firstName",
-                  ...autocompleteOptions,
-                },
-              },
-              {
-                autocomplete: {
-                  path: "lastName",
-                  ...autocompleteOptions,
-                },
-              },
-              {
-                autocomplete: {
-                  path: "matricNo",
-                  ...autocompleteOptions,
-                },
-              },
-              {
-                autocomplete: {
-                  path: "middleName",
-                  ...autocompleteOptions,
-                },
-              },
-              {
-                autocomplete: {
-                  path: "phone",
-                  ...autocompleteOptions,
-                },
-              },
-              {
-                autocomplete: {
-                  path: "studentCode",
-                  ...autocompleteOptions,
-                },
-              },
+              ...indexedFields.map(
+                path => (
+                  {
+                    autocomplete: {
+                      path: `${path}`,
+                      query: `${searchQuery}`,
+                      fuzzy: {
+                        maxEdits: 2, // can change up to 2 characters
+                        prefixLength: 2, // the first 2 characters must match
+                        maxExpansions: 100, // considers a max result space of 100
+                      },
+                    }
+                  }
+                )
+              )
             ],
             minimumShouldMatch: 1,
           },
