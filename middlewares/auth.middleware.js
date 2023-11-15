@@ -120,7 +120,9 @@ const assign_new_tokens = function (user, res, type) {
       const cookieOptions = {
         httpOnly: true,
         secure: process.env.IN_DEV_ENV ? false : true,
-        domain: process.env.IN_DEV_ENV ? process.env.DEV_SERVER  : process.env.PROD_SERVER, // undefined else it messes up the other cookie settings
+        domain: process.env.IN_DEV_ENV
+          ? process.env.DEV_SERVER
+          : process.env.PROD_SERVER, // undefined else it messes up the other cookie settings
         sameSite: "none",
         maxAge: 604800000, // 7 days
       };

@@ -7,7 +7,7 @@ const { handleError } = require("../utils/handleError");
 const mongoose = require("mongoose");
 const { request, response } = require("express");
 const bcrypt = require("bcrypt");
-const { existsSync } = require('fs');
+const { existsSync } = require("fs");
 
 /**
  * Gets the details of a specific supervisor
@@ -545,11 +545,9 @@ const assign_grade = async function (req, res) {
       reports: "weeklyReportsScore",
     };
     if (Object.keys(validTypes).includes(type) == false) {
-      res
-        .status(400)
-        .json({
-          message: "Invalid type specified, specify a valid type and try again",
-        });
+      res.status(400).json({
+        message: "Invalid type specified, specify a valid type and try again",
+      });
       return;
     }
 
@@ -579,12 +577,9 @@ const assign_grade = async function (req, res) {
 
     // grades have been collated previously
     if (studentGrade !== null && studentGrade.total !== null) {
-      res
-        .status(400)
-        .json({
-          message:
-            "Grades cannot be updated as they have been collated already",
-        });
+      res.status(400).json({
+        message: "Grades cannot be updated as they have been collated already",
+      });
       return;
     }
 
@@ -595,17 +590,15 @@ const assign_grade = async function (req, res) {
     );
 
     if (response.acknowledged == false) {
-      res
-        .status(500)
-        .json({
-          message: "Action failed, please try again or contact support",
-        });
+      res.status(500).json({
+        message: "Action failed, please try again or contact support",
+      });
       return;
     }
 
     res.status(200).json({ message: "Grades updated successfully" });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     handleError(error, res);
   }
 };
@@ -623,28 +616,29 @@ const download_form = async function (req, res) {
       res.status(400).json({ message: "Invalid form id" });
       return;
     }
-  
+
     const form = await FORMS.findById(formId);
-  
+
     if (form == null) {
       res.status(404).json({ message: "Form not found" });
       return;
     }
-  
+
     const filePath = form.pathToFile;
-    const fullPath = __dirname + '/../' + filePath;
-  
+    const fullPath = __dirname + "/../" + filePath;
+
     if (existsSync(fullPath) == false) {
-      res.status(404).json({ message: "Form doesn't exist, please refresh and try again" });
+      res
+        .status(404)
+        .json({ message: "Form doesn't exist, please refresh and try again" });
       return;
     }
-  
+
     res.download(fullPath);
   } catch (error) {
     handleError(error, res);
   }
-
-}
+};
 
 module.exports = {
   get_a_supervisor,
@@ -656,5 +650,5 @@ module.exports = {
   update_defense_time,
   update_inspection_time,
   assign_grade,
-  download_form
+  download_form,
 };

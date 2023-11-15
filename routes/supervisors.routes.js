@@ -10,7 +10,7 @@ const {
   update_defense_time,
   update_inspection_time,
   assign_grade,
-  download_form
+  download_form,
 } = require("./../controllers/supervisors.controller");
 
 router.get("/get/:id", isSupervisor, get_a_supervisor);

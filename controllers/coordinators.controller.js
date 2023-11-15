@@ -11,8 +11,8 @@ const { handleError } = require("../utils/handleError");
 const mongoose = require("mongoose");
 const { request, response } = require("express");
 const bcrypt = require("bcrypt");
-const { existsSync, unlinkSync } = require('fs');
-const { ObjectId } = require('mongoose').Types;
+const { existsSync, unlinkSync } = require("fs");
+const { ObjectId } = require("mongoose").Types;
 
 /**
  * adds a new coordinator
@@ -431,7 +431,9 @@ const get_all_students = async function (req, res) {
     }
 
     if (limit > 50) {
-      return res.status(400).json({ message: "Limit too large, maximum allowed limit is 50" });
+      return res
+        .status(400)
+        .json({ message: "Limit too large, maximum allowed limit is 50" });
     }
 
     const students = await STUDENTS.aggregate([
@@ -442,19 +444,19 @@ const get_all_students = async function (req, res) {
         $limit: limit,
       },
       {
-        $project: { 
+        $project: {
           password: 0,
           validation_secret: 0,
           createdAt: 0,
-          updatedAt: 0
-        }
+          updatedAt: 0,
+        },
       },
       {
         $lookup: {
-          from: 'grades',
-          localField: '_id',
-          foreignField: 'studentId',
-          as: 'grade',
+          from: "grades",
+          localField: "_id",
+          foreignField: "studentId",
+          as: "grade",
           pipeline: [
             {
               $project: {
@@ -462,37 +464,37 @@ const get_all_students = async function (req, res) {
                 __v: 0,
                 createdAt: 0,
                 updatedAt: 0,
-              }
-            }
-          ]
-        }
+              },
+            },
+          ],
+        },
       },
       {
         $lookup: {
-          from: 'companies',
-          localField: 'studentCode',
-          foreignField: 'studentCode',
-          as: 'company',
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
           pipeline: [
             {
               $project: {
                 name: 1,
                 address: 1,
-              }
-            }
-          ]
-        }
+              },
+            },
+          ],
+        },
       },
       {
         $addFields: {
           grade: {
-            $arrayElemAt: ['$grade', 0]
+            $arrayElemAt: ["$grade", 0],
           },
           company: {
-            $arrayElemAt: ['$company', 0]
-          }
-        }
-      }
+            $arrayElemAt: ["$company", 0],
+          },
+        },
+      },
     ]);
 
     if (students.length === 0) {
@@ -506,8 +508,8 @@ const get_all_students = async function (req, res) {
       students,
       totalStudents,
       currentPage: page,
-      currentLimit: limit
-    }
+      currentLimit: limit,
+    };
 
     return res.status(200).json(data);
   } catch (error) {
@@ -924,12 +926,9 @@ const get_weekly_reports = async function (req, res) {
     const reports = await WEEKLYREPORTS.find({ studentCode });
 
     if (reports.length == 0) {
-      res
-        .status(404)
-        .json({
-          message:
-            "No weekly reports submission found for the specified student",
-        });
+      res.status(404).json({
+        message: "No weekly reports submission found for the specified student",
+      });
       return;
     }
 
@@ -965,11 +964,9 @@ const assign_grade = async function (req, res) {
       reports: "weeklyReportsScore",
     };
     if (Object.keys(validTypes).includes(type) == false) {
-      res
-        .status(400)
-        .json({
-          message: "Invalid type specified, specify a valid type and try again",
-        });
+      res.status(400).json({
+        message: "Invalid type specified, specify a valid type and try again",
+      });
       return;
     }
 
@@ -999,12 +996,9 @@ const assign_grade = async function (req, res) {
 
     // grades have been collated previously
     if (studentGrade !== null && studentGrade.total !== null) {
-      res
-        .status(400)
-        .json({
-          message:
-            "Grades cannot be updated as they have been collated already",
-        });
+      res.status(400).json({
+        message: "Grades cannot be updated as they have been collated already",
+      });
       return;
     }
 
@@ -1015,11 +1009,9 @@ const assign_grade = async function (req, res) {
     );
 
     if (response.acknowledged == false) {
-      res
-        .status(500)
-        .json({
-          message: "Action failed, please try again or contact support",
-        });
+      res.status(500).json({
+        message: "Action failed, please try again or contact support",
+      });
       return;
     }
 
@@ -1056,11 +1048,9 @@ const collate_grades = async function (req, res) {
     ]);
 
     if (response.acknowledged == false) {
-      res
-        .status(500)
-        .json({
-          message: "Action failed, please try again or contact support",
-        });
+      res.status(500).json({
+        message: "Action failed, please try again or contact support",
+      });
       return;
     }
 
@@ -1091,19 +1081,15 @@ const collate_all_grades = async function (req, res) {
     ]);
 
     if (response.acknowledged == false) {
-      res
-        .status(500)
-        .json({
-          message: "Action failed, please try again or contact support",
-        });
+      res.status(500).json({
+        message: "Action failed, please try again or contact support",
+      });
       return;
     }
 
-    res
-      .status(200)
-      .json({
-        message: "Grades have been collated successfully for all students",
-      });
+    res.status(200).json({
+      message: "Grades have been collated successfully for all students",
+    });
   } catch (error) {
     handleError(error, res);
   }
@@ -1143,7 +1129,7 @@ const delete_form = async function (req, res) {
       res.status(400).json({ message: "Invalid form id" });
       return;
     }
-    
+
     // I need some part of the form below
     const form = await FORMS.findById(formId);
 
@@ -1153,15 +1139,17 @@ const delete_form = async function (req, res) {
     }
 
     await FORMS.deleteOne({ _id: ObjectId(formId) });
-  
+
     const filePath = form.pathToFile;
-    const fullPath = __dirname + '/../' + filePath;
-  
+    const fullPath = __dirname + "/../" + filePath;
+
     if (existsSync(fullPath) == false) {
-      res.status(404).json({ message: "Form doesn't exist, please refresh and try again" });
+      res
+        .status(404)
+        .json({ message: "Form doesn't exist, please refresh and try again" });
       return;
     }
-  
+
     unlinkSync(fullPath);
 
     res.status(201).json({ message: "Form has been deleted" });
@@ -1177,7 +1165,6 @@ const delete_form = async function (req, res) {
  */
 const search_for_students = async function (req, res) {
   try {
-
     const { q: searchQuery } = req.query;
 
     if (!searchQuery) {
@@ -1190,10 +1177,10 @@ const search_for_students = async function (req, res) {
       fuzzy: {
         maxEdits: 2, // can change up to 2 characters
         prefixLength: 2, // the first 2 characters must match
-        maxExpansions: 100 // considers a max result space of 100
-      }
-    }
-    
+        maxExpansions: 100, // considers a max result space of 100
+      },
+    };
+
     const pipeline = [
       {
         $search: {
@@ -1202,83 +1189,83 @@ const search_for_students = async function (req, res) {
             should: [
               {
                 autocomplete: {
-                  path: 'course',
-                  ...autocompleteOptions
+                  path: "course",
+                  ...autocompleteOptions,
                 },
               },
               {
                 autocomplete: {
-                  path: 'department',
-                  ...autocompleteOptions
+                  path: "department",
+                  ...autocompleteOptions,
                 },
               },
               {
                 autocomplete: {
-                  path: 'email',
-                  ...autocompleteOptions
+                  path: "email",
+                  ...autocompleteOptions,
                 },
               },
               {
                 autocomplete: {
-                  path: 'faculty',
-                  ...autocompleteOptions
+                  path: "faculty",
+                  ...autocompleteOptions,
                 },
               },
               {
                 autocomplete: {
-                  path: 'firstName',
-                  ...autocompleteOptions
+                  path: "firstName",
+                  ...autocompleteOptions,
                 },
               },
               {
                 autocomplete: {
-                  path: 'lastName',
-                  ...autocompleteOptions
+                  path: "lastName",
+                  ...autocompleteOptions,
                 },
               },
               {
                 autocomplete: {
-                  path: 'matricNo',
-                  ...autocompleteOptions
+                  path: "matricNo",
+                  ...autocompleteOptions,
                 },
               },
               {
                 autocomplete: {
-                  path: 'middleName',
-                  ...autocompleteOptions
+                  path: "middleName",
+                  ...autocompleteOptions,
                 },
               },
               {
                 autocomplete: {
-                  path: 'phone',
-                  ...autocompleteOptions
+                  path: "phone",
+                  ...autocompleteOptions,
                 },
               },
               {
                 autocomplete: {
-                  path: 'studentCode',
-                  ...autocompleteOptions
+                  path: "studentCode",
+                  ...autocompleteOptions,
                 },
               },
             ],
-            minimumShouldMatch: 1
-          }
-        }
+            minimumShouldMatch: 1,
+          },
+        },
       },
       {
-        $project: { 
+        $project: {
           password: 0,
           validation_secret: 0,
           createdAt: 0,
-          updatedAt: 0
-        }
+          updatedAt: 0,
+        },
       },
       {
         $lookup: {
-          from: 'grades',
-          localField: '_id',
-          foreignField: 'studentId',
-          as: 'grade',
+          from: "grades",
+          localField: "_id",
+          foreignField: "studentId",
+          as: "grade",
           pipeline: [
             {
               $project: {
@@ -1286,38 +1273,38 @@ const search_for_students = async function (req, res) {
                 __v: 0,
                 createdAt: 0,
                 updatedAt: 0,
-              }
-            }
-          ]
-        }
+              },
+            },
+          ],
+        },
       },
       {
         $lookup: {
-          from: 'companies',
-          localField: 'studentCode',
-          foreignField: 'studentCode',
-          as: 'company',
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
           pipeline: [
             {
               $project: {
                 name: 1,
                 address: 1,
-              }
-            }
-          ]
-        }
+              },
+            },
+          ],
+        },
       },
       {
         $addFields: {
           grade: {
-            $arrayElemAt: ['$grade', 0]
+            $arrayElemAt: ["$grade", 0],
           },
           company: {
-            $arrayElemAt: ['$company', 0]
-          }
-        }
-      }
-    ]
+            $arrayElemAt: ["$company", 0],
+          },
+        },
+      },
+    ];
 
     const students = await STUDENTS.aggregate(pipeline);
 
@@ -1329,7 +1316,7 @@ const search_for_students = async function (req, res) {
   } catch (error) {
     handleError(error, res);
   }
-}
+};
 
 module.exports = {
   add_a_new_coordinator,
@@ -1354,5 +1341,5 @@ module.exports = {
   collate_all_grades,
   get_forms,
   delete_form,
-  search_for_students
+  search_for_students,
 };

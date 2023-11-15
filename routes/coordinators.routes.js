@@ -22,7 +22,7 @@ const {
   collate_all_grades,
   get_forms,
   delete_form,
-  search_for_students
+  search_for_students,
 } = require("./../controllers/coordinators.controller");
 const { isCoordinator } = require("./../middlewares/auth.middleware");
 const {

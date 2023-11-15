@@ -9,21 +9,21 @@ const SupervisorSchema = new mongoose.Schema(
       required: [true, "First name is required"],
       lowercase: true,
       minLength: [3, "First name must be at least 3 characters"],
-      trim: true
+      trim: true,
     },
     lastName: {
       type: String,
       required: [true, "Last name is required"],
       lowercase: true,
       minLength: [3, "Last name must be at least 3 characters"],
-      trim: true
+      trim: true,
     },
     phone: {
       type: String,
       required: [true, "Phone number is required"],
       minLength: [11, "Phone number must be at least 11 characters"],
       validate: [isMobilePhone, "Phone number must be a valid phone number"],
-      trim: true
+      trim: true,
     },
     email: {
       type: String,
@@ -32,13 +32,13 @@ const SupervisorSchema = new mongoose.Schema(
       minLength: [3, "Email must be at least 3 characters"],
       unique: true,
       validate: [isEmail, "Email must be a valid email"],
-      trim: true
+      trim: true,
     },
     office: {
       type: String,
       lowercase: true,
       minLength: [4, "Office must be at least 4 characters"],
-      trim: true
+      trim: true,
     },
     password: {
       type: String,

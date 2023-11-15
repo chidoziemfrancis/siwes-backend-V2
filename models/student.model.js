@@ -6,19 +6,19 @@ const bankDetailsSchema = new mongoose.Schema({
   name: {
     type: String,
     lowercase: true,
-    required: [true, "Bank name is required"]
+    required: [true, "Bank name is required"],
   },
   accountNumber: {
     type: String,
     maxLength: [10, "Account number cannot exceed 10 digits"],
     minLength: [10, "Account number must be 10 digits long"],
-    required: [true, "Account number is required"]
+    required: [true, "Account number is required"],
   },
   sortCode: {
     type: String,
-    required: [true, "Bank sort code is required"]
-  }
-})
+    required: [true, "Bank sort code is required"],
+  },
+});
 
 const StudentSchema = new mongoose.Schema(
   {
@@ -27,19 +27,19 @@ const StudentSchema = new mongoose.Schema(
       required: [true, "First name is required"],
       lowercase: true,
       minLength: [3, "First name must be at least 3 characters"],
-      trim: true
+      trim: true,
     },
     middleName: {
       type: String,
       lowercase: true,
-      trim: true
+      trim: true,
     },
     lastName: {
       type: String,
       required: [true, "Last name is required"],
       lowercase: true,
       minLength: [3, "Last name must be at least 3 characters"],
-      trim: true
+      trim: true,
     },
     course: {
       type: String,
@@ -59,7 +59,7 @@ const StudentSchema = new mongoose.Schema(
       unique: true,
       validate: [isEmail, "Email must be a valid email"],
       match: [/student.babcock.edu.ng$/, "Invalid email type"],
-      trim: true
+      trim: true,
     },
     matricNo: {
       type: String,
@@ -67,7 +67,7 @@ const StudentSchema = new mongoose.Schema(
       lowercase: true,
       minLength: [7, "Matric number must be at least 7 characters"],
       unique: true,
-      trim: true
+      trim: true,
     },
     sex: {
       type: String,
@@ -87,7 +87,7 @@ const StudentSchema = new mongoose.Schema(
       required: [true, "Phone number is required"],
       minLength: [11, "Phone number must be at least 11 characters"],
       validate: [isMobilePhone, "Phone number must be a valid phone number"],
-      trim: true
+      trim: true,
     },
     password: {
       type: String,
@@ -105,8 +105,8 @@ const StudentSchema = new mongoose.Schema(
     },
     bankDetails: {
       type: bankDetailsSchema,
-      required: [true, "Bank details is required"]
-    }
+      required: [true, "Bank details is required"],
+    },
   },
   { timestamps: true }
 );

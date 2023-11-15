@@ -80,7 +80,9 @@ const create_tokens = function (user, res, type) {
       const cookieOptions = {
         httpOnly: true,
         secure: process.env.IN_DEV_ENV ? false : true,
-        domain: process.env.IN_DEV_ENV ? process.env.DEV_SERVER : process.env.PROD_SERVER,
+        domain: process.env.IN_DEV_ENV
+          ? process.env.DEV_SERVER
+          : process.env.PROD_SERVER,
         sameSite: process.env.IN_DEV_ENV ? "strict" : "none",
         maxAge: 604800000, // 7 days
       };

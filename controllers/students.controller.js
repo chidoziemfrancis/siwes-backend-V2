@@ -32,9 +32,9 @@ const get_details = async function (req, res) {
             $concat: [
               "$firstName",
               " ",
-              { $ifNull: [ { $concat: [ "$middleName", " "] }, ""] },
+              { $ifNull: [{ $concat: ["$middleName", " "] }, ""] },
               "$lastName",
-            ]
+            ],
           },
         },
       },
