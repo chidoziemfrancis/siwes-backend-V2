@@ -1171,6 +1171,12 @@ const search_for_students = async function (req, res) {
       return res.status(400).json({ message: "Please specify a search query" });
     }
 
+    if (searchQuery.length < 3) {
+      return res
+        .status(400)
+        .json({ message: "Search query must be at least 3 characters long" });
+    }
+
     // this holds the part of the pipeline that is common to all searches
     const autocompleteOptions = {
       query: `${searchQuery}`,
