@@ -1177,10 +1177,155 @@ const delete_form = async function (req, res) {
  */
 const search_for_students = async function (req, res) {
   try {
-    // I need to escape the searched term so mongoDB can find it as an exact match when using $text
-    const searchQuery = `\"${req.query.q}\"`;
 
+    const { q: searchQuery } = req.query;
 
+    if (!searchQuery) {
+      return res.status(400).json({ message: "Please specify a search query" });
+    }
+
+    // this holds the part of the pipeline that is common to all searches
+    const autocompleteOptions = {
+      query: `${searchQuery}`,
+      fuzzy: {
+        maxEdits: 2, // can change up to 2 characters
+        prefixLength: 2, // the first 2 characters must match
+        maxExpansions: 100 // considers a max result space of 100
+      }
+    }
+    
+    const pipeline = [
+      {
+        $search: {
+          index: "text-autocomplete", // name of the index
+          compound: {
+            should: [
+              {
+                autocomplete: {
+                  path: 'course',
+                  ...autocompleteOptions
+                },
+              },
+              {
+                autocomplete: {
+                  path: 'department',
+                  ...autocompleteOptions
+                },
+              },
+              {
+                autocomplete: {
+                  path: 'email',
+                  ...autocompleteOptions
+                },
+              },
+              {
+                autocomplete: {
+                  path: 'faculty',
+                  ...autocompleteOptions
+                },
+              },
+              {
+                autocomplete: {
+                  path: 'firstName',
+                  ...autocompleteOptions
+                },
+              },
+              {
+                autocomplete: {
+                  path: 'lastName',
+                  ...autocompleteOptions
+                },
+              },
+              {
+                autocomplete: {
+                  path: 'matricNo',
+                  ...autocompleteOptions
+                },
+              },
+              {
+                autocomplete: {
+                  path: 'middleName',
+                  ...autocompleteOptions
+                },
+              },
+              {
+                autocomplete: {
+                  path: 'phone',
+                  ...autocompleteOptions
+                },
+              },
+              {
+                autocomplete: {
+                  path: 'studentCode',
+                  ...autocompleteOptions
+                },
+              },
+            ],
+            minimumShouldMatch: 1
+          }
+        }
+      },
+      {
+        $project: { 
+          password: 0,
+          validation_secret: 0,
+          createdAt: 0,
+          updatedAt: 0
+        }
+      },
+      {
+        $lookup: {
+          from: 'grades',
+          localField: '_id',
+          foreignField: 'studentId',
+          as: 'grade',
+          pipeline: [
+            {
+              $project: {
+                studentId: 0,
+                __v: 0,
+                createdAt: 0,
+                updatedAt: 0,
+              }
+            }
+          ]
+        }
+      },
+      {
+        $lookup: {
+          from: 'companies',
+          localField: 'studentCode',
+          foreignField: 'studentCode',
+          as: 'company',
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                address: 1,
+              }
+            }
+          ]
+        }
+      },
+      {
+        $addFields: {
+          grade: {
+            $arrayElemAt: ['$grade', 0]
+          },
+          company: {
+            $arrayElemAt: ['$company', 0]
+          }
+        }
+      }
+    ]
+
+    const students = await STUDENTS.aggregate(pipeline);
+
+    if (students.length === 0) {
+      return res.status(404).json({ message: "No students found" });
+    }
+
+    res.status(200).json(students);
   } catch (error) {
     handleError(error, res);
   }

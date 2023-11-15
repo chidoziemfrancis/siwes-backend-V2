@@ -44,7 +44,7 @@ router.get("/students", isCoordinator, get_all_students);
 
 router.get("/students/:id", isCoordinator, get_a_student);
 
-// router.get("/search/students", isCoordinator, search_for_students);
+router.get("/search/students", isCoordinator, search_for_students);
 
 router.get("/getWeeklyReports/:studentCode", isCoordinator, get_weekly_reports);
 
