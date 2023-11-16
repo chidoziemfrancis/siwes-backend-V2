@@ -227,16 +227,18 @@ const logout = async function (req, res) {
  */
 const send_OTP = async function (req, res) {
   try {
-    const { email } = req.body;
+    const { email, purpose } = req.body;
 
     if (!email || /student.babcock.edu.ng/.test(email) == false) {
       return res.status(400).json({ message: "Invalid email address, please enter a valid babcock mail" });
     }
 
-    const studentExists = await STUDENTS.findOne({ email });
-
-    if (!studentExists) {
-      return res.status(400).json({ message: "An OTP will be sent to the account if it exists." });
+    if (purpose !== "registration") {
+      const studentExists = await STUDENTS.findOne({ email });
+  
+      if (!studentExists) {
+        return res.status(400).json({ message: "An OTP will be sent to the account if it exists." });
+      }
     }
 
     const token = randomBytes(3).toString("hex");
