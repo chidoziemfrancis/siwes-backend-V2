@@ -128,13 +128,10 @@ const update_coordinator_details = async function (req, res) {
     }
 
     // you can't directly update the password field
-    let hasInvalidField = false;
     let allowedFields = ["firstName", "lastName", "phone1", "phone2", "office"];
-    Object.keys(update).forEach((key) => {
-      if (allowedFields.includes(key) === false) {
-        hasInvalidField = true;
-      }
-    });
+    let hasInvalidField = Object.keys(update).some(
+      (field) => !allowedFields.includes(field)
+    );
 
     if (hasInvalidField) {
       return res.status(400).json({
