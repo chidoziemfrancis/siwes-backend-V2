@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .email-container {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      text-align: center;
+    }
+
+    p {
+      margin: 10px 0;
+    }
+
+    .otp {
+      font-size: 20px;
+      font-weight: bold;
+      color: #007bff;
+    }
+
+    .thank-you {
+      color: #28a745;
+      font-weight: bold;
+    }
+
+    .team-name {
+      color: #6c757d;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<div class="email-container">
+  <p>Dear {{email}},</p>
+
+  <p>Your one-time password (OTP) is: <span class="otp">{{token}}</span></p>
+
+  <p>Please do not share this code with anyone.</p>
+
+  <p class="thank-you">Thank you,</p>
+  <p class="team-name">The SIWES Team</p>
+</div>
+
+</body>
+</html>

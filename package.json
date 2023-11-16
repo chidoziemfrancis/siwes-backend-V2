@@ -24,6 +24,8 @@
     "express-fileupload": "^1.4.0",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^6.3.5",
+    "nodemailer": "^6.9.7",
+    "nodemailer-express-handlebars": "^6.1.0",
     "validator": "^13.7.0"
   },
   "devDependencies": {

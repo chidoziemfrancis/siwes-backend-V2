@@ -2,11 +2,14 @@ const COORDINATORS = require("./../../models/coordinator.model");
 const STUDENTS = require("./../../models/student.model");
 const SUPERVISORS = require("./../../models/supervisor.model");
 const DEADLINE = require("./../../models/deadline.model");
+const OTP = require("../../models/otp.model");
 const { request, response } = require("express");
 const { handleError } = require("./../../utils/handleError");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { ObjectId } = require("mongoose").Types;
+const { randomBytes } = require("crypto");
+const { sendOTPMail } = require("../../controllers/mail.controller");
 
 /**
  * Creates and appends the access and refresh tokens to the cookies of the client
@@ -218,6 +221,106 @@ const logout = async function (req, res) {
 };
 
 /**
+ * Send a 5 minutes OTP to the user's email 
+ * @param {request} req
+ * @param {response} res
+ */
+const send_OTP = async function (req, res) {
+  try {
+    const { email } = req.body;
+
+    if (!email || /student.babcock.edu.ng/.test(email) == false) {
+      return res.status(400).json({ message: "Invalid email address, please enter a valid babcock mail" });
+    }
+
+    const studentExists = await STUDENTS.findOne({ email });
+
+    if (!studentExists) {
+      return res.status(400).json({ message: "An OTP will be sent to the account if it exists." });
+    }
+
+    const token = randomBytes(3).toString("hex");
+
+    const otpExists = await OTP.findOne({ email });
+
+    if (otpExists) {
+      return res.status(400).json({ message: "An OTP has already been sent to the specified email, ensure to check your spam folder" });
+    }
+
+    await OTP.create({ token, email });
+
+    await sendOTPMail(email, token);
+
+    res.status(200).json({ message: "An OTP will be sent to the account if it exists." });
+  } catch (error) {
+    handleError(error, res);
+  }
+}
+
+/**
+ * Verifies the OTP
+ * @param {request} req
+ * @param {response} res
+ */
+const verify_OTP = async function (req, res) {
+  try {
+    const { email, token } = req.body;
+
+    if (!email || /student.babcock.edu.ng$/.test(email) == false || !token || token.length !== 6) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    const doc = await OTP.findOne({ email, token });
+
+    if (!doc) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    await OTP.deleteOne({ email });
+
+    // this token will be used to change the password or verify the next API call after this, it serves as a guard to prevent a user from by passing the
+    // OTP call
+    const resetToken = jwt.sign({ email }, process.env.RESET_PASSWORD_TOKEN_SECRET, { expiresIn: "5m" });
+
+    res.status(200).json({ message: "OTP verified successfully", data: { resetToken } });
+  } catch (error) {
+    handleError(error, res);
+  }
+}
+
+/**
+ * Allows a student specifically to reset their password if they forget it
+ */
+const reset_password = async function (req, res) {
+  try {
+    const { email, password, token } = req.body;
+
+    if (!email || !password || !token || /student.babcock.edu.ng$/.test(email) == false) {
+      return res.status(400).json({ message: "Invalid request" });
+    }
+
+    const decoded = jwt.verify(token, process.env.RESET_PASSWORD_TOKEN_SECRET);
+
+    if (decoded.email !== email) {
+      return res.status(400).json({ message: "Invalid request" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    await STUDENTS.updateOne({ email }, { password: hashedPassword });
+
+    res.status(200).json({ message: "Password changed successfully" });
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(400).json({ message: "OTP expired" });
+    }
+
+    handleError(error, res);
+  }
+}
+
+/**
  * @typedef userInfo
  * @property {ObjectId} _id
  */
@@ -226,4 +329,7 @@ module.exports = {
   login,
   logout,
   register,
+  send_OTP,
+  verify_OTP,
+  reset_password,
 };
