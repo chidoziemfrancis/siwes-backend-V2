@@ -39,7 +39,7 @@ app.use(express.static(path.join(__dirname, 'build')));
 
 // connect to database and start app
 const PORT = process.env.PORT || 3000;
-const DB_URI = process.env.DEV_DB_URI; // FIXME: change this to DB_URI 
+const DB_URI = process.env.NODE_ENV === 'production' ? process.env.DB_URI : (process.env.NODE_ENV === "staging" ? process.env.DEV_DB_URI : process.env.LOCAL_DB_URI);
 
 async function main() {
   try {

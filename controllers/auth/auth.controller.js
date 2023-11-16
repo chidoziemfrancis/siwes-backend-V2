@@ -82,18 +82,18 @@ const create_tokens = function (user, res, type) {
 
       const cookieOptions = {
         httpOnly: true,
-        secure: process.env.IN_DEV_ENV ? false : true,
-        domain: process.env.IN_DEV_ENV
+        secure: process.env.NODE_ENV === 'development' ? false : true,
+        domain: process.env.NODE_ENV === 'development'
           ? process.env.DEV_SERVER
           : process.env.PROD_SERVER,
-        sameSite: process.env.IN_DEV_ENV ? "strict" : "none",
+        sameSite: process.env.NODE_ENV === 'development' ? "strict" : "none",
         maxAge: 604800000, // 7 days
       };
 
       res.cookie("umis_siwesA", accessToken, cookieOptions);
       res.cookie("umis_siwesR", refreshToken, cookieOptions);
       res.cookie("umis_siwesC", clientToken, {
-        sameSite: process.env.IN_DEV_ENV ? "strict" : "none",
+        sameSite: process.env.NODE_ENV === 'development' ? "strict" : "none",
         maxAge: 604800000,
       });
 

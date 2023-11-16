@@ -119,8 +119,8 @@ const assign_new_tokens = function (user, res, type) {
 
       const cookieOptions = {
         httpOnly: true,
-        secure: process.env.IN_DEV_ENV ? false : true,
-        domain: process.env.IN_DEV_ENV
+        secure: process.env.NODE_ENV === 'development' ? false : true,
+        domain: process.env.NODE_ENV === 'development'
           ? process.env.DEV_SERVER
           : process.env.PROD_SERVER, // undefined else it messes up the other cookie settings
         sameSite: "none",
