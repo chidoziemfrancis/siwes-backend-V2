@@ -341,7 +341,7 @@ const update_details = async function (req, res) {
 
     if (!update || typeof update !== "object" || Object.keys(update).length === 0) {
       res.status(400).json({
-        message: "Please specify all the required fields",
+        message: "Please specify all the fields to update",
       });
       return;
     }
