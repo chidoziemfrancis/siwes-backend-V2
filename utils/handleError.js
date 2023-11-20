@@ -28,6 +28,18 @@ const handleError = async function (error, res) {
       .json({ message: `${duplicateField} already exists` });
   }
 
+  // this particular error won't happen in production as mongoDB will be deployed using a replica set
+  if (
+    error.toString() ===
+    "MongoServerError: Transaction numbers are only allowed on a replica set member or mongos"
+  ) {
+    console.log(
+      "\x1b[31m%s\x1b[0m",
+      "Attention Please!!! the last request failed because you are running this application with a standalone mongoDB deployment, please switch to a replica set"
+    );
+  }
+
+  console.log(error);
   // process error from mongodb
   return res.status(500).json({ message: "Internal Server Error" });
 };
