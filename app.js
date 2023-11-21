@@ -15,10 +15,7 @@ require("dotenv").config();
 const app = express();
 
 // set up middlewares
-app.use(cors({
-  origin: ['http://localhost:3000'],
-  credentials: true
-}));
+app.use(cors());
 app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
