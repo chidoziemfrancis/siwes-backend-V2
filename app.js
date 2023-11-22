@@ -15,10 +15,8 @@ require("dotenv").config();
 const app = express();
 
 // set up middlewares
-app.use(cors({
-  credentials: true,
-  origin: ['http://localhost:3000']
-}));
+const corsOption = process.env.NODE_ENV == "production" ? {} : { credentials: true, origin: ['http://localhost:3000'] };
+app.use(cors(corsOption));
 app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));

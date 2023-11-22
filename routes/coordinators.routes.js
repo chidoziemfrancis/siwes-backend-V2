@@ -23,7 +23,7 @@ const {
   get_forms,
   delete_form,
   search_for_students,
-  update_student_details
+  update_student_details,
 } = require("./../controllers/coordinators.controller");
 const { isCoordinator } = require("./../middlewares/auth.middleware");
 const {

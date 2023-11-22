@@ -7,7 +7,7 @@ const OTPSchema = new mongoose.Schema(
       type: String,
       min: [6, "OTP must be at least 6 characters long"],
       max: [6, "OTP must be at most 6 characters long"],
-      required: [true, "OTP must be set"]
+      required: [true, "OTP must be set"],
     },
     email: {
       type: String,
@@ -22,8 +22,8 @@ const OTPSchema = new mongoose.Schema(
     createdAt: {
       type: Date,
       default: new Date(),
-      expires: '5m'
-    }
+      expires: "5m",
+    },
   },
   { timestamps: true }
 );

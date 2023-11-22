@@ -4,7 +4,7 @@ const {
   add_work_details,
   add_weekly_reports,
   change_password,
-  update_details
+  update_details,
 } = require("./../controllers/students.controller");
 const { isStudent } = require("./../middlewares/auth.middleware");
 

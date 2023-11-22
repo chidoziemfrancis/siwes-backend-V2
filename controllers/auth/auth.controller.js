@@ -82,18 +82,19 @@ const create_tokens = function (user, res, type) {
 
       const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'development' ? false : true,
-        domain: process.env.NODE_ENV === 'development'
-          ? process.env.DEV_SERVER
-          : process.env.PROD_SERVER,
-        sameSite: process.env.NODE_ENV === 'development' ? "strict" : "none",
+        secure: process.env.NODE_ENV === "development" ? false : true,
+        domain:
+          process.env.NODE_ENV === "development"
+            ? process.env.DEV_SERVER
+            : process.env.PROD_SERVER,
+        sameSite: process.env.NODE_ENV === "development" ? "strict" : "none",
         maxAge: 604800000, // 7 days
       };
 
       res.cookie("umis_siwesA", accessToken, cookieOptions);
       res.cookie("umis_siwesR", refreshToken, cookieOptions);
       res.cookie("umis_siwesC", clientToken, {
-        sameSite: process.env.NODE_ENV === 'development' ? "strict" : "none",
+        sameSite: process.env.NODE_ENV === "development" ? "strict" : "none",
         maxAge: 604800000,
       });
 
@@ -221,7 +222,7 @@ const logout = async function (req, res) {
 };
 
 /**
- * Send a 5 minutes OTP to the user's email 
+ * Send a 5 minutes OTP to the user's email
  * @param {request} req
  * @param {response} res
  */
@@ -230,14 +231,22 @@ const send_OTP = async function (req, res) {
     const { email, purpose } = req.body;
 
     if (!email || /student.babcock.edu.ng/.test(email) == false) {
-      return res.status(400).json({ message: "Invalid email address, please enter a valid babcock mail" });
+      return res
+        .status(400)
+        .json({
+          message: "Invalid email address, please enter a valid babcock mail",
+        });
     }
 
     if (purpose !== "registration") {
       const studentExists = await STUDENTS.findOne({ email });
-  
+
       if (!studentExists) {
-        return res.status(400).json({ message: "An OTP will be sent to the account if it exists." });
+        return res
+          .status(400)
+          .json({
+            message: "An OTP will be sent to the account if it exists.",
+          });
       }
     }
 
@@ -246,18 +255,25 @@ const send_OTP = async function (req, res) {
     const otpExists = await OTP.findOne({ email });
 
     if (otpExists) {
-      return res.status(400).json({ message: "An OTP has already been sent to the specified email, ensure to check your spam folder" });
+      return res
+        .status(400)
+        .json({
+          message:
+            "An OTP has already been sent to the specified email, ensure to check your spam folder",
+        });
     }
 
     await OTP.create({ token, email });
 
     await sendOTPMail(email, token);
 
-    res.status(200).json({ message: "An OTP will be sent to the account if it exists." });
+    res
+      .status(200)
+      .json({ message: "An OTP will be sent to the account if it exists." });
   } catch (error) {
     handleError(error, res);
   }
-}
+};
 
 /**
  * Verifies the OTP
@@ -268,7 +284,12 @@ const verify_OTP = async function (req, res) {
   try {
     const { email, token } = req.body;
 
-    if (!email || /student.babcock.edu.ng$/.test(email) == false || !token || token.length !== 6) {
+    if (
+      !email ||
+      /student.babcock.edu.ng$/.test(email) == false ||
+      !token ||
+      token.length !== 6
+    ) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
@@ -282,13 +303,19 @@ const verify_OTP = async function (req, res) {
 
     // this token will be used to change the password or verify the next API call after this, it serves as a guard to prevent a user from by passing the
     // OTP call
-    const resetToken = jwt.sign({ email }, process.env.RESET_PASSWORD_TOKEN_SECRET, { expiresIn: "5m" });
+    const resetToken = jwt.sign(
+      { email },
+      process.env.RESET_PASSWORD_TOKEN_SECRET,
+      { expiresIn: "5m" }
+    );
 
-    res.status(200).json({ message: "OTP verified successfully", data: { resetToken } });
+    res
+      .status(200)
+      .json({ message: "OTP verified successfully", data: { resetToken } });
   } catch (error) {
     handleError(error, res);
   }
-}
+};
 
 /**
  * Allows a student specifically to reset their password if they forget it
@@ -297,7 +324,12 @@ const reset_password = async function (req, res) {
   try {
     const { email, password, token } = req.body;
 
-    if (!email || !password || !token || /student.babcock.edu.ng$/.test(email) == false) {
+    if (
+      !email ||
+      !password ||
+      !token ||
+      /student.babcock.edu.ng$/.test(email) == false
+    ) {
       return res.status(400).json({ message: "Invalid request" });
     }
 
@@ -320,7 +352,7 @@ const reset_password = async function (req, res) {
 
     handleError(error, res);
   }
-}
+};
 
 /**
  * @typedef userInfo

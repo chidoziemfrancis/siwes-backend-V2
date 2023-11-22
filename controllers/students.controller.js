@@ -330,8 +330,8 @@ const change_password = async function (req, res) {
 
 /**
  * This allows students update the information they previously provided, but not all
- * @param {request} req 
- * @param {response} res 
+ * @param {request} req
+ * @param {response} res
  */
 const update_details = async function (req, res) {
   try {
@@ -339,7 +339,11 @@ const update_details = async function (req, res) {
 
     const update = req.body;
 
-    if (!update || typeof update !== "object" || Object.keys(update).length === 0) {
+    if (
+      !update ||
+      typeof update !== "object" ||
+      Object.keys(update).length === 0
+    ) {
       res.status(400).json({
         message: "Please specify all the fields to update",
       });
@@ -349,7 +353,9 @@ const update_details = async function (req, res) {
     // check if all fields are valid
     const fields = Object.keys(update);
     // this checks to ensure that all fields specified are allowed and that they have values
-    const isValid = fields.every((field) => update[field] && allowedFields.includes(field));
+    const isValid = fields.every(
+      (field) => update[field] && allowedFields.includes(field)
+    );
 
     if (!isValid) {
       res.status(400).json({
@@ -391,12 +397,12 @@ const update_details = async function (req, res) {
   } catch (error) {
     handleError(error, res);
   }
-}
+};
 
 module.exports = {
   get_details,
   add_work_details,
   add_weekly_reports,
   change_password,
-  update_details
+  update_details,
 };
