@@ -74,7 +74,12 @@ const get_assigned_students_for_defense = async function (req, res) {
             {
               $project: {
                 name: {
-                  $concat: ["$firstName", " ", "$middleName", " ", "$lastName"],
+                  $concat: [
+                    "$firstName",
+                    " ",
+                    { $ifNull: [{ $concat: ["$middleName", " "] }, ""] },
+                    "$lastName",
+                  ],
                 },
                 matricNo: 1,
                 studentCode: 1,
@@ -195,7 +200,12 @@ const get_assigned_students_for_inspection = async function (req, res) {
             {
               $project: {
                 name: {
-                  $concat: ["$firstName", " ", "$middleName", " ", "$lastName"],
+                  $concat: [
+                    "$firstName",
+                    " ",
+                    { $ifNull: [{ $concat: ["$middleName", " "] }, ""] },
+                    "$lastName",
+                  ],
                 },
                 matricNo: 1,
                 studentCode: 1,

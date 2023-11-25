@@ -565,7 +565,12 @@ const get_a_student = async function (req, res) {
       {
         $addFields: {
           name: {
-            $concat: ["$firstName", " ", "$middleName", " ", "$lastName"],
+            $concat: [
+              "$firstName",
+              " ",
+              { $ifNull: [{ $concat: ["$middleName", " "] }, ""] },
+              "$lastName",
+            ],
           },
         },
       },
@@ -709,7 +714,12 @@ const get_defense_list = async function (req, res) {
             {
               $project: {
                 name: {
-                  $concat: ["$firstName", " ", "$middleName", " ", "$lastName"],
+                  $concat: [
+                    "$firstName",
+                    " ",
+                    { $ifNull: [{ $concat: ["$middleName", " "] }, ""] },
+                    "$lastName",
+                  ],
                 },
                 matricNo: 1,
                 studentCode: 1,
@@ -802,7 +812,6 @@ const get_defense_list = async function (req, res) {
  */
 const get_inspection_list = async function (req, res) {
   try {
-    // TODO: remove extra space when there is no middlename
     const pipeline = [
       {
         $lookup: {
@@ -814,7 +823,12 @@ const get_inspection_list = async function (req, res) {
             {
               $project: {
                 name: {
-                  $concat: ["$firstName", " ", "$middleName", " ", "$lastName"],
+                  $concat: [
+                    "$firstName",
+                    " ",
+                    { $ifNull: [{ $concat: ["$middleName", " "] }, ""] },
+                    "$lastName",
+                  ],
                 },
                 matricNo: 1,
                 studentCode: 1,
