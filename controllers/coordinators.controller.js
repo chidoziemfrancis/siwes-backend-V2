@@ -702,7 +702,6 @@ const get_a_student = async function (req, res) {
  */
 const get_defense_list = async function (req, res) {
   try {
-    // TODO: remove extra space when there is no middlename
     const pipeline = [
       {
         $lookup: {
