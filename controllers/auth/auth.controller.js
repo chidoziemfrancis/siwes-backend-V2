@@ -126,16 +126,18 @@ const register = async function (req, res) {
     const deadline = await DEADLINE.findOne({});
 
     if (deadline === null) {
-      return res.status(400).json({
+      res.status(400).json({
         message:
           "We couldn't find a registration deadline, this may be because it is not yet open Please contact your SIWES coordinator",
       });
+      return;
     }
 
     if (currentTime > deadline.time) {
-      return res.status(400).json({
+      res.status(400).json({
         message: "Registration couldn't be completed as it is closed",
       });
+      return;
     }
 
     const student = await STUDENTS.create(studentInfo);
@@ -231,22 +233,20 @@ const send_OTP = async function (req, res) {
     const { email, purpose } = req.body;
 
     if (!email || /student.babcock.edu.ng/.test(email) == false) {
-      return res
-        .status(400)
-        .json({
-          message: "Invalid email address, please enter a valid babcock mail",
-        });
+      res.status(400).json({
+        message: "Invalid email address, please enter a valid babcock mail",
+      });
+      return;
     }
 
     if (purpose !== "registration") {
       const studentExists = await STUDENTS.findOne({ email });
 
       if (!studentExists) {
-        return res
-          .status(400)
-          .json({
-            message: "An OTP will be sent to the account if it exists.",
-          });
+        res.status(400).json({
+          message: "An OTP will be sent to the account if it exists.",
+        });
+        return;
       }
     }
 
@@ -255,12 +255,11 @@ const send_OTP = async function (req, res) {
     const otpExists = await OTP.findOne({ email });
 
     if (otpExists) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "An OTP has already been sent to the specified email, ensure to check your spam folder",
-        });
+      res.status(400).json({
+        message:
+          "An OTP has already been sent to the specified email, ensure to check your spam folder",
+      });
+      return;
     }
 
     await OTP.create({ token, email });
@@ -290,13 +289,15 @@ const verify_OTP = async function (req, res) {
       !token ||
       token.length !== 6
     ) {
-      return res.status(400).json({ message: "Invalid OTP" });
+      res.status(400).json({ message: "Invalid OTP" });
+      return;
     }
 
     const doc = await OTP.findOne({ email, token });
 
     if (!doc) {
-      return res.status(400).json({ message: "Invalid OTP" });
+      res.status(400).json({ message: "Invalid OTP" });
+      return;
     }
 
     await OTP.deleteOne({ email });
@@ -330,13 +331,15 @@ const reset_password = async function (req, res) {
       !token ||
       /student.babcock.edu.ng$/.test(email) == false
     ) {
-      return res.status(400).json({ message: "Invalid request" });
+      res.status(400).json({ message: "Invalid request" });
+      return;
     }
 
     const decoded = jwt.verify(token, process.env.RESET_PASSWORD_TOKEN_SECRET);
 
     if (decoded.email !== email) {
-      return res.status(400).json({ message: "Invalid request" });
+      res.status(400).json({ message: "Invalid request" });
+      return;
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -347,7 +350,8 @@ const reset_password = async function (req, res) {
     res.status(200).json({ message: "Password changed successfully" });
   } catch (error) {
     if (error.name === "TokenExpiredError") {
-      return res.status(400).json({ message: "OTP expired" });
+      res.status(400).json({ message: "OTP expired" });
+      return;
     }
 
     handleError(error, res);

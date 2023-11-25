@@ -24,10 +24,11 @@ const add_a_new_coordinator = async function (req, res) {
   try {
     const coordinator = await COORDINATORS.create(req.body);
 
-    return res.status(201).json({
+    res.status(201).json({
       message: "Coordinator added successfully",
       coordinator: coordinator._id,
     });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -46,10 +47,12 @@ const get_all_coordinators = async function (req, res) {
     );
 
     if (coordinators.length === 0) {
-      return res.status(404).json({ message: "No coordinators found" });
+      res.status(404).json({ message: "No coordinators found" });
+      return;
     }
 
-    return res.status(200).json(coordinators);
+    res.status(200).json(coordinators);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -66,7 +69,8 @@ const get_a_specific_coordinator = async function (req, res) {
 
     // check if the id is valid mongodb document id
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid id" });
+      res.status(400).json({ message: "Invalid id" });
+      return;
     }
 
     const coordinator = await COORDINATORS.findOne(
@@ -75,10 +79,12 @@ const get_a_specific_coordinator = async function (req, res) {
     );
 
     if (coordinator === null) {
-      return res.status(404).json({ message: "Coordinator not found" });
+      res.status(404).json({ message: "Coordinator not found" });
+      return;
     }
 
-    return res.status(200).json(coordinator);
+    res.status(200).json(coordinator);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -95,20 +101,19 @@ const delete_a_coordinator = async function (req, res) {
 
     // check if the id is valid mongodb document id
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid id" });
+      res.status(400).json({ message: "Invalid id" });
+      return;
     }
 
     const deleteInfo = await COORDINATORS.deleteOne({ _id: id });
 
     if (deleteInfo.deletedCount === 0) {
-      return res
-        .status(400)
-        .json({ message: "No coordinator with that id exists" });
+      res.status(400).json({ message: "No coordinator with that id exists" });
+      return;
     }
 
-    return res
-      .status(200)
-      .json({ message: "Coordinator deleted successfully" });
+    res.status(200).json({ message: "Coordinator deleted successfully" });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -125,7 +130,8 @@ const update_coordinator_details = async function (req, res) {
     const update = req.body;
 
     if (Object.keys(update).length === 0) {
-      return res.status(400).json({ message: "Invalid update request" });
+      res.status(400).json({ message: "Invalid update request" });
+      return;
     }
 
     // you can't directly update the password field
@@ -135,25 +141,27 @@ const update_coordinator_details = async function (req, res) {
     );
 
     if (hasInvalidField) {
-      return res.status(400).json({
+      res.status(400).json({
         message: "Your update failed as it contains certain invalid fields",
       });
+      return;
     }
 
     // check if the id is valid mongodb document id
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid id" });
+      res.status(400).json({ message: "Invalid id" });
+      return;
     }
 
     const coordinator = await COORDINATORS.updateOne({ _id: id }, update);
 
     if (coordinator.acknowledged === false) {
-      return res.status(404).json({ message: "Coordinator not found" });
+      res.status(404).json({ message: "Coordinator not found" });
+      return;
     }
 
-    return res
-      .status(200)
-      .json({ message: "Coordinator updated successfully" });
+    res.status(200).json({ message: "Coordinator updated successfully" });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -243,7 +251,8 @@ const upload_inspection_forms = async function (req, res) {
 
     await FORMS.create({ ...formInfo, uploadedBy: _id });
 
-    return res.status(200).json({ message: "Form was added successfully" });
+    res.status(200).json({ message: "Form was added successfully" });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -258,10 +267,11 @@ const create_supervisor = async function (req, res) {
   try {
     const supervisor = await SUPERVISORS.create(req.body);
 
-    return res.status(201).json({
+    res.status(201).json({
       message: "Supervisor added successfully",
       supervisor: supervisor._id,
     });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -280,10 +290,12 @@ const get_all_supervisors = async function (req, res) {
     );
 
     if (supervisors.length === 0) {
-      return res.status(404).json({ message: "No supervisors found" });
+      res.status(404).json({ message: "No supervisors found" });
+      return;
     }
 
-    return res.status(200).json(supervisors);
+    res.status(200).json(supervisors);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -299,27 +311,29 @@ const assign_defense_supervisor = async function (req, res) {
 
   try {
     if (!mongoose.Types.ObjectId.isValid(supervisorId)) {
-      return res.status(400).json({ message: "Invalid supervisor id" });
+      res.status(400).json({ message: "Invalid supervisor id" });
+      return;
     }
 
     if (/\w+\-\d+\-\d+/.test(studentCode) === false) {
-      return res.status(400).json({ message: "Invalid student code" });
+      res.status(400).json({ message: "Invalid student code" });
+      return;
     }
 
     const supervisorExists = await SUPERVISORS.findOne({ _id: supervisorId });
 
     if (supervisorExists === null) {
-      return res
-        .status(400)
-        .json({ message: "No supervisor was found with that id" });
+      res.status(400).json({ message: "No supervisor was found with that id" });
+      return;
     }
 
     const studentExists = await STUDENTS.findOne({ studentCode });
 
     if (studentExists === null) {
-      return res
+      res
         .status(400)
         .json({ message: "No student was found with that student code" });
+      return;
     }
 
     const studentSupervisionList = await INSPECTION_LIST.findOne({
@@ -330,10 +344,11 @@ const assign_defense_supervisor = async function (req, res) {
       studentSupervisionList &&
       studentSupervisionList.supervisorId.equals(supervisorId)
     ) {
-      return res.status(400).json({
+      res.status(400).json({
         message:
           "The same supervisor can not inspect and be in charge of defense for the same student",
       });
+      return;
     }
 
     await DEFENSE_LIST.updateOne(
@@ -342,9 +357,10 @@ const assign_defense_supervisor = async function (req, res) {
       { upsert: true }
     );
 
-    return res
+    res
       .status(200)
       .json({ message: "Defense supervisor was successfully assigned" });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -360,27 +376,29 @@ const assign_inspection_supervisor = async function (req, res) {
 
   try {
     if (!mongoose.Types.ObjectId.isValid(supervisorId)) {
-      return res.status(400).json({ message: "Invalid supervisor id" });
+      res.status(400).json({ message: "Invalid supervisor id" });
+      return;
     }
 
     if (/\w+\-\d+\-\d+/.test(studentCode) === false) {
-      return res.status(400).json({ message: "Invalid student code" });
+      res.status(400).json({ message: "Invalid student code" });
+      return;
     }
 
     const supervisorExists = await SUPERVISORS.findOne({ _id: supervisorId });
 
     if (supervisorExists === null) {
-      return res
-        .status(400)
-        .json({ message: "No supervisor was found with that id" });
+      res.status(400).json({ message: "No supervisor was found with that id" });
+      return;
     }
 
     const studentExists = await STUDENTS.findOne({ studentCode });
 
     if (studentExists === null) {
-      return res
+      res
         .status(400)
         .json({ message: "No studet was found with that student code" });
+      return;
     }
 
     const studentSupervisionList = await DEFENSE_LIST.findOne({ studentCode });
@@ -389,10 +407,11 @@ const assign_inspection_supervisor = async function (req, res) {
       studentSupervisionList &&
       studentSupervisionList.supervisorId.equals(supervisorId)
     ) {
-      return res.status(400).json({
+      res.status(400).json({
         message:
           "The same supetvisor can not inspect and be in charge of defense for the same student",
       });
+      return;
     }
 
     await INSPECTION_LIST.updateOne(
@@ -401,9 +420,10 @@ const assign_inspection_supervisor = async function (req, res) {
       { upsert: true }
     );
 
-    return res
+    res
       .status(200)
       .json({ message: "Inspection supervisor was successfully assigned" });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -421,17 +441,20 @@ const get_all_students = async function (req, res) {
     const limit = parseInt(req.query.limit) || 10;
 
     if (page < 1) {
-      return res.status(400).json({ message: "Invalid page number" });
+      res.status(400).json({ message: "Invalid page number" });
+      return;
     }
 
     if (limit < 1) {
-      return res.status(400).json({ message: "Invalid limit" });
+      res.status(400).json({ message: "Invalid limit" });
+      return;
     }
 
     if (limit > 50) {
-      return res
+      res
         .status(400)
         .json({ message: "Limit too large, maximum allowed limit is 50" });
+      return;
     }
 
     const students = await STUDENTS.aggregate([
@@ -496,7 +519,8 @@ const get_all_students = async function (req, res) {
     ]);
 
     if (students.length === 0) {
-      return res.status(404).json({ message: "No students found" });
+      res.status(404).json({ message: "No students found" });
+      return;
     }
 
     // get the total number of students
@@ -509,7 +533,8 @@ const get_all_students = async function (req, res) {
       currentLimit: limit,
     };
 
-    return res.status(200).json(data);
+    res.status(200).json(data);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -526,7 +551,8 @@ const get_a_student = async function (req, res) {
   try {
     // check if the id is valid mongodb document id
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid id" });
+      res.status(400).json({ message: "Invalid id" });
+      return;
     }
 
     // when a specific student is queried the coordinator needs to see all his info
@@ -653,10 +679,12 @@ const get_a_student = async function (req, res) {
     ]);
 
     if (student === null) {
-      return res.status(404).json({ message: "Student not found" });
+      res.status(404).json({ message: "Student not found" });
+      return;
     }
 
-    return res.status(200).json(student);
+    res.status(200).json(student);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -756,10 +784,12 @@ const get_defense_list = async function (req, res) {
     const defenseList = await DEFENSE_LIST.aggregate(pipeline);
 
     if (defenseList.length === 0) {
-      return res.status(404).json({ message: "Defense list is empty" });
+      res.status(404).json({ message: "Defense list is empty" });
+      return;
     }
 
-    return res.status(200).json(defenseList);
+    res.status(200).json(defenseList);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -859,10 +889,12 @@ const get_inspection_list = async function (req, res) {
     const inspectionList = await INSPECTION_LIST.aggregate(pipeline);
 
     if (inspectionList.length === 0) {
-      return res.status(404).json({ message: "Inspection list is empty" });
+      res.status(404).json({ message: "Inspection list is empty" });
+      return;
     }
 
-    return res.status(200).json(inspectionList);
+    res.status(200).json(inspectionList);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -881,16 +913,18 @@ const set_registration_deadline = async function (req, res) {
     let currentTime = Date.now();
 
     if (time < currentTime) {
-      return res
+      res
         .status(400)
         .json({ message: "You cannot set a deadline into the past" });
+      return;
     }
 
     if (!mongoose.Types.ObjectId.isValid(updatedBy)) {
-      return res.status(401).json({
+      res.status(401).json({
         message:
           "Something went wrong while authenticating your request, re-authenticate and try again",
       });
+      return;
     }
 
     // clears the entire collection
@@ -898,9 +932,10 @@ const set_registration_deadline = async function (req, res) {
 
     await DEADLINE.create({ time, updatedBy });
 
-    return res
+    res
       .status(200)
       .json({ message: "Registration deadline has been assigned" });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -1103,12 +1138,14 @@ const get_forms = async function (req, res) {
     const forms = await FORMS.find({});
 
     if (forms.length === 0) {
-      return res
+      res
         .status(404)
         .json({ message: "There are currently no forms available" });
+      return;
     }
 
-    return res.status(200).json(forms);
+    res.status(200).json(forms);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -1166,13 +1203,15 @@ const search_for_students = async function (req, res) {
     const { q: searchQuery } = req.query;
 
     if (!searchQuery) {
-      return res.status(400).json({ message: "Please specify a search query" });
+      res.status(400).json({ message: "Please specify a search query" });
+      return;
     }
 
     if (searchQuery.length < 3) {
-      return res
+      res
         .status(400)
         .json({ message: "Search query must be at least 3 characters long" });
+      return;
     }
 
     // this holds the fields that I want to be able to search
@@ -1268,7 +1307,8 @@ const search_for_students = async function (req, res) {
     const students = await STUDENTS.aggregate(pipeline);
 
     if (students.length === 0) {
-      return res.status(404).json({ message: "No students found" });
+      res.status(404).json({ message: "No students found" });
+      return;
     }
 
     res.status(200).json(students);

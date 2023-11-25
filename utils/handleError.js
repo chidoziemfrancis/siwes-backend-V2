@@ -14,18 +14,18 @@ const handleError = async function (error, res) {
     );
 
     // send error to client
-    return res.status(400).json({
+    res.status(400).json({
       message: "Bad Request",
       errors: validationErrors,
     });
+    return;
   }
 
   // process error from mongodb duplicate key
   if (error.code === 11000) {
     let duplicateField = Object.keys(error.keyPattern)[0];
-    return res
-      .status(400)
-      .json({ message: `${duplicateField} already exists` });
+    res.status(400).json({ message: `${duplicateField} already exists` });
+    return;
   }
 
   // this particular error won't happen in production as mongoDB will be deployed using a replica set
@@ -41,7 +41,8 @@ const handleError = async function (error, res) {
 
   console.log(error);
   // process error from mongodb
-  return res.status(500).json({ message: "Internal Server Error" });
+  res.status(500).json({ message: "Internal Server Error" });
+  return;
 };
 
 module.exports = {

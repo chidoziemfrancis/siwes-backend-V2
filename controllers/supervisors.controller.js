@@ -20,7 +20,8 @@ const get_a_supervisor = async function (req, res) {
 
     // check if the id is valid mongodb document id
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid id" });
+      res.status(400).json({ message: "Invalid id" });
+      return;
     }
 
     const supervisor = await SUPERVISORS.findOne(
@@ -29,10 +30,12 @@ const get_a_supervisor = async function (req, res) {
     );
 
     if (supervisor === null) {
-      return res.status(404).json({ message: "Supervisor not found" });
+      res.status(404).json({ message: "Supervisor not found" });
+      return;
     }
 
-    return res.status(200).json(supervisor);
+    res.status(200).json(supervisor);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -48,10 +51,11 @@ const get_assigned_students_for_defense = async function (req, res) {
 
   try {
     if (!mongoose.Types.ObjectId.isValid(_id)) {
-      return res.status(401).json({
+      res.status(401).json({
         message:
           "Something went wrong while authenticating your request, re-authenticate and try again",
       });
+      return;
     }
 
     const pipeline = [
@@ -145,12 +149,14 @@ const get_assigned_students_for_defense = async function (req, res) {
     const defenseList = await DEFENSE_LIST.aggregate(pipeline);
 
     if (defenseList.length === 0) {
-      return res
+      res
         .status(404)
         .json({ message: "You have not been assigned to any student" });
+      return;
     }
 
-    return res.status(200).json(defenseList);
+    res.status(200).json(defenseList);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -166,10 +172,11 @@ const get_assigned_students_for_inspection = async function (req, res) {
 
   try {
     if (!mongoose.Types.ObjectId.isValid(_id)) {
-      return res.status(401).json({
+      res.status(401).json({
         message:
           "Something went wrong while authenticating your request, re-authenticate and try again",
       });
+      return;
     }
 
     const pipeline = [
@@ -270,12 +277,14 @@ const get_assigned_students_for_inspection = async function (req, res) {
     const inspectionList = await INSPECTION_LIST.aggregate(pipeline);
 
     if (inspectionList.length === 0) {
-      return res
+      res
         .status(404)
         .json({ message: "You have not been assigned to any student" });
+      return;
     }
 
-    return res.status(200).json(inspectionList);
+    res.status(200).json(inspectionList);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -291,12 +300,14 @@ const get_forms = async function (req, res) {
     const forms = await FORMS.find({});
 
     if (forms.length === 0) {
-      return res
+      res
         .status(404)
         .json({ message: "There are currently no forms available" });
+      return;
     }
 
-    return res.status(200).json(forms);
+    res.status(200).json(forms);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -330,10 +341,11 @@ const change_password = async function (req, res) {
     const supervisor = await SUPERVISORS.findOne({ _id });
 
     if (supervisor === null) {
-      return res.status(401).json({
+      res.status(401).json({
         message:
           "Something unusual happened to your authentication status while trying to chaneg your password, so we couldn't process your request",
       });
+      return;
     }
 
     const passwordIsValid = await bcrypt.compare(
@@ -380,7 +392,8 @@ const update_supervisor_details = async function (req, res) {
     const update = req.body;
 
     if (Object.keys(update).length === 0) {
-      return res.status(400).json({ message: "Invalid update request" });
+      res.status(400).json({ message: "Invalid update request" });
+      return;
     }
 
     // you can't directly update the password field
@@ -390,23 +403,27 @@ const update_supervisor_details = async function (req, res) {
     );
 
     if (hasInvalidField) {
-      return res.status(400).json({
+      res.status(400).json({
         message: "Your update failed as it contains certain invalid fields",
       });
+      return;
     }
 
     // check if the id is valid mongodb document id
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid id" });
+      res.status(400).json({ message: "Invalid id" });
+      return;
     }
 
     const supervisor = await SUPERVISORS.updateOne({ _id: id }, update);
 
     if (supervisor.acknowledged === false) {
-      return res.status(404).json({ message: "Supervisor not found" });
+      res.status(404).json({ message: "Supervisor not found" });
+      return;
     }
 
-    return res.status(200).json({ message: "Supervisor updated successfully" });
+    res.status(200).json({ message: "Supervisor updated successfully" });
+    return;
   } catch (error) {
     handleError(error, res);
   }
