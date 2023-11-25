@@ -1269,6 +1269,14 @@ const search_for_students = async function (req, res) {
           validation_secret: 0,
           createdAt: 0,
           updatedAt: 0,
+          score: {
+            $meta: "searchScore",
+          },
+        },
+      },
+      {
+        $sort: {
+          score: -1,
         },
       },
       {
