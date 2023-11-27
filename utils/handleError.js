@@ -38,6 +38,19 @@ const handleError = async function (error, res) {
       "\x1b[31m%s\x1b[0m",
       "Attention Please!!! the last request failed because you are running this application with a standalone mongoDB deployment, please switch to a replica set"
     );
+
+    await sendErrorMail({ error: error.toString() });
+    return;
+  }
+
+  if (error.toString() === "MongoServerError: $search stage is only allowed on MongoDB Atlas") {
+    console.log(
+      "\x1b[31m%s\x1b[0m",
+      "Attention Please!!! the last request failed because you need to switch to a MongoDB Atlas deployment to use the $search stage"
+    );
+
+    await sendErrorMail({ error: error.toString() });
+    return;
   }
 
   await sendErrorMail(error);
