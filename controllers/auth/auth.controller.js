@@ -9,7 +9,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { ObjectId } = require("mongoose").Types;
 const { randomBytes } = require("crypto");
-const { sendOTPMail } = require("../../controllers/mail.controller");
+const { sendOTPMail, sendWelcomeMail, sendLoginAlertMail } = require("../../controllers/mail.controller");
 
 /**
  * Creates and appends the access and refresh tokens to the cookies of the client
@@ -144,6 +144,8 @@ const register = async function (req, res) {
 
     await create_tokens(student, res, "student");
 
+    await sendWelcomeMail(student.firstName, student.lastName);
+
     res
       .status(200)
       .json({ message: "Registration successfull", data: student._id });
@@ -203,6 +205,12 @@ const login = async function (req, res) {
     }
 
     await create_tokens(user, res, type);
+
+    await sendLoginAlertMail(
+      user.email,
+      req.ip,
+      new Date().toLocaleString("en-GB", { timeZone: "Africa/Lagos" })
+    );
 
     res.status(200).json({ message: "Login successful", data: user._id });
   } catch (error) {

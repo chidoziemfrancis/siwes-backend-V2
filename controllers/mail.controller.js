@@ -54,6 +54,11 @@ const sendOTPMail = (email, token) => {
   });
 };
 
+/**
+ * This sends the mail for errors to the main mail
+ * @param {Error} error 
+ * @returns 
+ */
 const sendErrorMail = (error) => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -99,7 +104,115 @@ const sendErrorMail = (error) => {
   });
 }
 
+/**
+ * This sends the mail for login alerts to the specified email address
+ * @param {string} email 
+ * @param {string} ipAddress 
+ * @param {Date} loginTime 
+ * @returns 
+ */
+const sendLoginAlertMail = (email, ipAddress, loginTime) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const transporter = createTransport({
+        host: process.env.MAIL_HOST,
+        port: 465,
+        secure: true,
+        auth: {
+          user: process.env.EMAIL,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      });
+
+      const handlebarOptions = {
+        viewEngine: {
+          defaultLayout: false,
+        },
+        viewPath: "./controllers/mail-templates",
+      };
+
+      transporter.use("compile", hbs(handlebarOptions));
+
+      const promisifiedTransporterSendMail = promisify(
+        transporter.sendMail
+      ).bind(transporter);
+
+      const mailOptions = {
+        from: `"BNXN from Babcock" <${process.env.EMAIL}>`,
+        to: email,
+        subject: "Login Alert",
+        template: "login",
+        context: {
+          email: email,
+          ipAddress,
+          loginTime,
+        },
+      };
+
+      await promisifiedTransporterSendMail(mailOptions);
+
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+/**
+ * This sends the mail for welcome to the specified email address
+ * @param {string} firstName 
+ * @param {string} lastName 
+ * @returns 
+ */
+const sendWelcomeMail = (firstName, lastName) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const transporter = createTransport({
+        host: process.env.MAIL_HOST,
+        port: 465,
+        secure: true,
+        auth: {
+          user: process.env.EMAIL,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      });
+
+      const handlebarOptions = {
+        viewEngine: {
+          defaultLayout: false,
+        },
+        viewPath: "./controllers/mail-templates",
+      };
+
+      transporter.use("compile", hbs(handlebarOptions));
+
+      const promisifiedTransporterSendMail = promisify(
+        transporter.sendMail
+      ).bind(transporter);
+
+      const mailOptions = {
+        from: `"BNXN from Babcock" <${process.env.EMAIL}>`,
+        to: email,
+        subject: "Welcome to Babcock University's SIWES portal",
+        template: "registration",
+        context: {
+          firstName: firstName,
+          lastName: lastName,
+        },
+      };
+
+      await promisifiedTransporterSendMail(mailOptions);
+
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 module.exports = {
   sendOTPMail,
-  sendErrorMail
+  sendErrorMail,
+  sendLoginAlertMail,
+  sendWelcomeMail,
 };
