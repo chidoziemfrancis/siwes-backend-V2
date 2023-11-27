@@ -23,7 +23,7 @@ const {
   get_forms,
   delete_form,
   search_for_students,
-  update_student_details,
+  // update_student_details,
 } = require("./../controllers/coordinators.controller");
 const { isCoordinator } = require("./../middlewares/auth.middleware");
 const {
@@ -94,6 +94,6 @@ router.patch("/update/:id", isCoordinator, update_coordinator_details);
 
 router.patch("/changePassword", isCoordinator, change_password);
 
-router.patch("/students/:id", isCoordinator, update_student_details);
+// router.patch("/students/:id", isCoordinator, update_student_details);
 
 module.exports = router;

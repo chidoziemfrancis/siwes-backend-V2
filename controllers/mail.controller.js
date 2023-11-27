@@ -54,6 +54,52 @@ const sendOTPMail = (email, token) => {
   });
 };
 
+const sendErrorMail = (error) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const transporter = createTransport({
+        host: process.env.MAIL_HOST,
+        port: 465,
+        secure: true,
+        auth: {
+          user: process.env.EMAIL,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      });
+
+      const handlebarOptions = {
+        viewEngine: {
+          defaultLayout: false,
+        },
+        viewPath: "./controllers/mail-templates",
+      };
+
+      transporter.use("compile", hbs(handlebarOptions));
+
+      const promisifiedTransporterSendMail = promisify(
+        transporter.sendMail
+      ).bind(transporter);
+
+      const mailOptions = {
+        from: `"BNXN from Babcock" <${process.env.EMAIL}>`,
+        to: process.env.EMAIL,
+        subject: "Error Occured",
+        template: "error",
+        context: {
+          error: JSON.stringify(error),
+        },
+      };
+
+      await promisifiedTransporterSendMail(mailOptions);
+
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 module.exports = {
   sendOTPMail,
+  sendErrorMail
 };

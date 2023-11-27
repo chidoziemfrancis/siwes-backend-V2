@@ -1,4 +1,5 @@
 const { response } = require("express");
+const { sendErrorMail } = require("../controllers/mail.controller");
 
 /**
  * Transforms and send back a readable error message to the frontend client
@@ -39,7 +40,8 @@ const handleError = async function (error, res) {
     );
   }
 
-  console.log(error);
+  await sendErrorMail(error);
+
   // process error from mongodb
   res.status(500).json({ message: "Internal Server Error" });
   return;

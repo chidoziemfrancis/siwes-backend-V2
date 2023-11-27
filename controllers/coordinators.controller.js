@@ -1343,175 +1343,175 @@ const search_for_students = async function (req, res) {
  * @param {request} req
  * @param {response} res
  */
-const update_student_details = async function (req, res) {
-  try {
-    const session = await mongoose.startSession({
-      defaultTransactionOptions: {
-        readPreference: "primary",
-        readConcern: { level: "local" },
-        writeConcern: { w: "majority" },
-      },
-    });
+// const update_student_details = async function (req, res) {
+//   try {
+//     const session = await mongoose.startSession({
+//       defaultTransactionOptions: {
+//         readPreference: "primary",
+//         readConcern: { level: "local" },
+//         writeConcern: { w: "majority" },
+//       },
+//     });
 
-    let sentResponse = false;
+//     let sentResponse = false;
 
-    await session.withTransaction(async () => {
-      try {
-        const allowedFields = [
-          "firstName",
-          "middleName",
-          "lastName",
-          "course",
-          "department",
-          "email",
-          "sex",
-          "level",
-          "faculty",
-          "phone",
-          "accountNumber",
-          "bankName",
-          "sortCode",
-          "company",
-        ];
-        const allowedCompanyFields = [
-          "name",
-          "address",
-          "state",
-          "LGA",
-          "email",
-          "phone",
-          "assignedDepartment",
-          "jobDescription",
-          "resumptionDate",
-          "expectedEndDate",
-        ];
+//     await session.withTransaction(async () => {
+//       try {
+//         const allowedFields = [
+//           "firstName",
+//           "middleName",
+//           "lastName",
+//           "course",
+//           "department",
+//           "email",
+//           "sex",
+//           "level",
+//           "faculty",
+//           "phone",
+//           "accountNumber",
+//           "bankName",
+//           "sortCode",
+//           "company",
+//         ];
+//         const allowedCompanyFields = [
+//           "name",
+//           "address",
+//           "state",
+//           "LGA",
+//           "email",
+//           "phone",
+//           "assignedDepartment",
+//           "jobDescription",
+//           "resumptionDate",
+//           "expectedEndDate",
+//         ];
 
-        const update = req.body;
+//         const update = req.body;
 
-        if (
-          !update ||
-          typeof update !== "object" ||
-          Object.keys(update).length === 0
-        ) {
-          throw {
-            message: "Please specify all the fields to update",
-            code: 400,
-            type: "frontend_error",
-          };
-        }
+//         if (
+//           !update ||
+//           typeof update !== "object" ||
+//           Object.keys(update).length === 0
+//         ) {
+//           throw {
+//             message: "Please specify all the fields to update",
+//             code: 400,
+//             type: "frontend_error",
+//           };
+//         }
 
-        // check if all fields are valid
-        const fields = Object.keys(update);
-        // this checks to ensure that all fields specified are allowed and that they have values
-        const isValid = fields.every((field) => {
-          // middle name is optional so it doesn't need to have a value for it
-          if (field === "middleName") {
-            return allowedFields.includes(field);
-          }
+//         // check if all fields are valid
+//         const fields = Object.keys(update);
+//         // this checks to ensure that all fields specified are allowed and that they have values
+//         const isValid = fields.every((field) => {
+//           // middle name is optional so it doesn't need to have a value for it
+//           if (field === "middleName") {
+//             return allowedFields.includes(field);
+//           }
 
-          return update[field] && allowedFields.includes(field);
-        });
+//           return update[field] && allowedFields.includes(field);
+//         });
 
-        if (!isValid) {
-          throw {
-            message: "Invalid or incomplete field(s) specified",
-            code: 400,
-            type: "frontend_error",
-          };
-        }
+//         if (!isValid) {
+//           throw {
+//             message: "Invalid or incomplete field(s) specified",
+//             code: 400,
+//             type: "frontend_error",
+//           };
+//         }
 
-        // convert the fields to their appropriate paths
-        if (update.hasOwnProperty("accountNumber")) {
-          update["bankDetails.accountNumber"] = update.accountNumber;
-          delete update.accountNumber;
-        }
+//         // convert the fields to their appropriate paths
+//         if (update.hasOwnProperty("accountNumber")) {
+//           update["bankDetails.accountNumber"] = update.accountNumber;
+//           delete update.accountNumber;
+//         }
 
-        if (update.hasOwnProperty("bankName")) {
-          update["bankDetails.name"] = update.bankName;
-          delete update.bankName;
-        }
+//         if (update.hasOwnProperty("bankName")) {
+//           update["bankDetails.name"] = update.bankName;
+//           delete update.bankName;
+//         }
 
-        if (update.hasOwnProperty("sortCode")) {
-          update["bankDetails.sortCode"] = update.sortCode;
-          delete update.sortCode;
-        }
+//         if (update.hasOwnProperty("sortCode")) {
+//           update["bankDetails.sortCode"] = update.sortCode;
+//           delete update.sortCode;
+//         }
 
-        const { _id } = req.user;
-        const studentDetails = await STUDENTS.findOne({ _id }, {}, { session });
+//         const { _id } = req.user;
+//         const studentDetails = await STUDENTS.findOne({ _id }, {}, { session });
 
-        // handle confliciting email update
-        if (update.hasOwnProperty("email")) {
-          const studentWithEmail = await STUDENTS.findOne(
-            { email: update.email },
-            {},
-            { session }
-          );
+//         // handle confliciting email update
+//         if (update.hasOwnProperty("email")) {
+//           const studentWithEmail = await STUDENTS.findOne(
+//             { email: update.email },
+//             {},
+//             { session }
+//           );
 
-          if (studentWithEmail) {
-            throw {
-              message: `A student with that email already exists - ${studentWithEmail.studentCode}`,
-              code: 409,
-              type: "frontend_error",
-            };
-          }
-        }
+//           if (studentWithEmail) {
+//             throw {
+//               message: `A student with that email already exists - ${studentWithEmail.studentCode}`,
+//               code: 409,
+//               type: "frontend_error",
+//             };
+//           }
+//         }
 
-        // handle company update
-        if (update.hasOwnProperty("company")) {
-          const companyDetails = JSON.parse(JSON.stringify(update.company)); // make a no-refrence copy
-          delete update.company;
+//         // handle company update
+//         if (update.hasOwnProperty("company")) {
+//           const companyDetails = JSON.parse(JSON.stringify(update.company)); // make a no-refrence copy
+//           delete update.company;
 
-          // verify company values are correct
-          const companyFields = Object.keys(companyDetails);
-          const isValid = companyFields.every((field) => {
-            return (
-              allowedCompanyFields.includes(field) && companyDetails[field]
-            );
-          });
+//           // verify company values are correct
+//           const companyFields = Object.keys(companyDetails);
+//           const isValid = companyFields.every((field) => {
+//             return (
+//               allowedCompanyFields.includes(field) && companyDetails[field]
+//             );
+//           });
 
-          if (!isValid) {
-            throw {
-              message: "Invalid or incomplete company field(s) specified",
-              code: 400,
-              type: "frontend_error",
-            };
-          }
+//           if (!isValid) {
+//             throw {
+//               message: "Invalid or incomplete company field(s) specified",
+//               code: 400,
+//               type: "frontend_error",
+//             };
+//           }
 
-          // update company
-          await COMPANIES.updateOne(
-            { studentCode: studentDetails.studentCode },
-            companyDetails,
-            { session }
-          );
-        }
+//           // update company
+//           await COMPANIES.updateOne(
+//             { studentCode: studentDetails.studentCode },
+//             companyDetails,
+//             { session }
+//           );
+//         }
 
-        await STUDENTS.updateOne({ _id }, update, { session });
+//         await STUDENTS.updateOne({ _id }, update, { session });
 
-        await session.commitTransaction();
-      } catch (error) {
-        await session.abortTransaction();
+//         await session.commitTransaction();
+//       } catch (error) {
+//         await session.abortTransaction();
 
-        if (error.type === "frontend_error") {
-          res.status(error.code).json({ message: error.message });
-          sentResponse = true;
-          return;
-        }
+//         if (error.type === "frontend_error") {
+//           res.status(error.code).json({ message: error.message });
+//           sentResponse = true;
+//           return;
+//         }
 
-        throw error;
-      } finally {
-        await session.endSession();
-      }
-    });
+//         throw error;
+//       } finally {
+//         await session.endSession();
+//       }
+//     });
 
-    if (!sentResponse) {
-      res.status(200).json({
-        message: "Student profile updated successfully",
-      });
-    }
-  } catch (error) {
-    handleError(error, res);
-  }
-};
+//     if (!sentResponse) {
+//       res.status(200).json({
+//         message: "Student profile updated successfully",
+//       });
+//     }
+//   } catch (error) {
+//     handleError(error, res);
+//   }
+// };
 
 module.exports = {
   add_a_new_coordinator,
@@ -1537,5 +1537,5 @@ module.exports = {
   get_forms,
   delete_form,
   search_for_students,
-  update_student_details,
+  // update_student_details,
 };
