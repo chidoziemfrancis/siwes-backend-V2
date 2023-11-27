@@ -56,8 +56,8 @@ const sendOTPMail = (email, token) => {
 
 /**
  * This sends the mail for errors to the main mail
- * @param {Error} error 
- * @returns 
+ * @param {Error} error
+ * @returns
  */
 const sendErrorMail = (error) => {
   return new Promise(async (resolve, reject) => {
@@ -102,14 +102,14 @@ const sendErrorMail = (error) => {
       reject(error);
     }
   });
-}
+};
 
 /**
  * This sends the mail for login alerts to the specified email address
- * @param {string} email 
- * @param {string} ipAddress 
- * @param {Date} loginTime 
- * @returns 
+ * @param {string} email
+ * @param {string} ipAddress
+ * @param {Date} loginTime
+ * @returns
  */
 const sendLoginAlertMail = (email, loginTime) => {
   return new Promise(async (resolve, reject) => {
@@ -159,9 +159,9 @@ const sendLoginAlertMail = (email, loginTime) => {
 
 /**
  * This sends the mail for welcome to the specified email address
- * @param {string} firstName 
- * @param {string} lastName 
- * @returns 
+ * @param {string} firstName
+ * @param {string} lastName
+ * @returns
  */
 const sendWelcomeMail = (email, firstName, lastName) => {
   return new Promise(async (resolve, reject) => {

@@ -1,45 +1,25 @@
-<!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login Security Alert</title>
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f4f4;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-            text-align: center;
-        }
-
-        h1 {
-            color: #dc3545; /* Red color for security alert */
-        }
-
-        p {
-            line-height: 1.6;
-            margin-bottom: 10px;
-        }
-
-        footer {
-            margin-top: 20px;
-            font-style: italic;
-            color: #777;
-        }
+      body { font-family: 'Arial', sans-serif; background-color: #f4f4f4; color:
+      #333; margin: 0; padding: 20px; text-align: center; } h1 { color: #dc3545;
+      /* Red color for security alert */ } p { line-height: 1.6; margin-bottom:
+      10px; } footer { margin-top: 20px; font-style: italic; color: #777; }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Security Alert: Login Notification</h1>
     <p>Dear {{email}},</p>
     <p>A login to your account was detected.</p>
     <p><strong>Details:</strong></p>
     <ul>
-        <li><strong>Login Time:</strong> {{loginTime}}</li>
+      <li><strong>Login Time:</strong> {{loginTime}}</li>
     </ul>
     <p>If this was not you, please take immediate action to secure your account.</p>
     <p>Best regards,</p>
     <footer>Your App Team</footer>
-</body>
+  </body>
 </html>

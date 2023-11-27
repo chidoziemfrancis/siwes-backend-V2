@@ -9,7 +9,11 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { ObjectId } = require("mongoose").Types;
 const { randomBytes } = require("crypto");
-const { sendOTPMail, sendWelcomeMail, sendLoginAlertMail } = require("../../controllers/mail.controller");
+const {
+  sendOTPMail,
+  sendWelcomeMail,
+  sendLoginAlertMail,
+} = require("../../controllers/mail.controller");
 
 /**
  * Creates and appends the access and refresh tokens to the cookies of the client

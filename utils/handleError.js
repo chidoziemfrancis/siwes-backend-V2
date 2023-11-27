@@ -43,7 +43,10 @@ const handleError = async function (error, res) {
     return;
   }
 
-  if (error.toString() === "MongoServerError: $search stage is only allowed on MongoDB Atlas") {
+  if (
+    error.toString() ===
+    "MongoServerError: $search stage is only allowed on MongoDB Atlas"
+  ) {
     console.log(
       "\x1b[31m%s\x1b[0m",
       "Attention Please!!! the last request failed because you need to switch to a MongoDB Atlas deployment to use the $search stage"
