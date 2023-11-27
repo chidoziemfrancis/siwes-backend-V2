@@ -111,7 +111,7 @@ const sendErrorMail = (error) => {
  * @param {Date} loginTime 
  * @returns 
  */
-const sendLoginAlertMail = (email, ipAddress, loginTime) => {
+const sendLoginAlertMail = (email, loginTime) => {
   return new Promise(async (resolve, reject) => {
     try {
       const transporter = createTransport({
@@ -144,7 +144,6 @@ const sendLoginAlertMail = (email, ipAddress, loginTime) => {
         template: "login",
         context: {
           email: email,
-          ipAddress,
           loginTime,
         },
       };
@@ -164,7 +163,7 @@ const sendLoginAlertMail = (email, ipAddress, loginTime) => {
  * @param {string} lastName 
  * @returns 
  */
-const sendWelcomeMail = (firstName, lastName) => {
+const sendWelcomeMail = (email, firstName, lastName) => {
   return new Promise(async (resolve, reject) => {
     try {
       const transporter = createTransport({

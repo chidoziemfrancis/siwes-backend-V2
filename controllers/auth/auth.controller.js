@@ -144,7 +144,7 @@ const register = async function (req, res) {
 
     await create_tokens(student, res, "student");
 
-    await sendWelcomeMail(student.firstName, student.lastName);
+    await sendWelcomeMail(student.email, student.firstName, student.lastName);
 
     res
       .status(200)
@@ -208,7 +208,6 @@ const login = async function (req, res) {
 
     await sendLoginAlertMail(
       user.email,
-      req.ip,
       new Date().toLocaleString("en-GB", { timeZone: "Africa/Lagos" })
     );
 
