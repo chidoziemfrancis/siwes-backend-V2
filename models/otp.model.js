@@ -21,11 +21,10 @@ const OTPSchema = new mongoose.Schema(
     },
     createdAt: {
       type: Date,
-      default: new Date(),
-      expires: "5m",
+      default: new Date()
     },
   },
-  { timestamps: true }
+  { timestamps: true, expireAfterSeconds: 300 }
 );
 
 const OTP = mongoose.model("otp", OTPSchema);
