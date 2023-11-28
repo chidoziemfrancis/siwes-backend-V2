@@ -121,7 +121,7 @@ StudentSchema.pre("save", async function (next) {
 
   const studentCode = `${this.department
     .split(" ")
-    .join("-")}-${year}-${this.matricNo.slice(3, 7)}`;
+    .join("-")}-${year}-${this.matricNo.replace(/\//, "-")}`;
   this.studentCode = studentCode;
 
   next();
