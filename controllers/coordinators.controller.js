@@ -13,6 +13,7 @@ const mongoose = require("mongoose");
 const { request, response } = require("express");
 const bcrypt = require("bcrypt");
 const { existsSync, unlinkSync } = require("fs");
+const jsonToCsvString = require("../utils/jsonToCsvString");
 const { ObjectId } = require("mongoose").Types;
 
 /**
@@ -1339,6 +1340,109 @@ const search_for_students = async function (req, res) {
 };
 
 /**
+ * This retrieves the data for all students and returns it as a csv file ready for download
+ * @param {request} req 
+ * @param {response} res 
+ */
+const download_all_student_data = async function (req, res) {
+  try {
+    const students = await STUDENTS.aggregate([
+      {
+        $project: {
+          password: 0,
+          validation_secret: 0,
+          createdAt: 0,
+          updatedAt: 0,
+          __v: 0,
+        },
+      },
+      {
+        $lookup: {
+          from: "grades",
+          localField: "_id",
+          foreignField: "studentId",
+          as: "grade",
+          pipeline: [
+            {
+              $project: {
+                studentId: 0,
+                __v: 0,
+                createdAt: 0,
+                updatedAt: 0,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                address: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          grade: {
+            $arrayElemAt: ["$grade", 0],
+          },
+          company: {
+            $arrayElemAt: ["$company", 0],
+          },
+        },
+      },
+      {
+        $addFields: {
+          accountNo: "$bankDetails.accountNumber",
+          bankname: "$bankDetails.name",
+          sortCode: "$bankDetails.sortCode",
+          companyName: "$company.name",
+          companyAddress: "$company.address",
+          inspectionScore: "$grade.inspectionScore",
+          weeklyReportsScore:
+            "$grade.weeklyReportsScore",
+          defenseScore: "$grade.defenseScore",
+          totalScore: "$grade.total",
+          lastUpdatedBy: "$grade.lastUpdatedBy",
+        },
+      },
+      {
+        $project: {
+          bankDetails: 0,
+          company: 0,
+          grade: 0,
+          _id: 0,
+        },
+      },
+    ]);
+
+    if (students.length === 0) {
+      res.status(404).json({ message: "No students found" });
+      return;
+    }
+
+    const csvString = jsonToCsvString(students);
+
+    res
+      .status(200)
+      .header("Content-Type", "text/csv")
+      .header("Content-Disposition", "attachment; filename=students.csv")
+      .send(csvString);
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
  * This allows coordinators update the information for a particular student
  * @param {request} req
  * @param {response} res
@@ -1537,5 +1641,6 @@ module.exports = {
   get_forms,
   delete_form,
   search_for_students,
+  download_all_student_data
   // update_student_details,
 };

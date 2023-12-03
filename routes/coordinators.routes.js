@@ -23,6 +23,7 @@ const {
   get_forms,
   delete_form,
   search_for_students,
+  download_all_student_data,
   // update_student_details,
 } = require("./../controllers/coordinators.controller");
 const { isCoordinator } = require("./../middlewares/auth.middleware");
@@ -42,6 +43,8 @@ router.get("/inspectionList", isCoordinator, get_inspection_list);
 router.get("/supervisors", isCoordinator, get_all_supervisors);
 
 router.get("/students", isCoordinator, get_all_students);
+
+router.get("/students/download", isCoordinator, download_all_student_data);
 
 router.get("/students/:id", isCoordinator, get_a_student);
 
