@@ -569,7 +569,14 @@ const get_a_student = async function (req, res) {
             $concat: [
               "$firstName",
               " ",
-              { $ifNull: [{ $concat: ["$middleName", " "] }, ""] },
+              {
+                $ifNull: [
+                  {
+                    $concat: ["$middleName", " "],
+                  },
+                  "",
+                ],
+              },
               "$lastName",
             ],
           },
@@ -658,13 +665,36 @@ const get_a_student = async function (req, res) {
           from: "coordinators",
           localField: "grades.lastUpdatedBy",
           foreignField: "_id",
-          as: "lastUpdatedBy",
+          as: "coordinatorLookup",
+        },
+      },
+      {
+        $unwind: {
+          path: "$coordinatorLookup",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "supervisors",
+          localField: "grades.lastUpdatedBy",
+          foreignField: "_id",
+          as: "supervisorLookup",
+        },
+      },
+      {
+        $unwind: {
+          path: "$supervisorLookup",
+          preserveNullAndEmptyArrays: true,
         },
       },
       {
         $addFields: {
           lastUpdatedBy: {
-            $arrayElemAt: ["$lastUpdatedBy", 0],
+            $ifNull: [
+              "$coordinatorLookup",
+              "$supervisorLookup",
+            ],
           },
         },
       },
@@ -680,7 +710,11 @@ const get_a_student = async function (req, res) {
         },
       },
       {
-        $unset: "lastUpdatedBy",
+        $unset: [
+          "coordinatorLookup",
+          "supervisorLookup",
+          "lastUpdatedBy",
+        ],
       },
     ]);
 
