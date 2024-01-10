@@ -1572,8 +1572,8 @@ const update_student_details = async function (req, res) {
           delete update.sortCode;
         }
 
-        const { _id } = req.user;
-        const studentDetails = await STUDENTS.findOne({ _id }, {}, { session });
+        const { id:studentId } = req.params;
+        const studentDetails = await STUDENTS.findOne({ _id: studentId }, {}, { session });
 
         // handle company update
         if (update.hasOwnProperty("company")) {
@@ -1604,7 +1604,7 @@ const update_student_details = async function (req, res) {
           );
         }
 
-        await STUDENTS.updateOne({ _id }, update, { session });
+        await STUDENTS.updateOne({ _id: studentId }, update, { session });
 
         await session.commitTransaction();
       } catch (error) {
