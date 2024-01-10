@@ -7,6 +7,7 @@ const { handleError } = require("../utils/handleError");
 const mongoose = require("mongoose");
 const { request, response } = require("express");
 const bcrypt = require("bcrypt");
+const { existsSync } = require("fs");
 
 /**
  * Gets the details of a specific supervisor
@@ -19,7 +20,8 @@ const get_a_supervisor = async function (req, res) {
 
     // check if the id is valid mongodb document id
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid id" });
+      res.status(400).json({ message: "Invalid id" });
+      return;
     }
 
     const supervisor = await SUPERVISORS.findOne(
@@ -28,10 +30,12 @@ const get_a_supervisor = async function (req, res) {
     );
 
     if (supervisor === null) {
-      return res.status(404).json({ message: "Supervisor not found" });
+      res.status(404).json({ message: "Supervisor not found" });
+      return;
     }
 
-    return res.status(200).json(supervisor);
+    res.status(200).json(supervisor);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -47,10 +51,11 @@ const get_assigned_students_for_defense = async function (req, res) {
 
   try {
     if (!mongoose.Types.ObjectId.isValid(_id)) {
-      return res.status(401).json({
+      res.status(401).json({
         message:
           "Something went wrong while authenticating your request, re-authenticate and try again",
       });
+      return;
     }
 
     const pipeline = [
@@ -69,7 +74,12 @@ const get_assigned_students_for_defense = async function (req, res) {
             {
               $project: {
                 name: {
-                  $concat: ["$firstName", " ", "$middleName", " ", "$lastName"],
+                  $concat: [
+                    "$firstName",
+                    " ",
+                    { $ifNull: [{ $concat: ["$middleName", " "] }, ""] },
+                    "$lastName",
+                  ],
                 },
                 matricNo: 1,
                 studentCode: 1,
@@ -144,12 +154,14 @@ const get_assigned_students_for_defense = async function (req, res) {
     const defenseList = await DEFENSE_LIST.aggregate(pipeline);
 
     if (defenseList.length === 0) {
-      return res
+      res
         .status(404)
         .json({ message: "You have not been assigned to any student" });
+      return;
     }
 
-    return res.status(200).json(defenseList);
+    res.status(200).json(defenseList);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -165,10 +177,11 @@ const get_assigned_students_for_inspection = async function (req, res) {
 
   try {
     if (!mongoose.Types.ObjectId.isValid(_id)) {
-      return res.status(401).json({
+      res.status(401).json({
         message:
           "Something went wrong while authenticating your request, re-authenticate and try again",
       });
+      return;
     }
 
     const pipeline = [
@@ -187,7 +200,12 @@ const get_assigned_students_for_inspection = async function (req, res) {
             {
               $project: {
                 name: {
-                  $concat: ["$firstName", " ", "$middleName", " ", "$lastName"],
+                  $concat: [
+                    "$firstName",
+                    " ",
+                    { $ifNull: [{ $concat: ["$middleName", " "] }, ""] },
+                    "$lastName",
+                  ],
                 },
                 matricNo: 1,
                 studentCode: 1,
@@ -269,12 +287,14 @@ const get_assigned_students_for_inspection = async function (req, res) {
     const inspectionList = await INSPECTION_LIST.aggregate(pipeline);
 
     if (inspectionList.length === 0) {
-      return res
+      res
         .status(404)
         .json({ message: "You have not been assigned to any student" });
+      return;
     }
 
-    return res.status(200).json(inspectionList);
+    res.status(200).json(inspectionList);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -290,12 +310,14 @@ const get_forms = async function (req, res) {
     const forms = await FORMS.find({});
 
     if (forms.length === 0) {
-      return res
+      res
         .status(404)
         .json({ message: "There are currently no forms available" });
+      return;
     }
 
-    return res.status(200).json(forms);
+    res.status(200).json(forms);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -329,10 +351,11 @@ const change_password = async function (req, res) {
     const supervisor = await SUPERVISORS.findOne({ _id });
 
     if (supervisor === null) {
-      return res.status(401).json({
+      res.status(401).json({
         message:
           "Something unusual happened to your authentication status while trying to chaneg your password, so we couldn't process your request",
       });
+      return;
     }
 
     const passwordIsValid = await bcrypt.compare(
@@ -379,36 +402,38 @@ const update_supervisor_details = async function (req, res) {
     const update = req.body;
 
     if (Object.keys(update).length === 0) {
-      return res.status(400).json({ message: "Invalid update request" });
+      res.status(400).json({ message: "Invalid update request" });
+      return;
     }
 
     // you can't directly update the password field
-    let hasInvalidField = false;
     let allowedFields = ["firstName", "lastName", "phone", "office"];
-    Object.keys(update).forEach((key) => {
-      if (allowedFields.includes(key) === false) {
-        hasInvalidField = true;
-      }
-    });
+    let hasInvalidField = Object.keys(update).some(
+      (field) => !allowedFields.includes(field)
+    );
 
     if (hasInvalidField) {
-      return res.status(400).json({
+      res.status(400).json({
         message: "Your update failed as it contains certain invalid fields",
       });
+      return;
     }
 
     // check if the id is valid mongodb document id
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid id" });
+      res.status(400).json({ message: "Invalid id" });
+      return;
     }
 
     const supervisor = await SUPERVISORS.updateOne({ _id: id }, update);
 
     if (supervisor.acknowledged === false) {
-      return res.status(404).json({ message: "Supervisor not found" });
+      res.status(404).json({ message: "Supervisor not found" });
+      return;
     }
 
-    return res.status(200).json({ message: "Supervisor updated successfully" });
+    res.status(200).json({ message: "Supervisor updated successfully" });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -544,11 +569,9 @@ const assign_grade = async function (req, res) {
       reports: "weeklyReportsScore",
     };
     if (Object.keys(validTypes).includes(type) == false) {
-      res
-        .status(400)
-        .json({
-          message: "Invalid type specified, specify a valid type and try again",
-        });
+      res.status(400).json({
+        message: "Invalid type specified, specify a valid type and try again",
+      });
       return;
     }
 
@@ -578,12 +601,9 @@ const assign_grade = async function (req, res) {
 
     // grades have been collated previously
     if (studentGrade !== null && studentGrade.total !== null) {
-      res
-        .status(400)
-        .json({
-          message:
-            "Grades cannot be updated as they have been collated already",
-        });
+      res.status(400).json({
+        message: "Grades cannot be updated as they have been collated already",
+      });
       return;
     }
 
@@ -594,17 +614,52 @@ const assign_grade = async function (req, res) {
     );
 
     if (response.acknowledged == false) {
-      res
-        .status(500)
-        .json({
-          message: "Action failed, please try again or contact support",
-        });
+      res.status(500).json({
+        message: "Action failed, please try again or contact support",
+      });
       return;
     }
 
     res.status(200).json({ message: "Grades updated successfully" });
   } catch (error) {
-    console.log(error)
+    console.log(error);
+    handleError(error, res);
+  }
+};
+
+/**
+ * This routes send a downloadable object of the file to the user
+ * @param {request} req
+ * @param {response} res
+ */
+const download_form = async function (req, res) {
+  const { formId } = req.query;
+
+  try {
+    if (mongoose.Types.ObjectId.isValid(formId) == false) {
+      res.status(400).json({ message: "Invalid form id" });
+      return;
+    }
+
+    const form = await FORMS.findById(formId);
+
+    if (form == null) {
+      res.status(404).json({ message: "Form not found" });
+      return;
+    }
+
+    const filePath = form.pathToFile;
+    const fullPath = __dirname + "/../" + filePath;
+
+    if (existsSync(fullPath) == false) {
+      res
+        .status(404)
+        .json({ message: "Form doesn't exist, please refresh and try again" });
+      return;
+    }
+
+    res.download(fullPath);
+  } catch (error) {
     handleError(error, res);
   }
 };
@@ -618,5 +673,6 @@ module.exports = {
   update_supervisor_details,
   update_defense_time,
   update_inspection_time,
-  assign_grade
+  assign_grade,
+  download_form,
 };

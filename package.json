@@ -3,11 +3,16 @@
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
+  "engines": {
+    "node": "21"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node app.js",
-    "dev": "set IN_DEV_ENV=true && nodemon app.js",
-    "lint": "npx prettier -w */**"
+    "start": "export NODE_ENV=production && node app.js",
+    "build": "git clone https://$GIT_USER:$GIT_TOKEN@github.com/bucc-dev/siwes-website-frontend.git && cd siwes-website-frontend && npm install && npm run build && mv ./build ./../ && cd .. && rm -rf siwes-website-frontend && npm install",
+    "dev": "export NODE_ENV=development && node --watch --watch-preserve-output app",
+    "lint": "npx prettier -w */**",
+    "staging": "export NODE_ENV=staging && node app.js"
   },
   "keywords": [],
   "author": "",
@@ -21,12 +26,13 @@
     "dotenv": "^16.0.1",
     "express": "^4.18.1",
     "express-fileupload": "^1.4.0",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.0",
     "mongoose": "^6.3.5",
+    "nodemailer": "^6.9.7",
+    "nodemailer-express-handlebars": "^6.1.0",
     "validator": "^13.7.0"
   },
   "devDependencies": {
-    "prettier": "^2.7.1",
-    "nodemon": "^2.0.16"
+    "prettier": "^2.7.1"
   }
 }

@@ -7,10 +7,14 @@ const DEADLINE = require("./../models/deadline.model");
 const FORMS = require("./../models/form.model");
 const GRADES = require("../models/grade.model");
 const WEEKLYREPORTS = require("./../models/weekly_report.model");
+const COMPANIES = require("./../models/company.model");
 const { handleError } = require("../utils/handleError");
 const mongoose = require("mongoose");
 const { request, response } = require("express");
 const bcrypt = require("bcrypt");
+const { existsSync, unlinkSync } = require("fs");
+const jsonToCsvString = require("../utils/jsonToCsvString");
+const { ObjectId } = require("mongoose").Types;
 
 /**
  * adds a new coordinator
@@ -21,10 +25,11 @@ const add_a_new_coordinator = async function (req, res) {
   try {
     const coordinator = await COORDINATORS.create(req.body);
 
-    return res.status(201).json({
+    res.status(201).json({
       message: "Coordinator added successfully",
       coordinator: coordinator._id,
     });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -43,10 +48,12 @@ const get_all_coordinators = async function (req, res) {
     );
 
     if (coordinators.length === 0) {
-      return res.status(404).json({ message: "No coordinators found" });
+      res.status(404).json({ message: "No coordinators found" });
+      return;
     }
 
-    return res.status(200).json(coordinators);
+    res.status(200).json(coordinators);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -63,7 +70,8 @@ const get_a_specific_coordinator = async function (req, res) {
 
     // check if the id is valid mongodb document id
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid id" });
+      res.status(400).json({ message: "Invalid id" });
+      return;
     }
 
     const coordinator = await COORDINATORS.findOne(
@@ -72,10 +80,12 @@ const get_a_specific_coordinator = async function (req, res) {
     );
 
     if (coordinator === null) {
-      return res.status(404).json({ message: "Coordinator not found" });
+      res.status(404).json({ message: "Coordinator not found" });
+      return;
     }
 
-    return res.status(200).json(coordinator);
+    res.status(200).json(coordinator);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -92,20 +102,19 @@ const delete_a_coordinator = async function (req, res) {
 
     // check if the id is valid mongodb document id
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid id" });
+      res.status(400).json({ message: "Invalid id" });
+      return;
     }
 
     const deleteInfo = await COORDINATORS.deleteOne({ _id: id });
 
     if (deleteInfo.deletedCount === 0) {
-      return res
-        .status(400)
-        .json({ message: "No coordinator with that id exists" });
+      res.status(400).json({ message: "No coordinator with that id exists" });
+      return;
     }
 
-    return res
-      .status(200)
-      .json({ message: "Coordinator deleted successfully" });
+    res.status(200).json({ message: "Coordinator deleted successfully" });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -122,38 +131,38 @@ const update_coordinator_details = async function (req, res) {
     const update = req.body;
 
     if (Object.keys(update).length === 0) {
-      return res.status(400).json({ message: "Invalid update request" });
+      res.status(400).json({ message: "Invalid update request" });
+      return;
     }
 
     // you can't directly update the password field
-    let hasInvalidField = false;
     let allowedFields = ["firstName", "lastName", "phone1", "phone2", "office"];
-    Object.keys(update).forEach((key) => {
-      if (allowedFields.includes(key) === false) {
-        hasInvalidField = true;
-      }
-    });
+    let hasInvalidField = Object.keys(update).some(
+      (field) => !allowedFields.includes(field)
+    );
 
     if (hasInvalidField) {
-      return res.status(400).json({
+      res.status(400).json({
         message: "Your update failed as it contains certain invalid fields",
       });
+      return;
     }
 
     // check if the id is valid mongodb document id
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid id" });
+      res.status(400).json({ message: "Invalid id" });
+      return;
     }
 
     const coordinator = await COORDINATORS.updateOne({ _id: id }, update);
 
     if (coordinator.acknowledged === false) {
-      return res.status(404).json({ message: "Coordinator not found" });
+      res.status(404).json({ message: "Coordinator not found" });
+      return;
     }
 
-    return res
-      .status(200)
-      .json({ message: "Coordinator updated successfully" });
+    res.status(200).json({ message: "Coordinator updated successfully" });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -243,7 +252,8 @@ const upload_inspection_forms = async function (req, res) {
 
     await FORMS.create({ ...formInfo, uploadedBy: _id });
 
-    return res.status(200).json({ message: "Form was added successfully" });
+    res.status(200).json({ message: "Form was added successfully" });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -258,10 +268,11 @@ const create_supervisor = async function (req, res) {
   try {
     const supervisor = await SUPERVISORS.create(req.body);
 
-    return res.status(201).json({
+    res.status(201).json({
       message: "Supervisor added successfully",
       supervisor: supervisor._id,
     });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -280,10 +291,12 @@ const get_all_supervisors = async function (req, res) {
     );
 
     if (supervisors.length === 0) {
-      return res.status(404).json({ message: "No supervisors found" });
+      res.status(404).json({ message: "No supervisors found" });
+      return;
     }
 
-    return res.status(200).json(supervisors);
+    res.status(200).json(supervisors);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -299,27 +312,29 @@ const assign_defense_supervisor = async function (req, res) {
 
   try {
     if (!mongoose.Types.ObjectId.isValid(supervisorId)) {
-      return res.status(400).json({ message: "Invalid supervisor id" });
+      res.status(400).json({ message: "Invalid supervisor id" });
+      return;
     }
 
     if (/\w+\-\d+\-\d+/.test(studentCode) === false) {
-      return res.status(400).json({ message: "Invalid student code" });
+      res.status(400).json({ message: "Invalid student code" });
+      return;
     }
 
     const supervisorExists = await SUPERVISORS.findOne({ _id: supervisorId });
 
     if (supervisorExists === null) {
-      return res
-        .status(400)
-        .json({ message: "No supervisor was found with that id" });
+      res.status(400).json({ message: "No supervisor was found with that id" });
+      return;
     }
 
     const studentExists = await STUDENTS.findOne({ studentCode });
 
     if (studentExists === null) {
-      return res
+      res
         .status(400)
         .json({ message: "No student was found with that student code" });
+      return;
     }
 
     const studentSupervisionList = await INSPECTION_LIST.findOne({
@@ -330,10 +345,11 @@ const assign_defense_supervisor = async function (req, res) {
       studentSupervisionList &&
       studentSupervisionList.supervisorId.equals(supervisorId)
     ) {
-      return res.status(400).json({
+      res.status(400).json({
         message:
           "The same supervisor can not inspect and be in charge of defense for the same student",
       });
+      return;
     }
 
     await DEFENSE_LIST.updateOne(
@@ -342,9 +358,10 @@ const assign_defense_supervisor = async function (req, res) {
       { upsert: true }
     );
 
-    return res
+    res
       .status(200)
       .json({ message: "Defense supervisor was successfully assigned" });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -360,27 +377,29 @@ const assign_inspection_supervisor = async function (req, res) {
 
   try {
     if (!mongoose.Types.ObjectId.isValid(supervisorId)) {
-      return res.status(400).json({ message: "Invalid supervisor id" });
+      res.status(400).json({ message: "Invalid supervisor id" });
+      return;
     }
 
     if (/\w+\-\d+\-\d+/.test(studentCode) === false) {
-      return res.status(400).json({ message: "Invalid student code" });
+      res.status(400).json({ message: "Invalid student code" });
+      return;
     }
 
     const supervisorExists = await SUPERVISORS.findOne({ _id: supervisorId });
 
     if (supervisorExists === null) {
-      return res
-        .status(400)
-        .json({ message: "No supervisor was found with that id" });
+      res.status(400).json({ message: "No supervisor was found with that id" });
+      return;
     }
 
     const studentExists = await STUDENTS.findOne({ studentCode });
 
     if (studentExists === null) {
-      return res
+      res
         .status(400)
         .json({ message: "No studet was found with that student code" });
+      return;
     }
 
     const studentSupervisionList = await DEFENSE_LIST.findOne({ studentCode });
@@ -389,10 +408,11 @@ const assign_inspection_supervisor = async function (req, res) {
       studentSupervisionList &&
       studentSupervisionList.supervisorId.equals(supervisorId)
     ) {
-      return res.status(400).json({
+      res.status(400).json({
         message:
           "The same supetvisor can not inspect and be in charge of defense for the same student",
       });
+      return;
     }
 
     await INSPECTION_LIST.updateOne(
@@ -401,9 +421,10 @@ const assign_inspection_supervisor = async function (req, res) {
       { upsert: true }
     );
 
-    return res
+    res
       .status(200)
       .json({ message: "Inspection supervisor was successfully assigned" });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -416,16 +437,105 @@ const assign_inspection_supervisor = async function (req, res) {
  */
 const get_all_students = async function (req, res) {
   try {
-    const students = await STUDENTS.find(
-      {},
-      { password: 0, validation_secret: 0, createdAt: 0, updatedAt: 0 }
-    );
+    // get pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
-    if (students.length === 0) {
-      return res.status(404).json({ message: "No students found" });
+    if (page < 1) {
+      res.status(400).json({ message: "Invalid page number" });
+      return;
     }
 
-    return res.status(200).json(students);
+    if (limit < 1) {
+      res.status(400).json({ message: "Invalid limit" });
+      return;
+    }
+
+    if (limit > 50) {
+      res
+        .status(400)
+        .json({ message: "Limit too large, maximum allowed limit is 50" });
+      return;
+    }
+
+    const students = await STUDENTS.aggregate([
+      {
+        $skip: (page - 1) * limit,
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $project: {
+          password: 0,
+          validation_secret: 0,
+          createdAt: 0,
+          updatedAt: 0,
+        },
+      },
+      {
+        $lookup: {
+          from: "grades",
+          localField: "_id",
+          foreignField: "studentId",
+          as: "grade",
+          pipeline: [
+            {
+              $project: {
+                studentId: 0,
+                __v: 0,
+                createdAt: 0,
+                updatedAt: 0,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                address: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          grade: {
+            $arrayElemAt: ["$grade", 0],
+          },
+          company: {
+            $arrayElemAt: ["$company", 0],
+          },
+        },
+      },
+    ]);
+
+    if (students.length === 0) {
+      res.status(404).json({ message: "No students found" });
+      return;
+    }
+
+    // get the total number of students
+    const totalStudents = await STUDENTS.countDocuments();
+
+    const data = {
+      students,
+      totalStudents,
+      currentPage: page,
+      currentLimit: limit,
+    };
+
+    res.status(200).json(data);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -442,7 +552,8 @@ const get_a_student = async function (req, res) {
   try {
     // check if the id is valid mongodb document id
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid id" });
+      res.status(400).json({ message: "Invalid id" });
+      return;
     }
 
     // when a specific student is queried the coordinator needs to see all his info
@@ -455,7 +566,19 @@ const get_a_student = async function (req, res) {
       {
         $addFields: {
           name: {
-            $concat: ["$firstName", " ", "$middleName", " ", "$lastName"],
+            $concat: [
+              "$firstName",
+              " ",
+              {
+                $ifNull: [
+                  {
+                    $concat: ["$middleName", " "],
+                  },
+                  "",
+                ],
+              },
+              "$lastName",
+            ],
           },
         },
       },
@@ -542,13 +665,36 @@ const get_a_student = async function (req, res) {
           from: "coordinators",
           localField: "grades.lastUpdatedBy",
           foreignField: "_id",
-          as: "lastUpdatedBy",
+          as: "coordinatorLookup",
+        },
+      },
+      {
+        $unwind: {
+          path: "$coordinatorLookup",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "supervisors",
+          localField: "grades.lastUpdatedBy",
+          foreignField: "_id",
+          as: "supervisorLookup",
+        },
+      },
+      {
+        $unwind: {
+          path: "$supervisorLookup",
+          preserveNullAndEmptyArrays: true,
         },
       },
       {
         $addFields: {
           lastUpdatedBy: {
-            $arrayElemAt: ["$lastUpdatedBy", 0],
+            $ifNull: [
+              "$coordinatorLookup",
+              "$supervisorLookup",
+            ],
           },
         },
       },
@@ -564,15 +710,21 @@ const get_a_student = async function (req, res) {
         },
       },
       {
-        $unset: "lastUpdatedBy",
+        $unset: [
+          "coordinatorLookup",
+          "supervisorLookup",
+          "lastUpdatedBy",
+        ],
       },
     ]);
 
     if (student === null) {
-      return res.status(404).json({ message: "Student not found" });
+      res.status(404).json({ message: "Student not found" });
+      return;
     }
 
-    return res.status(200).json(student);
+    res.status(200).json(student);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -585,7 +737,6 @@ const get_a_student = async function (req, res) {
  */
 const get_defense_list = async function (req, res) {
   try {
-    // TODO: remove extra space when there is no middlename
     const pipeline = [
       {
         $lookup: {
@@ -597,7 +748,12 @@ const get_defense_list = async function (req, res) {
             {
               $project: {
                 name: {
-                  $concat: ["$firstName", " ", "$middleName", " ", "$lastName"],
+                  $concat: [
+                    "$firstName",
+                    " ",
+                    { $ifNull: [{ $concat: ["$middleName", " "] }, ""] },
+                    "$lastName",
+                  ],
                 },
                 matricNo: 1,
                 studentCode: 1,
@@ -672,10 +828,12 @@ const get_defense_list = async function (req, res) {
     const defenseList = await DEFENSE_LIST.aggregate(pipeline);
 
     if (defenseList.length === 0) {
-      return res.status(404).json({ message: "Defense list is empty" });
+      res.status(404).json({ message: "Defense list is empty" });
+      return;
     }
 
-    return res.status(200).json(defenseList);
+    res.status(200).json(defenseList);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -688,7 +846,6 @@ const get_defense_list = async function (req, res) {
  */
 const get_inspection_list = async function (req, res) {
   try {
-    // TODO: remove extra space when there is no middlename
     const pipeline = [
       {
         $lookup: {
@@ -700,7 +857,12 @@ const get_inspection_list = async function (req, res) {
             {
               $project: {
                 name: {
-                  $concat: ["$firstName", " ", "$middleName", " ", "$lastName"],
+                  $concat: [
+                    "$firstName",
+                    " ",
+                    { $ifNull: [{ $concat: ["$middleName", " "] }, ""] },
+                    "$lastName",
+                  ],
                 },
                 matricNo: 1,
                 studentCode: 1,
@@ -775,10 +937,12 @@ const get_inspection_list = async function (req, res) {
     const inspectionList = await INSPECTION_LIST.aggregate(pipeline);
 
     if (inspectionList.length === 0) {
-      return res.status(404).json({ message: "Inspection list is empty" });
+      res.status(404).json({ message: "Inspection list is empty" });
+      return;
     }
 
-    return res.status(200).json(inspectionList);
+    res.status(200).json(inspectionList);
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -797,16 +961,18 @@ const set_registration_deadline = async function (req, res) {
     let currentTime = Date.now();
 
     if (time < currentTime) {
-      return res
+      res
         .status(400)
         .json({ message: "You cannot set a deadline into the past" });
+      return;
     }
 
     if (!mongoose.Types.ObjectId.isValid(updatedBy)) {
-      return res.status(401).json({
+      res.status(401).json({
         message:
           "Something went wrong while authenticating your request, re-authenticate and try again",
       });
+      return;
     }
 
     // clears the entire collection
@@ -814,9 +980,10 @@ const set_registration_deadline = async function (req, res) {
 
     await DEADLINE.create({ time, updatedBy });
 
-    return res
+    res
       .status(200)
       .json({ message: "Registration deadline has been assigned" });
+    return;
   } catch (error) {
     handleError(error, res);
   }
@@ -840,12 +1007,9 @@ const get_weekly_reports = async function (req, res) {
     const reports = await WEEKLYREPORTS.find({ studentCode });
 
     if (reports.length == 0) {
-      res
-        .status(404)
-        .json({
-          message:
-            "No weekly reports submission found for the specified student",
-        });
+      res.status(404).json({
+        message: "No weekly reports submission found for the specified student",
+      });
       return;
     }
 
@@ -881,11 +1045,9 @@ const assign_grade = async function (req, res) {
       reports: "weeklyReportsScore",
     };
     if (Object.keys(validTypes).includes(type) == false) {
-      res
-        .status(400)
-        .json({
-          message: "Invalid type specified, specify a valid type and try again",
-        });
+      res.status(400).json({
+        message: "Invalid type specified, specify a valid type and try again",
+      });
       return;
     }
 
@@ -915,12 +1077,9 @@ const assign_grade = async function (req, res) {
 
     // grades have been collated previously
     if (studentGrade !== null && studentGrade.total !== null) {
-      res
-        .status(400)
-        .json({
-          message:
-            "Grades cannot be updated as they have been collated already",
-        });
+      res.status(400).json({
+        message: "Grades cannot be updated as they have been collated already",
+      });
       return;
     }
 
@@ -931,11 +1090,9 @@ const assign_grade = async function (req, res) {
     );
 
     if (response.acknowledged == false) {
-      res
-        .status(500)
-        .json({
-          message: "Action failed, please try again or contact support",
-        });
+      res.status(500).json({
+        message: "Action failed, please try again or contact support",
+      });
       return;
     }
 
@@ -972,11 +1129,9 @@ const collate_grades = async function (req, res) {
     ]);
 
     if (response.acknowledged == false) {
-      res
-        .status(500)
-        .json({
-          message: "Action failed, please try again or contact support",
-        });
+      res.status(500).json({
+        message: "Action failed, please try again or contact support",
+      });
       return;
     }
 
@@ -1007,19 +1162,471 @@ const collate_all_grades = async function (req, res) {
     ]);
 
     if (response.acknowledged == false) {
-      res
-        .status(500)
-        .json({
-          message: "Action failed, please try again or contact support",
-        });
+      res.status(500).json({
+        message: "Action failed, please try again or contact support",
+      });
       return;
     }
 
+    res.status(200).json({
+      message: "Grades have been collated successfully for all students",
+    });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * Get the information about forms and the download urls
+ * @param {request} req
+ * @param {response} res
+ */
+const get_forms = async function (req, res) {
+  try {
+    const forms = await FORMS.find({});
+
+    if (forms.length === 0) {
+      res
+        .status(404)
+        .json({ message: "There are currently no forms available" });
+      return;
+    }
+
+    res.status(200).json(forms);
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * Deletes a specific form
+ * @param {request} req
+ * @param {response} res
+ */
+const delete_form = async function (req, res) {
+  const { formId } = req.query;
+
+  try {
+    if (mongoose.Types.ObjectId.isValid(formId) == false) {
+      res.status(400).json({ message: "Invalid form id" });
+      return;
+    }
+
+    // I need some part of the form below
+    const form = await FORMS.findById(formId);
+
+    if (form == null) {
+      res.status(404).json({ message: "Form not found" });
+      return;
+    }
+
+    await FORMS.deleteOne({ _id: ObjectId(formId) });
+
+    const filePath = form.pathToFile;
+    const fullPath = __dirname + "/../" + filePath;
+
+    if (existsSync(fullPath) == false) {
+      res
+        .status(404)
+        .json({ message: "Form doesn't exist, please refresh and try again" });
+      return;
+    }
+
+    unlinkSync(fullPath);
+
+    res.status(201).json({ message: "Form has been deleted" });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * Searches for students
+ * @param {request} req
+ * @param {response} res
+ */
+const search_for_students = async function (req, res) {
+  try {
+    const { q: searchQuery } = req.query;
+
+    if (!searchQuery) {
+      res.status(400).json({ message: "Please specify a search query" });
+      return;
+    }
+
+    if (searchQuery.length < 3) {
+      res
+        .status(400)
+        .json({ message: "Search query must be at least 3 characters long" });
+      return;
+    }
+
+    // this holds the fields that I want to be able to search
+    const indexedFields = [
+      "course",
+      "department",
+      "email",
+      "faculty",
+      "firstName",
+      "lastName",
+      "matricNo",
+      "middleName",
+      "phone",
+      "studentCode",
+    ];
+
+    const pipeline = [
+      {
+        $search: {
+          index: "text-autocomplete", // name of the index
+          compound: {
+            should: [
+              ...indexedFields.map((path) => ({
+                autocomplete: {
+                  path: `${path}`,
+                  query: `${searchQuery}`,
+                  fuzzy: {
+                    maxEdits: 2, // can change up to 2 characters
+                    prefixLength: 2, // the first 2 characters must match
+                    maxExpansions: 100, // considers a max result space of 100
+                  },
+                },
+              })),
+            ],
+            minimumShouldMatch: 1,
+          },
+        },
+      },
+      {
+        $project: {
+          password: 0,
+          validation_secret: 0,
+          createdAt: 0,
+          updatedAt: 0,
+          score: {
+            $meta: "searchScore",
+          },
+        },
+      },
+      {
+        $sort: {
+          score: -1,
+        },
+      },
+      {
+        $lookup: {
+          from: "grades",
+          localField: "_id",
+          foreignField: "studentId",
+          as: "grade",
+          pipeline: [
+            {
+              $project: {
+                studentId: 0,
+                __v: 0,
+                createdAt: 0,
+                updatedAt: 0,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                address: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          grade: {
+            $arrayElemAt: ["$grade", 0],
+          },
+          company: {
+            $arrayElemAt: ["$company", 0],
+          },
+        },
+      },
+    ];
+
+    const students = await STUDENTS.aggregate(pipeline);
+
+    if (students.length === 0) {
+      res.status(404).json({ message: "No students found" });
+      return;
+    }
+
+    res.status(200).json(students);
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * This retrieves the data for all students and returns it as a csv file ready for download
+ * @param {request} req 
+ * @param {response} res 
+ */
+const download_all_student_data = async function (req, res) {
+  try {
+    const students = await STUDENTS.aggregate([
+      {
+        $project: {
+          password: 0,
+          validation_secret: 0,
+          createdAt: 0,
+          updatedAt: 0,
+          __v: 0,
+        },
+      },
+      {
+        $lookup: {
+          from: "grades",
+          localField: "_id",
+          foreignField: "studentId",
+          as: "grade",
+          pipeline: [
+            {
+              $project: {
+                studentId: 0,
+                __v: 0,
+                createdAt: 0,
+                updatedAt: 0,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                address: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          grade: {
+            $arrayElemAt: ["$grade", 0],
+          },
+          company: {
+            $arrayElemAt: ["$company", 0],
+          },
+        },
+      },
+      {
+        $addFields: {
+          accountNo: "$bankDetails.accountNumber",
+          bankname: "$bankDetails.name",
+          sortCode: "$bankDetails.sortCode",
+          companyName: "$company.name",
+          companyAddress: "$company.address",
+          inspectionScore: "$grade.inspectionScore",
+          weeklyReportsScore:
+            "$grade.weeklyReportsScore",
+          defenseScore: "$grade.defenseScore",
+          totalScore: "$grade.total",
+          lastUpdatedBy: "$grade.lastUpdatedBy",
+        },
+      },
+      {
+        $project: {
+          bankDetails: 0,
+          company: 0,
+          grade: 0,
+          _id: 0,
+        },
+      },
+    ]);
+
+    if (students.length === 0) {
+      res.status(404).json({ message: "No students found" });
+      return;
+    }
+
+    const csvString = jsonToCsvString(students);
+
     res
       .status(200)
-      .json({
-        message: "Grades have been collated successfully for all students",
+      .header("Content-Type", "text/csv")
+      .header("Content-Disposition", "attachment; filename=students.csv")
+      .send(csvString);
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * This allows coordinators update the information for a particular student
+ * @param {request} req
+ * @param {response} res
+ */
+const update_student_details = async function (req, res) {
+  try {
+    const session = await mongoose.startSession({
+      defaultTransactionOptions: {
+        readPreference: "primary",
+        readConcern: { level: "local" },
+        writeConcern: { w: "majority" },
+      },
+    });
+
+    let sentResponse = false;
+
+    await session.withTransaction(async () => {
+      try {
+        const allowedFields = [
+          "firstName",
+          "middleName",
+          "lastName",
+          "course",
+          "sex",
+          "level",
+          "faculty",
+          "phone",
+          "accountNumber",
+          "bankName",
+          "sortCode",
+          "company",
+        ];
+        const allowedCompanyFields = [
+          "name",
+          "address",
+          "state",
+          "LGA",
+          "email",
+          "phone",
+          "assignedDepartment",
+          "jobDescription",
+          "resumptionDate",
+          "expectedEndDate",
+        ];
+
+        const update = req.body;
+
+        if (
+          !update ||
+          typeof update !== "object" ||
+          Object.keys(update).length === 0
+        ) {
+          throw {
+            message: "Please specify all the fields to update",
+            code: 400,
+            type: "frontend_error",
+          };
+        }
+
+        // check if all fields are valid
+        const fields = Object.keys(update);
+        // this checks to ensure that all fields specified are allowed and that they have values
+        const isValid = fields.every((field) => {
+          // middle name is optional so it doesn't need to have a value for it
+          if (field === "middleName") {
+            return allowedFields.includes(field);
+          }
+
+          return update[field] && allowedFields.includes(field);
+        });
+
+        if (!isValid) {
+          throw {
+            message: "Invalid or incomplete field(s) specified",
+            code: 400,
+            type: "frontend_error",
+          };
+        }
+
+        // convert the fields to their appropriate paths
+        if (update.hasOwnProperty("accountNumber")) {
+          update["bankDetails.accountNumber"] = update.accountNumber;
+          delete update.accountNumber;
+        }
+
+        if (update.hasOwnProperty("bankName")) {
+          update["bankDetails.name"] = update.bankName;
+          delete update.bankName;
+        }
+
+        if (update.hasOwnProperty("sortCode")) {
+          update["bankDetails.sortCode"] = update.sortCode;
+          delete update.sortCode;
+        }
+
+        const { id:studentId } = req.params;
+        const studentDetails = await STUDENTS.findOne({ _id: studentId }, {}, { session });
+
+        // handle company update
+        if (update.hasOwnProperty("company")) {
+          const companyDetails = JSON.parse(JSON.stringify(update.company)); // make a no-refrence copy
+          delete update.company;
+
+          // verify company values are correct
+          const companyFields = Object.keys(companyDetails);
+          const isValid = companyFields.every((field) => {
+            return (
+              allowedCompanyFields.includes(field) && companyDetails[field]
+            );
+          });
+
+          if (!isValid) {
+            throw {
+              message: "Invalid or incomplete company field(s) specified",
+              code: 400,
+              type: "frontend_error",
+            };
+          }
+
+          // update company
+          await COMPANIES.updateOne(
+            { studentCode: studentDetails.studentCode },
+            companyDetails,
+            { session }
+          );
+        }
+
+        await STUDENTS.updateOne({ _id: studentId }, update, { session });
+
+        await session.commitTransaction();
+      } catch (error) {
+        await session.abortTransaction();
+
+        if (error.type === "frontend_error") {
+          res.status(error.code).json({ message: error.message });
+          sentResponse = true;
+          return;
+        }
+
+        throw error;
+      } finally {
+        await session.endSession();
+      }
+    });
+
+    if (!sentResponse) {
+      res.status(200).json({
+        message: "Student profile updated successfully",
       });
+    }
   } catch (error) {
     handleError(error, res);
   }
@@ -1046,4 +1653,9 @@ module.exports = {
   assign_grade,
   collate_grades,
   collate_all_grades,
+  get_forms,
+  delete_form,
+  search_for_students,
+  download_all_student_data,
+  update_student_details
 };

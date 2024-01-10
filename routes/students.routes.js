@@ -4,6 +4,7 @@ const {
   add_work_details,
   add_weekly_reports,
   change_password,
+  update_details,
 } = require("./../controllers/students.controller");
 const { isStudent } = require("./../middlewares/auth.middleware");
 
@@ -14,5 +15,7 @@ router.post("/workDetails", isStudent, add_work_details);
 router.post("/weeklyReports", isStudent, add_weekly_reports);
 
 router.patch("/changePassword", isStudent, change_password);
+
+router.patch("/details", isStudent, update_details);
 
 module.exports = router;

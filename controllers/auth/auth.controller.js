@@ -2,11 +2,18 @@ const COORDINATORS = require("./../../models/coordinator.model");
 const STUDENTS = require("./../../models/student.model");
 const SUPERVISORS = require("./../../models/supervisor.model");
 const DEADLINE = require("./../../models/deadline.model");
+const OTP = require("../../models/otp.model");
 const { request, response } = require("express");
 const { handleError } = require("./../../utils/handleError");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { ObjectId } = require("mongoose").Types;
+const { randomBytes } = require("crypto");
+const {
+  sendOTPMail,
+  sendWelcomeMail,
+  sendLoginAlertMail,
+} = require("../../controllers/mail.controller");
 
 /**
  * Creates and appends the access and refresh tokens to the cookies of the client
@@ -79,14 +86,21 @@ const create_tokens = function (user, res, type) {
 
       const cookieOptions = {
         httpOnly: true,
-        secure: process.env.IN_DEV_ENV ? false : true,
-        sameSite: "none",
+        secure: process.env.NODE_ENV === "development" ? false : true,
+        domain:
+          process.env.NODE_ENV === "development"
+            ? process.env.DEV_SERVER
+            : process.env.PROD_SERVER,
+        sameSite: process.env.NODE_ENV === "development" ? "strict" : "none",
         maxAge: 604800000, // 7 days
       };
 
       res.cookie("umis_siwesA", accessToken, cookieOptions);
       res.cookie("umis_siwesR", refreshToken, cookieOptions);
-      res.cookie("umis_siwesC", clientToken, cookieOptions);
+      res.cookie("umis_siwesC", clientToken, {
+        sameSite: process.env.NODE_ENV === "development" ? "strict" : "none",
+        maxAge: 604800000,
+      });
 
       resolve();
     } catch (error) {
@@ -116,21 +130,25 @@ const register = async function (req, res) {
     const deadline = await DEADLINE.findOne({});
 
     if (deadline === null) {
-      return res.status(400).json({
+      res.status(400).json({
         message:
           "We couldn't find a registration deadline, this may be because it is not yet open Please contact your SIWES coordinator",
       });
+      return;
     }
 
     if (currentTime > deadline.time) {
-      return res.status(400).json({
+      res.status(400).json({
         message: "Registration couldn't be completed as it is closed",
       });
+      return;
     }
 
     const student = await STUDENTS.create(studentInfo);
 
     await create_tokens(student, res, "student");
+
+    await sendWelcomeMail(student.email, student.firstName, student.lastName);
 
     res
       .status(200)
@@ -192,6 +210,11 @@ const login = async function (req, res) {
 
     await create_tokens(user, res, type);
 
+    await sendLoginAlertMail(
+      user.email,
+      new Date().toLocaleString("en-GB", { timeZone: "Africa/Lagos" })
+    );
+
     res.status(200).json({ message: "Login successful", data: user._id });
   } catch (error) {
     handleError(error, res);
@@ -212,6 +235,141 @@ const logout = async function (req, res) {
 };
 
 /**
+ * Send a 5 minutes OTP to the user's email
+ * @param {request} req
+ * @param {response} res
+ */
+const send_OTP = async function (req, res) {
+  try {
+    const { email, purpose } = req.body;
+
+    if (!email || /student.babcock.edu.ng/.test(email) == false) {
+      res.status(400).json({
+        message: "Invalid email address, please enter a valid babcock mail",
+      });
+      return;
+    }
+
+    if (purpose !== "registration") {
+      const studentExists = await STUDENTS.findOne({ email });
+
+      if (!studentExists) {
+        res.status(400).json({
+          message: "An OTP will be sent to the account if it exists.",
+        });
+        return;
+      }
+    }
+
+    const token = randomBytes(3).toString("hex");
+
+    const otpExists = await OTP.findOne({ email });
+
+    if (otpExists) {
+      res.status(400).json({
+        message:
+          "An OTP has already been sent to the specified email, ensure to check your spam folder",
+      });
+      return;
+    }
+
+    await OTP.create({ token, email });
+
+    await sendOTPMail(email, token);
+
+    res
+      .status(200)
+      .json({ message: "An OTP will be sent to the account if it exists." });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * Verifies the OTP
+ * @param {request} req
+ * @param {response} res
+ */
+const verify_OTP = async function (req, res) {
+  try {
+    const { email, token } = req.body;
+
+    if (
+      !email ||
+      /student.babcock.edu.ng$/.test(email) == false ||
+      !token ||
+      token.length !== 6
+    ) {
+      res.status(400).json({ message: "Invalid OTP" });
+      return;
+    }
+
+    const doc = await OTP.findOne({ email, token });
+
+    if (!doc) {
+      res.status(400).json({ message: "Invalid OTP" });
+      return;
+    }
+
+    await OTP.deleteOne({ email });
+
+    // this token will be used to change the password or verify the next API call after this, it serves as a guard to prevent a user from by passing the
+    // OTP call
+    const resetToken = jwt.sign(
+      { email },
+      process.env.RESET_PASSWORD_TOKEN_SECRET,
+      { expiresIn: "5m" }
+    );
+
+    res
+      .status(200)
+      .json({ message: "OTP verified successfully", data: { resetToken } });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * Allows a student specifically to reset their password if they forget it
+ */
+const reset_password = async function (req, res) {
+  try {
+    const { email, password, token } = req.body;
+
+    if (
+      !email ||
+      !password ||
+      !token ||
+      /student.babcock.edu.ng$/.test(email) == false
+    ) {
+      res.status(400).json({ message: "Invalid request" });
+      return;
+    }
+
+    const decoded = jwt.verify(token, process.env.RESET_PASSWORD_TOKEN_SECRET);
+
+    if (decoded.email !== email) {
+      res.status(400).json({ message: "Invalid request" });
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    await STUDENTS.updateOne({ email }, { password: hashedPassword });
+
+    res.status(200).json({ message: "Password changed successfully" });
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      res.status(400).json({ message: "OTP expired" });
+      return;
+    }
+
+    handleError(error, res);
+  }
+};
+
+/**
  * @typedef userInfo
  * @property {ObjectId} _id
  */
@@ -220,4 +378,7 @@ module.exports = {
   login,
   logout,
   register,
+  send_OTP,
+  verify_OTP,
+  reset_password,
 };

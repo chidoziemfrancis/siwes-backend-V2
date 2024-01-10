@@ -119,15 +119,19 @@ const assign_new_tokens = function (user, res, type) {
 
       const cookieOptions = {
         httpOnly: true,
-        secure: process.env.IN_DEV_ENV ? false : true,
-        sameSite: "Strict",
+        secure: process.env.NODE_ENV === "development" ? false : true,
+        domain:
+          process.env.NODE_ENV === "development"
+            ? process.env.DEV_SERVER
+            : process.env.PROD_SERVER, // undefined else it messes up the other cookie settings
+        sameSite: "none",
         maxAge: 604800000, // 7 days
       };
 
       res.cookie("umis_siwesA", accessToken, cookieOptions);
       res.cookie("umis_siwesR", refreshToken, cookieOptions);
       res.cookie("umis_siwesC", clientToken, {
-        sameSite: "Strict",
+        sameSite: "none",
         maxAge: 604800000,
       });
 

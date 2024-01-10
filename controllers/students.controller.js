@@ -29,7 +29,12 @@ const get_details = async function (req, res) {
       {
         $addFields: {
           name: {
-            $concat: ["$firstName", " ", "$middleName", " ", "$lastName"],
+            $concat: [
+              "$firstName",
+              " ",
+              { $ifNull: [{ $concat: ["$middleName", " "] }, ""] },
+              "$lastName",
+            ],
           },
         },
       },
@@ -323,9 +328,81 @@ const change_password = async function (req, res) {
   }
 };
 
+/**
+ * This allows students update the information they previously provided, but not all
+ * @param {request} req
+ * @param {response} res
+ */
+const update_details = async function (req, res) {
+  try {
+    const allowedFields = ["accountNumber", "bankName", "sortCode", "phone"];
+
+    const update = req.body;
+
+    if (
+      !update ||
+      typeof update !== "object" ||
+      Object.keys(update).length === 0
+    ) {
+      res.status(400).json({
+        message: "Please specify all the fields to update",
+      });
+      return;
+    }
+
+    // check if all fields are valid
+    const fields = Object.keys(update);
+    // this checks to ensure that all fields specified are allowed and that they have values
+    const isValid = fields.every(
+      (field) => update[field] && allowedFields.includes(field)
+    );
+
+    if (!isValid) {
+      res.status(400).json({
+        message: "Invalid or incomplete field(s) specified",
+      });
+      return;
+    }
+
+    // convert the fields to their appropriate paths
+    if (update.hasOwnProperty("accountNumber")) {
+      update["bankDetails.accountNumber"] = update.accountNumber;
+      delete update.accountNumber;
+    }
+
+    if (update.hasOwnProperty("bankName")) {
+      update["bankDetails.name"] = update.bankName;
+      delete update.bankName;
+    }
+
+    if (update.hasOwnProperty("sortCode")) {
+      update["bankDetails.sortCode"] = update.sortCode;
+      delete update.sortCode;
+    }
+
+    const { _id } = req.user;
+
+    const { modifiedCount } = await STUDENTS.updateOne({ _id }, update);
+
+    if (modifiedCount === 0) {
+      res.status(500).json({
+        message: "Something went wrong, please try again",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+    });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   get_details,
   add_work_details,
   add_weekly_reports,
   change_password,
+  update_details,
 };

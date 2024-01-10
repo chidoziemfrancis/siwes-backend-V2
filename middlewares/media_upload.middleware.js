@@ -17,12 +17,12 @@ const processFileUpload = async function (req, res, next) {
       return;
     }
 
-    const uploadPath = "./uploads/forms/" + req.files.form.name;
+    const uploadPath = "./uploads/forms/" + req.files.form.name.toLowerCase();
 
     // update the req.body
     req.body = {
       ...req.body,
-      name: req.files.form.name,
+      name: req.files.form.name.toLowerCase(),
       pathToFile: uploadPath,
     };
 

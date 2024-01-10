@@ -2,6 +2,24 @@ const mongoose = require("mongoose");
 const { isMobilePhone, isEmail } = require("validator");
 const bcrypt = require("bcrypt");
 
+const bankDetailsSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    lowercase: true,
+    required: [true, "Bank name is required"],
+  },
+  accountNumber: {
+    type: String,
+    maxLength: [10, "Account number cannot exceed 10 digits"],
+    minLength: [10, "Account number must be 10 digits long"],
+    required: [true, "Account number is required"],
+  },
+  sortCode: {
+    type: String,
+    required: [true, "Bank sort code is required"],
+  },
+});
+
 const StudentSchema = new mongoose.Schema(
   {
     firstName: {
@@ -9,16 +27,19 @@ const StudentSchema = new mongoose.Schema(
       required: [true, "First name is required"],
       lowercase: true,
       minLength: [3, "First name must be at least 3 characters"],
+      trim: true,
     },
     middleName: {
       type: String,
       lowercase: true,
+      trim: true,
     },
     lastName: {
       type: String,
       required: [true, "Last name is required"],
       lowercase: true,
       minLength: [3, "Last name must be at least 3 characters"],
+      trim: true,
     },
     course: {
       type: String,
@@ -38,6 +59,7 @@ const StudentSchema = new mongoose.Schema(
       unique: true,
       validate: [isEmail, "Email must be a valid email"],
       match: [/student.babcock.edu.ng$/, "Invalid email type"],
+      trim: true,
     },
     matricNo: {
       type: String,
@@ -45,6 +67,7 @@ const StudentSchema = new mongoose.Schema(
       lowercase: true,
       minLength: [7, "Matric number must be at least 7 characters"],
       unique: true,
+      trim: true,
     },
     sex: {
       type: String,
@@ -64,6 +87,7 @@ const StudentSchema = new mongoose.Schema(
       required: [true, "Phone number is required"],
       minLength: [11, "Phone number must be at least 11 characters"],
       validate: [isMobilePhone, "Phone number must be a valid phone number"],
+      trim: true,
     },
     password: {
       type: String,
@@ -79,6 +103,10 @@ const StudentSchema = new mongoose.Schema(
       type: String,
       unique: true,
     },
+    bankDetails: {
+      type: bankDetailsSchema,
+      required: [true, "Bank details is required"],
+    },
   },
   { timestamps: true }
 );
@@ -93,7 +121,7 @@ StudentSchema.pre("save", async function (next) {
 
   const studentCode = `${this.department
     .split(" ")
-    .join("-")}-${year}-${this.matricNo.slice(3, 7)}`;
+    .join("-")}-${year}-${this.matricNo.replace(/\//, "")}`;
   this.studentCode = studentCode;
 
   next();

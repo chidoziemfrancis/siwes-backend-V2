@@ -7,6 +7,7 @@ const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const fileUpload = require("express-fileupload");
 const apiRoutes = require("./routes/general.routes");
+const path = require('path');
 
 require("dotenv").config();
 
@@ -14,13 +15,8 @@ require("dotenv").config();
 const app = express();
 
 // set up middlewares
-app.use(
-  cors({
-    origin: ["http://localhost:3001", "https://siwes.netlify.app"],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    credentials: true,
-  })
-);
+const corsOption = process.env.NODE_ENV == "production" ? {} : { credentials: true, origin: ['http://localhost:3000', 'http://localhost:3001'] };
+app.use(cors(corsOption));
 app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -37,9 +33,11 @@ app.use(
   })
 );
 
+app.use(express.static(path.join(__dirname, 'build')));
+
 // connect to database and start app
 const PORT = process.env.PORT || 3000;
-const DB_URI = process.env.DB_URI;
+const DB_URI = process.env.NODE_ENV === 'production' ? process.env.DB_URI : (process.env.NODE_ENV === "staging" ? process.env.DEV_DB_URI : process.env.LOCAL_DB_URI);
 
 async function main() {
   try {
@@ -56,11 +54,11 @@ async function main() {
       console.log(`App is live on port: ${PORT}`);
     });
 
-    // re reoute to api
+    // re route to api
     app.use("/api", apiRoutes);
 
-    app.all("*", (req, res) => {
-      res.status(404).json({ message: "Route not found" });
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, 'build', 'index.html'));
     });
   } catch (error) {
     console.log(`App failed to start due to ${error}`);
