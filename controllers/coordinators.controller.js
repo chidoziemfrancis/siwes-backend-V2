@@ -691,10 +691,7 @@ const get_a_student = async function (req, res) {
       {
         $addFields: {
           lastUpdatedBy: {
-            $ifNull: [
-              "$coordinatorLookup",
-              "$supervisorLookup",
-            ],
+            $ifNull: ["$coordinatorLookup", "$supervisorLookup"],
           },
         },
       },
@@ -710,11 +707,7 @@ const get_a_student = async function (req, res) {
         },
       },
       {
-        $unset: [
-          "coordinatorLookup",
-          "supervisorLookup",
-          "lastUpdatedBy",
-        ],
+        $unset: ["coordinatorLookup", "supervisorLookup", "lastUpdatedBy"],
       },
     ]);
 
@@ -1375,8 +1368,8 @@ const search_for_students = async function (req, res) {
 
 /**
  * This retrieves the data for all students and returns it as a csv file ready for download
- * @param {request} req 
- * @param {response} res 
+ * @param {request} req
+ * @param {response} res
  */
 const download_all_student_data = async function (req, res) {
   try {
@@ -1442,8 +1435,7 @@ const download_all_student_data = async function (req, res) {
           companyName: "$company.name",
           companyAddress: "$company.address",
           inspectionScore: "$grade.inspectionScore",
-          weeklyReportsScore:
-            "$grade.weeklyReportsScore",
+          weeklyReportsScore: "$grade.weeklyReportsScore",
           defenseScore: "$grade.defenseScore",
           totalScore: "$grade.total",
           lastUpdatedBy: "$grade.lastUpdatedBy",
@@ -1572,8 +1564,12 @@ const update_student_details = async function (req, res) {
           delete update.sortCode;
         }
 
-        const { id:studentId } = req.params;
-        const studentDetails = await STUDENTS.findOne({ _id: studentId }, {}, { session });
+        const { id: studentId } = req.params;
+        const studentDetails = await STUDENTS.findOne(
+          { _id: studentId },
+          {},
+          { session }
+        );
 
         // handle company update
         if (update.hasOwnProperty("company")) {
@@ -1657,5 +1653,5 @@ module.exports = {
   delete_form,
   search_for_students,
   download_all_student_data,
-  update_student_details
+  update_student_details,
 };
