@@ -361,7 +361,7 @@ const reset_password = async function (req, res) {
     res.status(200).json({ message: "Password changed successfully" });
   } catch (error) {
     if (error.name === "TokenExpiredError") {
-      res.status(400).json({ message: "OTP expired" });
+      res.status(400).json({ message: "Reset token is expired, please try to reset the password again starting from OTP verification" });
       return;
     }
 
