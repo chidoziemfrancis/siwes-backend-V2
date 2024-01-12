@@ -5,6 +5,7 @@ const STUDENTS = require("./../models/student.model");
 const COMPANY = require("./../models/company.model");
 const WEEKLY_REPORTS = require("./../models/weekly_report.model");
 const bcrypt = require("bcrypt");
+const { getCurrentWeek, getDateOfFirstDayOfTheWeek, isDate1GreaterThanDate2 } = require("../utils/timeManipulation");
 
 /**
  * Gets the details of a specific student
@@ -213,7 +214,7 @@ const add_weekly_reports = async function (req, res) {
     if (companyInfo === null) {
       res.status(400).json({
         message:
-          "Unable to find a matching company attachement please add a company first",
+          "Unable to find a matching company attachment please add a company first",
       });
       return;
     }
@@ -230,7 +231,7 @@ const add_weekly_reports = async function (req, res) {
     const companyId = companyInfo._id;
     const currentDay = new Date(Date.now()).getDay();
 
-    if (currentDay === 0 || currentDay === 6) {
+    if (currentDay === 6) {
       res.status(400).json({
         message:
           "We appreciate your hardwork across the week, but submissions are now closed for this week",
@@ -238,22 +239,42 @@ const add_weekly_reports = async function (req, res) {
       return;
     }
 
+    if (currentDay === 0) {
+      res.status(400).json({
+        message:
+          "Submissions are not yet open for this week",
+      });
+      return;
+    }
+
     const jobDescription = {};
 
     for (let i = 1; i <= currentDay; i++) {
-      jobDescription[daysOfTheWeek[i]] = report[daysOfTheWeek[i]];
+      if (report[daysOfTheWeek[i]]) {
+        jobDescription[daysOfTheWeek[i]] = report[daysOfTheWeek[i]];
+      }
     }
+
+    const currentWeek = getCurrentWeek();
+    const currentYear = new Date(Date.now()).getFullYear();
 
     const processedReport = {
       studentCode,
       companyId,
-      weekId: 0, // will be determine based on when siwes starts
-      weekStart: 0,
-      ...jobDescription,
+      weekId: currentWeek,
+      weekStart: getDateOfFirstDayOfTheWeek(currentWeek, currentYear),
+      ...jobDescription
     };
 
+    // checks that termination date has not passed
+    const currentDate = new Date(Date.now())
+    if (isDate1GreaterThanDate2(currentDate, companyInfo.expectedEndDate)) {
+      res.status(400).json({ message: "You cannot add new reports as the expected date of termination you specified has already passed" })
+      return;
+    }
+
     await WEEKLY_REPORTS.updateOne(
-      { studentCode, companyId, weekId: 0 },
+      { studentCode, companyId, weekId: currentWeek },
       processedReport,
       { upsert: true }
     );
