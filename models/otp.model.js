@@ -21,7 +21,7 @@ const OTPSchema = new mongoose.Schema(
     },
     createdAt: {
       type: Date,
-      default: new Date()
+      default: new Date(),
     },
   },
   { timestamps: true, expireAfterSeconds: 1200 } // 20 minutes

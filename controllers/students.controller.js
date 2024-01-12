@@ -5,7 +5,11 @@ const STUDENTS = require("./../models/student.model");
 const COMPANY = require("./../models/company.model");
 const WEEKLY_REPORTS = require("./../models/weekly_report.model");
 const bcrypt = require("bcrypt");
-const { getCurrentWeek, getDateOfFirstDayOfTheWeek, isDate1GreaterThanDate2 } = require("../utils/timeManipulation");
+const {
+  getCurrentWeek,
+  getDateOfFirstDayOfTheWeek,
+  isDate1GreaterThanDate2,
+} = require("../utils/timeManipulation");
 
 /**
  * Gets the details of a specific student
@@ -241,8 +245,7 @@ const add_weekly_reports = async function (req, res) {
 
     if (currentDay === 0) {
       res.status(400).json({
-        message:
-          "Submissions are not yet open for this week",
+        message: "Submissions are not yet open for this week",
       });
       return;
     }
@@ -263,13 +266,18 @@ const add_weekly_reports = async function (req, res) {
       companyId,
       weekId: currentWeek,
       weekStart: getDateOfFirstDayOfTheWeek(currentWeek, currentYear),
-      ...jobDescription
+      ...jobDescription,
     };
 
     // checks that termination date has not passed
-    const currentDate = new Date(Date.now())
+    const currentDate = new Date(Date.now());
     if (isDate1GreaterThanDate2(currentDate, companyInfo.expectedEndDate)) {
-      res.status(400).json({ message: "You cannot add new reports as the expected date of termination you specified has already passed" })
+      res
+        .status(400)
+        .json({
+          message:
+            "You cannot add new reports as the expected date of termination you specified has already passed",
+        });
       return;
     }
 
