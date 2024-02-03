@@ -410,7 +410,7 @@ const assign_inspection_supervisor = async function (req, res) {
     ) {
       res.status(400).json({
         message:
-          "The same supetvisor can not inspect and be in charge of defense for the same student",
+          "The same supervisor can not inspect and be in charge of defense for the same student",
       });
       return;
     }

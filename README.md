@@ -592,3 +592,191 @@ This endpoint allows the upload of an inspection form after passing through the 
     { "message": "Please fill all the fields" }
     ```
 
+8. Create Supervisor
+
+> POST - [http://localhost:3000/api/coordinator/createSupervisor](http://localhost:3000/api/coordinator/createSupervisor)
+
+**Description:**
+
+This endpoint allows a coordinator to create a supervisor.
+
+**Request Payload:**
+
+```json
+      {
+        "firstName": "John",
+        "lastName": "Doe",
+        "phone": "123456789",
+		"email": "jondoe@gmail.com",
+        "office": "A123",
+		"password": "abel123"
+      }
+```
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 201
+  - Response body
+    ```json
+    { 
+		"message": "Supervisor added successfully", 
+		"supervisor": "631b4162deab9b9ec49dd0525"
+	}
+    ```
+
+- Failed Request
+  - Error details
+
+9. Get All Supervisors
+
+**Endpoint:**
+
+> GET - [http://localhost:3000/api/coordinator/supervisors](http://localhost:3000/api/coordinator/supervisors)
+
+**Description:**
+
+This endpoint returns a list of all supervisors.
+
+**Possible Responses:**
+
+- Successful Request
+  - Status code: 200
+  - Response body:
+      ```json
+	[
+    	{ 
+			"firstName": "John",
+        	"lastName": "Doe",
+        	"phone": "123456789",
+			"email": "jondoe@gmail.com",
+        	"office": "A123",
+		},
+		{ 
+			"firstName": "John",
+        	"lastName": "Doe",
+        	"phone": "123456789",
+			"email": "jondoe@gmail.com",
+        	"office": "A123",
+		},
+		{ 
+			"firstName": "John",
+        	"lastName": "Doe",
+        	"phone": "123456789",
+			"email": "jondoe@gmail.com",
+        	"office": "A123",
+		},
+		// more supervisors 
+	]
+    ```
+
+- Failed Request
+  - No supervisor
+  - Response type: failed
+  - Status code: 4004
+    ```json
+    { "message": "No supervisors found" }
+    ```
+
+10. Assign Defense Supervisor
+
+**Endpoint:**
+
+>POST - [http://localhost:3000/api/coordinator/assignDefenseSupervisor](http://localhost:3000/api/coordinator/assignDefenseSupervisor)
+
+**Description:**
+
+This endpoint assigns a student to a supervisor for defense. It can also be used to overwrite a previous assignment.
+
+**Request Payload:**
+```json
+	{
+		"studentCode": "1234",
+		"supervisorID": "631b4162deab9b9ec34567"
+	}
+```
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 200
+  - Response body
+    ```json
+    { "message": "Defense supervisor was successfully assigned" }
+    ```
+
+- Failed Request
+  - Invalid supervisor id
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid supervisor id"}
+    ```
+
+  - Wrong Student code
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid student code"}
+    ```
+
+  - Wrong Supervisor Id
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "No supervisor was found with that id"}
+    ```
+
+10. Assign Inspection Supervisor
+
+**Endpoint:**
+
+> POST - [http://localhost:3000/api/coordinator/assignInspectionSupervisor](http://localhost:3000/api/coordinator/assignInspectionSupervisor)
+
+**Description:**
+
+This endpoint assigns a student to a supervisor for inspection. It can also be used to overwrite a previous assignment.
+
+**Request Payload:**
+
+```json
+	{
+		"studentCode": "1234",
+		"supervisorID": "631b4162deab9b9ec34567"
+	}
+```
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 200
+  - Response body
+    ```json
+    { "message": "Inspection supervisor was successfully assigned" }
+    ```
+
+- Failed Request
+  - Invalid supervisor id
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid supervisor id"}
+    ```
+
+  - Wrong Student code
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid student code"}
+    ```
+
+  - Wrong Supervisor Id
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "No supervisor was found with that id"}
+    ```
+
