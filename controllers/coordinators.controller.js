@@ -198,7 +198,7 @@ const change_password = async function (req, res) {
     if (coordinator === null) {
       res.status(401).json({
         message:
-          "Something unusual happened to your authentication status while trying to chaneg your password, so we couldn't process your request",
+          "Something unusual happened to your authentication status while trying to change your password, so we couldn't process your request",
       });
       return;
     }
