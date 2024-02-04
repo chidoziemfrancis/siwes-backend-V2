@@ -137,7 +137,7 @@ Under the authetication there are 3 functions
 There are 4 endpoints under the students sections of the API.
 
 1. Get dashboard details
-	> POST - [http://localhost:3000/api/student/getDetails](http://localhost:3000/api/student/getDetails)
+	> GET - [http://localhost:3000/api/student/getDetails](http://localhost:3000/api/student/getDetails)
 
 	This route doesn't require any payload passed to it, it will automatically use the tokens in the client's cookies to find and retrieve the student's information.
 
@@ -294,4 +294,489 @@ It accepts a payload like so:
 
 ## Working with the Coordinator API
 
-## Working with the Supervisor API
+There are 25 endpoints under the coordinator sections of the API.
+
+1. Add a New Coordinator
+
+> POST - [http://localhost:3000/api/coordinator/add](http://localhost:3000/api/coordinator/add)
+
+#### Description
+
+This endpoint allows the addition of a new coordinator to the system.
+
+#### Request
+
+- Method: `POST`
+- URL: `/api/coordinator/add`
+- Body:
+
+```json
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "phone1": "1234567890",
+  "phone2": "1234567890",
+  "email": "jondoe@gmail.com",
+  "office": "Phase 1",
+  "password": "passwordtest"
+  // Other required fields
+}
+```
+
+#### Responses
+
+- **Success Response:**
+
+  - Status Code: `201 Created`
+  - Response Body:
+
+  ```json
+  {
+    "message": "Coordinator added successfully",
+    "coordinator": "632b80178ef672fa87a03293"
+  }
+  ```
+
+- **Error Response:**
+
+  - Status Code: `400 Bad Request`
+  - Response Body:
+
+  ```json
+  {
+    "message": "Invalid request payload"
+  }
+  ```
+
+2. Get All Coordinators
+
+> GET - [http://localhost:3000/api/coordinator/all/api/coordinator/getAll](http://localhost:3000/api/coordinator/getAll)
+
+
+#### Description
+
+This endpoint retrieves a list of all coordinators in the system.
+
+#### Request
+
+- Method: `GET`
+- URL: `/api/coordinator/all`
+
+#### Responses
+
+- **Success Response:**
+
+  - Status Code: `200 OK`
+  - Response Body:
+
+  ```json
+  [
+    {
+    	"_id": "632b80178ef672fa87a03293",
+      	"firstName": "John",
+  	 	"lastName": "Doe",
+  		"phone1": "1234567890",
+  		"phone2": "1234567890",
+  		"email": "jondoe@gmail.com",
+  		"office": "Phase 1",
+    },
+    {
+    	"_id": "632b80178ef672fa87a03293",
+      	"firstName": "John",
+  	 	"lastName": "Doe",
+  		"phone1": "1234567890",
+  		"phone2": "1234567890",
+  		"email": "jondoe@gmail.com",
+  		"office": "Phase 1",
+    },
+	{
+    	"_id": "632b80178ef672fa87a03293",
+      	"firstName": "John",
+  	 	"lastName": "Doe",
+  		"phone1": "1234567890",
+  		"phone2": "1234567890",
+  		"email": "jondoe@gmail.com",
+  		"office": "Phase 1",
+    },
+	{
+    	"_id": "632b80178ef672fa87a03293",
+      	"firstName": "John",
+  	 	"lastName": "Doe",
+  		"phone1": "1234567890",
+  		"phone2": "1234567890",
+  		"email": "jondoe@gmail.com",
+  		"office": "Phase 1",
+    },
+  ]
+  ```
+
+- **Error Response:**
+
+  - Status Code: `404 Not Found`
+  - Response Body:
+
+  ```json
+  {
+    "message": "No coordinators found"
+  }
+  ```
+
+3. Get a Specific Coordinator
+
+> GET - [http://localhost:3000/api/coordinator/all/api/coordinator/get/:id](http://localhost:3000/api/coordinator/get/:id)
+
+- **Description:**
+  - Retrieves information about a specific coordinator.
+
+- **Request Parameters:**
+  - `id`: Coordinator's ID
+
+- **Possible Responses:**
+  - Successful Request:
+    - Response Type: success
+    - Status Code: 200
+    - Response Body:
+      ```json
+      {
+        "_id": "632b80178ef672fa87a03293",
+        "firstName": "John",
+        "lastName": "Doe",
+        "phone1": "123456789",
+        "phone2": "987654321",
+		"email": "jondoe@gmail.com",
+        "office": "A123"
+      }
+      ```
+  - Failed Request:
+    - Status Code: 400
+    - Response Body:
+      ```json
+      { "message": "Invalid id" }
+      ```
+
+4. Delete a Coordinator
+
+> DELETE - [http://localhost:3000/api/coordinator/all/api/coordinator//delete/:id](http://localhost:3000/api/coordinator//delete/:id)
+
+- **Description:**
+  - Deletes a specific coordinator.
+
+- **Request Parameters:**
+  - `id`: Coordinator's ID
+
+- **Possible Responses:**
+  - Successful Request:
+    - Status Code: 200
+    - Response Body:
+      ```json
+      { "message": "Coordinator deleted successfully" }
+      ```
+  - Failed Request:
+    - Status Code: 400
+    - Response Body:
+      ```json
+      { "message": "No coordinator with that id exists" }
+      ```
+
+5. Update Coordinator Details  
+This route does not allow the coordinator update the password field directly, the alllowed fields are  firstName, lastName, phone1, phone2, office
+> PATCH - [http://localhost:3000/api/coordinator/all/api/coordinator/update/:id](http://localhost:3000/api/coordinator/update/:id)
+
+- **Description:**
+  - Updates details of a specific coordinator.
+
+- **Request Parameters:**
+  - `id`: Coordinator's ID
+  - `Request Body` : Update details
+
+- **Possible Responses:**
+  - Successful Request:
+    - Status Code: 200
+    - Response Body:
+      ```json
+      { "message": "Coordinator updated successfully" }
+      ```
+  - Failed Request:
+    - Status Code: 404
+    - Response Body:
+      ```json
+      { "message": "Coordinator not found" }
+      ```
+
+  - Invalid Fields:
+    - Status Code: 400
+    - Response Body:
+      ```json
+      { "message": "Your update failed as it contains certain invalid fields" }
+      ```
+
+6. Change Coordinator Password
+
+> PATCH - [http://localhost:3000/api/coordinator/all/api/coordinator/changePassword](http://localhost:3000/api/coordinator/changePassword)
+
+- **Description:**
+  - Changes the password of a coordinator.
+
+- **Request Body:**
+  - `oldPassword`: Current password
+  - `newPassword`: New password
+
+- **Possible Responses:**
+  - Successful Request:
+    - Status Code: 200
+    - Response Body:
+      ```json
+      { "message": "Password was changed successfully" }
+      ```
+  - Failed Request:
+    - Status Code: 400
+    - Response Body:
+      ```json
+      { "message": "Incorrect password" }
+      ```
+  - Failed Request:
+    - Status Code: 401
+    - Response Body:
+      ```json
+      { "message": "Something unusual happened to your authentication status while trying to change your password, so we couldn't process your request" }
+      ```
+  - Failed Request:
+    - Status Code: 400
+    - Response Body:
+      ```json
+      { "message": "Incomplete request, please specify all required parameters" }
+      ```
+  - Failed Request:
+    - Status Code: 500
+    - Response Body:
+      ```json
+      { "message": "Something went wrong, please try again" }
+      ```
+
+7. Upload Inspection Forms
+
+
+> POST - [http://localhost:3000/api/coordinator/uploadInspectionForms](http://localhost:3000/api/coordinator/uploadInspectionForms)
+
+**Description:**
+
+This endpoint allows the upload of an inspection form after passing through the upload middleware.
+
+**Request Payload:**
+
+- Form information
+```json
+{
+  "name": "Form name",
+  "description": "Form description",
+  "purpose": "Form purpose",
+  "pathToFile": "Form path",
+}
+```
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 200
+  - Response body
+    ```json
+    { "message": "Form was added successfully" }
+    ```
+
+- Failed Request
+  - Incomplete payload
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Please fill all the fields" }
+    ```
+
+8. Create Supervisor
+
+> POST - [http://localhost:3000/api/coordinator/createSupervisor](http://localhost:3000/api/coordinator/createSupervisor)
+
+**Description:**
+
+This endpoint allows a coordinator to create a supervisor.
+
+**Request Payload:**
+
+```json
+      {
+        "firstName": "John",
+        "lastName": "Doe",
+        "phone": "123456789",
+		"email": "jondoe@gmail.com",
+        "office": "A123",
+		"password": "abel123"
+      }
+```
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 201
+  - Response body
+    ```json
+    { 
+		"message": "Supervisor added successfully", 
+		"supervisor": "631b4162deab9b9ec49dd0525"
+	}
+    ```
+
+- Failed Request
+  - Error details
+
+9. Get All Supervisors
+
+**Endpoint:**
+
+> GET - [http://localhost:3000/api/coordinator/supervisors](http://localhost:3000/api/coordinator/supervisors)
+
+**Description:**
+
+This endpoint returns a list of all supervisors.
+
+**Possible Responses:**
+
+- Successful Request
+  - Status code: 200
+  - Response body:
+      ```json
+	[
+    	{ 
+			"firstName": "John",
+        	"lastName": "Doe",
+        	"phone": "123456789",
+			"email": "jondoe@gmail.com",
+        	"office": "A123",
+		},
+		{ 
+			"firstName": "John",
+        	"lastName": "Doe",
+        	"phone": "123456789",
+			"email": "jondoe@gmail.com",
+        	"office": "A123",
+		},
+		{ 
+			"firstName": "John",
+        	"lastName": "Doe",
+        	"phone": "123456789",
+			"email": "jondoe@gmail.com",
+        	"office": "A123",
+		},
+		// more supervisors 
+	]
+    ```
+
+- Failed Request
+  - No supervisor
+  - Response type: failed
+  - Status code: 4004
+    ```json
+    { "message": "No supervisors found" }
+    ```
+
+10. Assign Defense Supervisor
+
+**Endpoint:**
+
+>POST - [http://localhost:3000/api/coordinator/assignDefenseSupervisor](http://localhost:3000/api/coordinator/assignDefenseSupervisor)
+
+**Description:**
+
+This endpoint assigns a student to a supervisor for defense. It can also be used to overwrite a previous assignment.
+
+**Request Payload:**
+```json
+	{
+		"studentCode": "1234",
+		"supervisorID": "631b4162deab9b9ec34567"
+	}
+```
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 200
+  - Response body
+    ```json
+    { "message": "Defense supervisor was successfully assigned" }
+    ```
+
+- Failed Request
+  - Invalid supervisor id
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid supervisor id"}
+    ```
+
+  - Wrong Student code
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid student code"}
+    ```
+
+  - Wrong Supervisor Id
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "No supervisor was found with that id"}
+    ```
+
+10. Assign Inspection Supervisor
+
+**Endpoint:**
+
+> POST - [http://localhost:3000/api/coordinator/assignInspectionSupervisor](http://localhost:3000/api/coordinator/assignInspectionSupervisor)
+
+**Description:**
+
+This endpoint assigns a student to a supervisor for inspection. It can also be used to overwrite a previous assignment.
+
+**Request Payload:**
+
+```json
+	{
+		"studentCode": "1234",
+		"supervisorID": "631b4162deab9b9ec34567"
+	}
+```
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 200
+  - Response body
+    ```json
+    { "message": "Inspection supervisor was successfully assigned" }
+    ```
+
+- Failed Request
+  - Invalid supervisor id
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid supervisor id"}
+    ```
+
+  - Wrong Student code
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid student code"}
+    ```
+
+  - Wrong Supervisor Id
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "No supervisor was found with that id"}
+    ```
+
