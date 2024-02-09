@@ -780,3 +780,582 @@ This endpoint assigns a student to a supervisor for inspection. It can also be u
     { "message": "No supervisor was found with that id"}
     ```
 
+11. Assign Inspection Supervisor
+
+**Endpoint:**
+
+> POST - [http://localhost:3000/api/coordinator/assignInspectionSupervisor](http://localhost:3000/api/coordinator/assignInspectionSupervisor)
+
+**Description:**
+
+This endpoint assigns a student to a supervisor for inspection. It can also be used to overwrite a previous assignment.
+
+**Request Payload:**
+
+```json
+{
+	"studentCode": "1234",
+	"supervisorID": "631b4162deab9b9ec34567"
+}
+```
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 200
+  - Response body
+    ```json
+    { "message": "Inspection supervisor was successfully assigned" }
+    ```
+
+- Failed Request
+  - Invalid supervisor id
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid supervisor id"}
+    ```
+
+  - Wrong Student code
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid student code"}
+    ```
+
+  - Wrong Supervisor Id
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "No supervisor was found with that id"}
+    ```
+
+12. Get All Students
+
+**Endpoint:**
+
+> GET - [http://localhost:3000/api/students](http://localhost:3000/api/students)
+
+**Description:**
+
+This endpoint retrieves a list of students with optional pagination parameters.
+
+**Request Parameters:**
+
+- `page` (optional): The page number to retrieve. Defaults to 1.
+- `limit` (optional): The number of students to retrieve per page. Defaults to 10. Maximum allowed limit is 50.
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 200
+  - Response body
+    ```json
+    {
+      "students": [
+        {
+          "_id": "1234",
+          "name": "John Doe",
+          "age": 20,
+          "grade": "A"
+        },
+        {
+          "_id": "5678",
+          "name": "Jane Smith",
+          "age": 22,
+          "grade": "B"
+        }
+      ],
+      "totalStudents": 25,
+      "currentPage": 1,
+      "currentLimit": 10
+    }
+    ```
+
+- Failed Request
+  - Invalid page number
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid page number"}
+    ```
+
+  - Invalid limit
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid limit"}
+    ```
+
+  - Limit too large
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Limit too large, maximum allowed limit is 50"}
+    ```
+
+  - No students found
+  - Response type: failed
+  - Status code: 404
+    ```json
+    { "message": "No students found"}
+    ```
+
+- Internal Server Error
+  - Response type: error
+  - Status code: 500
+    ```json
+    { "message": "Internal Server Error"}
+    ```
+13. Get a Student
+
+**Endpoint:**
+
+> GET - [http://localhost:3000/api/student/:id](http://localhost:3000/api/student/:id)
+
+**Description:**
+
+This endpoint retrieves the details of a particular student based on the provided ID.
+
+**Request Parameters:**
+
+- `id` (string, required): The ID of the student to retrieve.
+
+**Possible Responses:**
+
+- Successful Request
+  - Status code: 200
+  - Response body:
+    ```json
+    {
+      "_id": "12345",
+      "name": "John Doe",
+      "email": "john.doe@example.com",
+      "createdAt": "2023-01-01T00:00:00.000Z",
+      "updatedAt": "2023-01-01T00:00:00.000Z",
+      "grades": {
+        "grade": "A",
+        "lastUpdatedBy": "Coordinator John"
+      },
+      "company": {
+        "_id": "67890",
+        "name": "Acme Corporation"
+      },
+      "supervisor": {
+        "_id": "abcde",
+        "name": "Supervisor Jane"
+      }
+    }
+    ```
+
+- Failed Request
+  - Invalid ID
+    - Status code: 400
+    - Response body:
+      ```json
+      { "message": "Invalid id" }
+      ```
+
+  - Student Not Found
+    - Status code: 404
+    - Response body:
+      ```json
+      { "message": "Student not found" }
+      ```
+
+14. Get Defense List
+
+**Endpoint:**
+
+> GET - [http://localhost:3000/api/defense/list](http://localhost:3000/api/defense/list)
+
+**Description:**
+
+This endpoint returns a list containing all students and their assigned supervisors for defense.
+
+**Possible Responses:**
+
+- Successful Request
+  - Status code: 200
+  - Response body: List of students and their assigned supervisors for defense.
+
+- Failed Request
+  - Status code: 404
+  - Response body: `{ "message": "Defense list is empty" }`
+
+---
+
+15. Get Inspection List
+
+**Endpoint:**
+
+> GET - [http://localhost:3000/api/inspection/list](http://localhost:3000/api/inspection/list)
+
+**Description:**
+
+This endpoint returns a list of all students and their assigned supervisors for inspection.
+
+**Possible Responses:**
+
+- Successful Request
+  - Status code: 200
+  - Response body: List of students and their assigned supervisors for inspection.
+
+- Failed Request
+  - Status code: 404
+  - Response body: `{ "message": "Inspection list is empty" }`
+
+---
+
+16. Set Registration Deadline
+
+**Endpoint:**
+
+> POST - [http://localhost:3000/api/registration/deadline](http://localhost:3000/api/registration/deadline)
+
+**Description:**
+
+This endpoint accepts the deadline date and updates the deadline document.
+
+**Request Payload:**
+
+```json
+{
+    "time": "2023-02-28T08:00:00.000Z"
+}
+```
+
+**Possible Responses:**
+
+- Successful Request
+  - Status code: 200
+  - Response body: `{ "message": "Registration deadline has been assigned" }`
+
+- Failed Request
+  - Status code: 400
+  - Response body: `{ "message": "You cannot set a deadline into the past" }`
+  - Status code: 401
+  - Response body: `{ "message": "Something went wrong while authenticating your request, re-authenticate and try again" }`
+
+---
+
+17. Get Weekly Reports
+
+**Endpoint:**
+
+> GET - [http://localhost:3000/api/weekly-reports/:studentCode](http://localhost:3000/api/weekly-reports/:studentCode)
+
+**Description:**
+
+This endpoint returns a list of all the weekly reports for the specified student.
+
+**Possible Responses:**
+
+- Successful Request
+  - Status code: 200
+  - Response body: List of weekly reports for the specified student.
+
+- Failed Request
+  - Status code: 404
+  - Response body: `{ "message": "No weekly reports submission found for the specified student" }`
+
+---
+
+18. Assign Grade
+
+**Endpoint:**
+
+> POST - [http://localhost:3000/api/grades/assignGrade](http://localhost:3000/api/assignGrade)
+
+**Description:**
+
+This endpoint updates the student grade collections with the grades for inspection, reports, and defense.
+
+**Request Payload:**
+
+```json
+{
+  "type": "inspection",
+  "score": 18,
+  "studentId": "60d52ebc2e0b7617c433df0a"
+}
+```
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 200
+  - Response body
+    ```json
+    { "message": "Grades updated successfully" }
+    ```
+
+- Failed Request
+  - Invalid form id
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid form id"}
+    ```
+
+19. Collate Grades
+
+**Endpoint:**
+
+> POST - [http://localhost:3000/api/collateGrades/:studentId](http://localhost:3000/api/collateGrades/:studentId)
+
+**Description:**
+
+This endpoint collates the grades and locks the document for a specific student.
+
+**Request Parameters:**
+
+- `studentId`: The ID of the student whose grades need to be collated.
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 200
+  - Response body
+    ```json
+    { "message": "Grades have been collated successfully" }
+    ```
+
+- Failed Request
+  - Invalid student id
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid student id"}
+    ```
+
+20. Collate All Grades
+
+**Endpoint:**
+
+> POST - [http://localhost:3000/api/collateAllGrades](http://localhost:3000/api/collateAllGrades)
+
+**Description:**
+
+This endpoint collates the grades of all students and locks the document.
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 200
+  - Response body
+    ```json
+    { "message": "Grades have been collated successfully for all students" }
+    ```
+
+- Failed Request
+  - Action failed
+  - Response type: failed
+  - Status code: 500
+    ```json
+    { "message": "Action failed, please try again or contact support" }
+    ```
+
+21. Get Forms
+
+**Endpoint:**
+
+> GET - [http://localhost:3000/api/forms](http://localhost:3000/api/forms)
+
+**Description:**
+
+This endpoint retrieves information about forms and their download URLs.
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 200
+  - Response body: Array of form objects
+    ```json
+    [
+      {
+        "formId": "60d52ebc2e0b7617c433df0a",
+        "formName": "Form 1",
+        "downloadUrl": "http://localhost:3000/api/forms/downloadForm?formId=60d52ebc2e0b7617c433df0a"
+      },
+      ...
+    ]
+    ```
+
+- Failed Request
+  - No forms available
+  - Response type: failed
+  - Status code: 404
+    ```json
+    { "message": "There are currently no forms available" }
+    ```
+
+22. Delete Form
+
+**Endpoint:**
+
+> DELETE - [http://localhost:3000/api/forms/deleteForm?formId=formId](http://localhost:3000/api/forms/deleteForm?formId=formId)
+
+**Description:**
+
+This endpoint deletes a specific form.
+
+**Request Query Parameters:**
+
+- `formId`: The ID of the form to be deleted.
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 201
+  - Response body
+    ```json
+    { "message": "Form has been deleted" }
+    ```
+
+- Failed Request
+  - Invalid form id
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Invalid form id" }
+    ```
+
+  - Form not found
+  - Response type: failed
+  - Status code: 404
+    ```json
+    { "message": "Form not found" }
+    ```
+
+23. Search for Students
+
+**Endpoint:**
+
+> GET - [http://localhost:3000/api/search/students?q=searchQuery](http://localhost:3000/api/search/students?q=searchQuery)
+
+**Description:**
+
+This endpoint searches for students based on a search query.
+
+**Request Query Parameters:**
+
+- `q`: The search query.
+
+**Possible Responses:**
+
+- Successful Request
+  - Response type: success
+  - Status code: 200
+  - Response body: Array of student objects
+    ```json
+    [
+      {
+        "studentId": "60d52ebc2e0b7617c433df0a",
+        "firstName": "John",
+        "lastName": "Doe",
+        ...
+      },
+      ...
+    ]
+    ```
+
+- Failed Request
+  - Invalid search query
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Please specify a search query" }
+    ```
+
+  - Search query too short
+
+
+  - Response type: failed
+  - Status code: 400
+    ```json
+    { "message": "Search query must be at least 3 characters long" }
+    ```
+
+- No students found
+  - Response type: failed
+  - Status code: 404
+    ```json
+    { "message": "No students found" }
+    ```
+
+24. Download All Student Data
+
+This endpoint retrieves the data for all students and returns it as a CSV file ready for download.
+
+#### Endpoint
+
+> GET - [http://localhost:3000/api/students/download](http://localhost:3000/api/students/download)
+
+#### Request Parameters
+
+None
+
+#### Response
+
+- Success:
+  - Status code: 200
+  - Content-Type: text/csv
+  - Content-Disposition: attachment; filename=students.csv
+  - CSV file containing student data
+
+- Error:
+  - Status code: 404
+  - Response body:
+    ```json
+    { "message": "No students found" }
+    ```
+
+---
+
+25. Update Student Details
+
+This endpoint allows coordinators to update the information for a particular student.
+
+#### Endpoint
+
+> PUT - [http://localhost:3000/api/students/:id](http://localhost:3000/api/students/:id)
+
+
+#### Request Payload
+
+```json
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "course": "Computer Science",
+  "level": "200",
+  "phone": "1234567890",
+  "accountNumber": "1234567890",
+  "bankName": "Bank of Example",
+  "sortCode": "123456"
+}
+```
+
+#### Possible Responses
+
+- Success:
+  - Status code: 200
+  - Response body:
+    ```json
+    { "message": "Student profile updated successfully" }
+    ```
+
+- Error:
+  - Status code: 404
+  - Response body:
+    ```json
+    { "message": "Student not found" }
+    ```
