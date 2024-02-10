@@ -15,7 +15,7 @@ require("dotenv").config();
 const app = express();
 
 // set up middlewares
-const corsOption = process.env.NODE_ENV == "production" ? {} : { credentials: true, origin: ['http://localhost:3000', 'http://localhost:3001', 'https://siwes-api.onrender.com'] };
+const corsOption = process.env.NODE_ENV == "production" ? {} : { credentials: true, origin: ['http://localhost:3000', 'http://localhost:3001'] };
 app.use(cors(corsOption));
 app.use(compression());
 app.use(bodyParser.json());
