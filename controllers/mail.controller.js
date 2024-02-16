@@ -209,9 +209,64 @@ const sendWelcomeMail = (email, firstName, lastName) => {
   });
 };
 
+/**
+ * This sends a mail with login credentials to supervisors
+ * @param {string} firstName
+ * @param {string} lastName
+ * @returns
+ */
+const sendMailToSupervisorEmail = ({email, firstName, lastName, password}) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const transporter = createTransport({
+        host: process.env.MAIL_HOST,
+        port: 465,
+        secure: true,
+        auth: {
+          user: process.env.EMAIL,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      });
+
+      const handlebarOptions = {
+        viewEngine: {
+          defaultLayout: false,
+        },
+        viewPath: "./controllers/mail-templates",
+      };
+
+      transporter.use("compile", hbs(handlebarOptions));
+
+      const promisifiedTransporterSendMail = promisify(
+        transporter.sendMail
+      ).bind(transporter);
+
+      const mailOptions = {
+        from: `"SIWES TEAM from Babcock" <${process.env.EMAIL}>`,
+        to: email,
+        subject: "Welcome to Babcock University's SIWES portal",
+        template: "supervisor-registration",
+        context: {
+          firstName,
+          lastName,
+          email,
+          password
+        },
+      };
+
+      await promisifiedTransporterSendMail(mailOptions);
+
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 module.exports = {
   sendOTPMail,
   sendErrorMail,
   sendLoginAlertMail,
   sendWelcomeMail,
+  sendMailToSupervisorEmail
 };

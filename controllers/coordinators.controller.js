@@ -15,6 +15,7 @@ const bcrypt = require("bcrypt");
 const { existsSync, unlinkSync } = require("fs");
 const jsonToCsvString = require("../utils/jsonToCsvString");
 const { ObjectId } = require("mongoose").Types;
+const {sendMailToSupervisorEmail} = require('./mail.controller');
 
 /**
  * adds a new coordinator
@@ -267,6 +268,8 @@ const upload_inspection_forms = async function (req, res) {
 const create_supervisor = async function (req, res) {
   try {
     const supervisor = await SUPERVISORS.create(req.body);
+
+    await sendMailToSupervisorEmail(req.body);
 
     res.status(201).json({
       message: "Supervisor added successfully",
