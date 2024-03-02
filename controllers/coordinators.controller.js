@@ -443,6 +443,7 @@ const get_all_students = async function (req, res) {
     // get pagination parameters
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const {sortOrder, sortBy} = req.query;
 
     if (page < 1) {
       res.status(400).json({ message: "Invalid page number" });
@@ -461,13 +462,23 @@ const get_all_students = async function (req, res) {
       return;
     }
 
-    const students = await STUDENTS.aggregate([
-      {
-        $skip: (page - 1) * limit,
-      },
-      {
-        $limit: limit,
-      },
+    let sortQuery = [];
+    const validSortOrder = ['asc', 'desc'];
+    const validSortBy = ['course', 'company.LGA', 'company.state'];
+    if (
+      sortOrder && validSortOrder.includes(sortOrder.toLowerCase()) &&
+      sortBy && validSortBy.includes(sortBy)) 
+    {
+      sortQuery = [
+        {
+          $sort: {
+            [sortBy]: sortOrder.toLowerCase() === 'asc' ? 1 : -1
+          }
+        }
+      ]
+    }
+
+    const pipeline = [
       {
         $project: {
           password: 0,
@@ -475,6 +486,38 @@ const get_all_students = async function (req, res) {
           createdAt: 0,
           updatedAt: 0,
         },
+      },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                address: 1,
+                state: 1,
+                LGA: 1
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          company: {
+            $arrayElemAt: ["$company", 0],
+          },
+        }
+      },
+      ...sortQuery,
+      {
+        $skip: (page - 1) * limit,
+      },
+      {
+        $limit: limit,
       },
       {
         $lookup: {
@@ -495,32 +538,15 @@ const get_all_students = async function (req, res) {
         },
       },
       {
-        $lookup: {
-          from: "companies",
-          localField: "studentCode",
-          foreignField: "studentCode",
-          as: "company",
-          pipeline: [
-            {
-              $project: {
-                name: 1,
-                address: 1,
-              },
-            },
-          ],
-        },
-      },
-      {
         $addFields: {
           grade: {
             $arrayElemAt: ["$grade", 0],
           },
-          company: {
-            $arrayElemAt: ["$company", 0],
-          },
         },
       },
-    ]);
+    ];
+
+    const students = await STUDENTS.aggregate(pipeline);
 
     if (students.length === 0) {
       res.status(404).json({ message: "No students found" });
