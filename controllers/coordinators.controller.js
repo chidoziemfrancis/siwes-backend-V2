@@ -542,6 +542,94 @@ const get_all_students = async function (req, res) {
 };
 
 /**
+ * Returns a list containing students from the coordinators department
+ * @param {request} req
+ * @param {response} res
+ */
+const get_students_from_coordinators_department = async function (req, res){
+  const { faculty } = req.user;
+  
+  try {
+    const studentsFromFaculty = await STUDENTS.aggregate([
+      {
+        $match: {
+          faculty: faculty,
+        },
+      },
+      {
+        $project: {
+          password: 0,
+          validation_secret: 0,
+          createdAt: 0,
+          updatedAt: 0,
+        },
+      },
+      {
+        $lookup: {
+          from: "grades",
+          localField: "_id",
+          foreignField: "studentId",
+          as: "grade",
+          pipeline: [
+            {
+              $project: {
+                studentId: 0,
+                __v: 0,
+                createdAt: 0,
+                updatedAt: 0,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                address: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          grade: {
+            $arrayElemAt: ["$grade", 0],
+          },
+          company: {
+            $arrayElemAt: ["$company", 0],
+          },
+        },
+      },
+    ]);
+
+    if (studentsFromFaculty.length === 0) {
+      res.status(404).json({ message: "No students in this faculty found" });
+      return;
+    }
+
+    const totalStudentsInFaculty = studentsFromFaculty.countDocuments();
+
+    const data = {
+      studentsFromFaculty,
+      totalStudentsInFaculty,
+    };
+
+    res.status(200).json(data);
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+}
+
+/**
  * Returns the details of a particular student
  * @param {request} req
  * @param {response} res
@@ -1643,6 +1731,7 @@ module.exports = {
   assign_defense_supervisor,
   assign_inspection_supervisor,
   get_all_students,
+  get_students_from_coordinators_department,
   get_a_student,
   set_registration_deadline,
   get_weekly_reports,
