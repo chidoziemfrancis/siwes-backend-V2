@@ -36,6 +36,10 @@ const create_tokens = function (user, res, type) {
         role: type,
       };
 
+      if (type === "coordinator") {
+        clientPayload.faculty = user.faculty;
+      }
+
       const accessToken = jwt.sign(
         clientPayload,
         process.env.ACCESS_TOKEN_SECRET,

@@ -56,6 +56,11 @@ const CoordinatorSchema = new mongoose.Schema(
     validation_secret: {
       type: String,
     },
+    faculty: {
+      type: String,
+      required: [true, "Faculty is required"],
+      lowercase: true,
+    }
   },
   { timestamps: true }
 );

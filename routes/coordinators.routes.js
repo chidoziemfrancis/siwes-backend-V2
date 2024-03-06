@@ -14,6 +14,7 @@ const {
   assign_defense_supervisor,
   assign_inspection_supervisor,
   get_all_students,
+  get_students_from_coordinators_department,
   get_a_student,
   set_registration_deadline,
   get_weekly_reports,
@@ -43,6 +44,9 @@ router.get("/inspectionList", isCoordinator, get_inspection_list);
 router.get("/supervisors", isCoordinator, get_all_supervisors);
 
 router.get("/students", isCoordinator, get_all_students);
+
+
+router.get("/getFacultyStudents", isCoordinator, get_students_from_coordinators_department);
 
 router.get("/students/download", isCoordinator, download_all_student_data);
 
