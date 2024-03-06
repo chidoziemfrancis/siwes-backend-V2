@@ -550,7 +550,34 @@ const get_students_from_coordinators_department = async function (req, res){
   const { faculty } = req.user;
   
   try {
+    // get pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    if (page < 1) {
+      res.status(400).json({ message: "Invalid page number" });
+      return;
+    }
+
+    if (limit < 1) {
+      res.status(400).json({ message: "Invalid limit" });
+      return;
+    }
+
+    if (limit > 50) {
+      res
+        .status(400)
+        .json({ message: "Limit too large, maximum allowed limit is 50" });
+      return;
+    }
+
     const studentsFromFaculty = await STUDENTS.aggregate([
+      {
+        $skip: (page - 1) * limit,
+      },
+      {
+        $limit: limit,
+      },
       {
         $match: {
           faculty: faculty,
@@ -609,17 +636,18 @@ const get_students_from_coordinators_department = async function (req, res){
         },
       },
     ]);
-
     if (studentsFromFaculty.length === 0) {
       res.status(404).json({ message: "No students in this faculty found" });
       return;
     }
 
-    const totalStudentsInFaculty = studentsFromFaculty.countDocuments();
-
+    const totalStudentsInFaculty = await STUDENTS.countDocuments({ faculty });
+    
     const data = {
       studentsFromFaculty,
       totalStudentsInFaculty,
+      currentPage: page,
+      currentLimit: limit,
     };
 
     res.status(200).json(data);

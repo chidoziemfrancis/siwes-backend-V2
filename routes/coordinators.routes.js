@@ -46,7 +46,7 @@ router.get("/supervisors", isCoordinator, get_all_supervisors);
 router.get("/students", isCoordinator, get_all_students);
 
 
-router.get("/facultyStudents", isCoordinator, get_students_from_coordinators_department);
+router.get("/getFacultyStudents", isCoordinator, get_students_from_coordinators_department);
 
 router.get("/students/download", isCoordinator, download_all_student_data);
 
