@@ -439,6 +439,8 @@ const assign_inspection_supervisor = async function (req, res) {
  * @param {response} res
  */
 const get_all_students = async function (req, res) {
+  const { faculty } = req.user;
+
   try {
     // get pagination parameters
     const page = parseInt(req.query.page) || 1;
@@ -479,6 +481,11 @@ const get_all_students = async function (req, res) {
     }
 
     const pipeline = [
+      {
+        $match: {
+          faculty: faculty,
+        },
+      },
       {
         $project: {
           password: 0,
@@ -569,122 +576,6 @@ const get_all_students = async function (req, res) {
     handleError(error, res);
   }
 };
-
-/**
- * Returns a list containing students from the coordinators department
- * @param {request} req
- * @param {response} res
- */
-const get_students_from_coordinators_department = async function (req, res){
-  const { faculty } = req.user;
-  
-  try {
-    // get pagination parameters
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-
-    if (page < 1) {
-      res.status(400).json({ message: "Invalid page number" });
-      return;
-    }
-
-    if (limit < 1) {
-      res.status(400).json({ message: "Invalid limit" });
-      return;
-    }
-
-    if (limit > 50) {
-      res
-        .status(400)
-        .json({ message: "Limit too large, maximum allowed limit is 50" });
-      return;
-    }
-
-    const studentsFromFaculty = await STUDENTS.aggregate([
-      {
-        $skip: (page - 1) * limit,
-      },
-      {
-        $limit: limit,
-      },
-      {
-        $match: {
-          faculty: faculty,
-        },
-      },
-      {
-        $project: {
-          password: 0,
-          validation_secret: 0,
-          createdAt: 0,
-          updatedAt: 0,
-        },
-      },
-      {
-        $lookup: {
-          from: "grades",
-          localField: "_id",
-          foreignField: "studentId",
-          as: "grade",
-          pipeline: [
-            {
-              $project: {
-                studentId: 0,
-                __v: 0,
-                createdAt: 0,
-                updatedAt: 0,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $lookup: {
-          from: "companies",
-          localField: "studentCode",
-          foreignField: "studentCode",
-          as: "company",
-          pipeline: [
-            {
-              $project: {
-                name: 1,
-                address: 1,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $addFields: {
-          grade: {
-            $arrayElemAt: ["$grade", 0],
-          },
-          company: {
-            $arrayElemAt: ["$company", 0],
-          },
-        },
-      },
-    ]);
-    if (studentsFromFaculty.length === 0) {
-      res.status(404).json({ message: "No students in this faculty found" });
-      return;
-    }
-
-    const totalStudentsInFaculty = await STUDENTS.countDocuments({ faculty });
-    
-    const data = {
-      studentsFromFaculty,
-      totalStudentsInFaculty,
-      currentPage: page,
-      currentLimit: limit,
-    };
-
-    res.status(200).json(data);
-    return;
-  } catch (error) {
-    handleError(error, res);
-  }
-}
 
 /**
  * Returns the details of a particular student
@@ -1788,7 +1679,6 @@ module.exports = {
   assign_defense_supervisor,
   assign_inspection_supervisor,
   get_all_students,
-  get_students_from_coordinators_department,
   get_a_student,
   set_registration_deadline,
   get_weekly_reports,
