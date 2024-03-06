@@ -15,6 +15,7 @@ const bcrypt = require("bcrypt");
 const { existsSync, unlinkSync } = require("fs");
 const jsonToCsvString = require("../utils/jsonToCsvString");
 const { ObjectId } = require("mongoose").Types;
+const {sendMailToSupervisorEmail} = require('./mail.controller');
 
 /**
  * adds a new coordinator
@@ -268,6 +269,8 @@ const create_supervisor = async function (req, res) {
   try {
     const supervisor = await SUPERVISORS.create(req.body);
 
+    await sendMailToSupervisorEmail(req.body);
+
     res.status(201).json({
       message: "Supervisor added successfully",
       supervisor: supervisor._id,
@@ -442,6 +445,7 @@ const get_all_students = async function (req, res) {
     // get pagination parameters
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const {sortOrder, sortBy} = req.query;
 
     if (page < 1) {
       res.status(400).json({ message: "Invalid page number" });
@@ -460,17 +464,27 @@ const get_all_students = async function (req, res) {
       return;
     }
 
-    const students = await STUDENTS.aggregate([
+    let sortQuery = [];
+    const validSortOrder = ['asc', 'desc'];
+    const validSortBy = ['course', 'company.LGA', 'company.state'];
+    if (
+      sortOrder && validSortOrder.includes(sortOrder.toLowerCase()) &&
+      sortBy && validSortBy.includes(sortBy)) 
+    {
+      sortQuery = [
+        {
+          $sort: {
+            [sortBy]: sortOrder.toLowerCase() === 'asc' ? 1 : -1
+          }
+        }
+      ]
+    }
+
+    const pipeline = [
       {
         $match: {
           faculty: faculty,
         },
-      },
-      {
-        $skip: (page - 1) * limit,
-      },
-      {
-        $limit: limit,
       },
       {
         $project: {
@@ -479,6 +493,38 @@ const get_all_students = async function (req, res) {
           createdAt: 0,
           updatedAt: 0,
         },
+      },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                address: 1,
+                state: 1,
+                LGA: 1
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          company: {
+            $arrayElemAt: ["$company", 0],
+          },
+        }
+      },
+      ...sortQuery,
+      {
+        $skip: (page - 1) * limit,
+      },
+      {
+        $limit: limit,
       },
       {
         $lookup: {
@@ -499,32 +545,15 @@ const get_all_students = async function (req, res) {
         },
       },
       {
-        $lookup: {
-          from: "companies",
-          localField: "studentCode",
-          foreignField: "studentCode",
-          as: "company",
-          pipeline: [
-            {
-              $project: {
-                name: 1,
-                address: 1,
-              },
-            },
-          ],
-        },
-      },
-      {
         $addFields: {
           grade: {
             $arrayElemAt: ["$grade", 0],
           },
-          company: {
-            $arrayElemAt: ["$company", 0],
-          },
         },
       },
-    ]);
+    ];
+
+    const students = await STUDENTS.aggregate(pipeline);
 
     if (students.length === 0) {
       res.status(404).json({ message: "No students found" });
