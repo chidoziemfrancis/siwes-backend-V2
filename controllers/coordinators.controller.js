@@ -462,15 +462,15 @@ const get_all_students = async function (req, res) {
 
     const students = await STUDENTS.aggregate([
       {
+        $match: {
+          faculty: faculty,
+        },
+      },
+      {
         $skip: (page - 1) * limit,
       },
       {
         $limit: limit,
-      },
-      {
-        $match: {
-          faculty: faculty,
-        },
       },
       {
         $project: {
