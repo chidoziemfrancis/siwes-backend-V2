@@ -553,6 +553,46 @@ const get_all_students = async function (req, res) {
           },
         },
       },
+      {
+        $lookup: {
+          from: "inspection_lists",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "inspectionInfo",
+        },
+      },
+      {
+        $addFields: {
+          inspectionInfo: {
+            $arrayElemAt: ["$inspectionInfo", 0],
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "supervisors",
+          localField: "inspectionInfo.supervisorId",
+          foreignField: "_id",
+          as: "assignedSupervisorInfo",
+          pipeline: [
+            {
+              $project: {
+                firstName: 1,
+                lastName: 1,
+                phone: 1,
+                email: 1,
+              }
+            }
+          ]
+        },
+      },
+      {
+        $addFields: {
+          assignedSupervisorInfo: {
+            $arrayElemAt: ["$assignedSupervisorInfo", 0],
+          },
+        },
+      },
     ];
 
     const students = await STUDENTS.aggregate(pipeline);
