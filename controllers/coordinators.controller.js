@@ -288,10 +288,38 @@ const create_supervisor = async function (req, res) {
  */
 const get_all_supervisors = async function (req, res) {
   try {
-    const supervisors = await SUPERVISORS.find(
-      {},
-      { password: 0, validation_secret: 0, createdAt: 0, updatedAt: 0 }
-    );
+    const pipeline = [
+      {
+        $project: {
+          password: 0,
+          validation_secret: 0,
+          createdAt: 0,
+          updatedAt: 0,
+        },
+      },
+      {
+        $lookup: {
+          from: "inspection_lists",
+          foreignField: "supervisorId",
+          localField: "_id",
+          as: "assignedStudents",
+        },
+      },
+      {
+        $addFields: {
+          noOfAssignedStudents: {
+            $size: "$assignedStudents",
+          },
+        },
+      },
+      {
+        $project: {
+          assignedStudents: 0,
+        },
+      },
+    ];
+
+    const supervisors = await SUPERVISORS.aggregate(pipeline);
 
     if (supervisors.length === 0) {
       res.status(404).json({ message: "No supervisors found" });
@@ -581,9 +609,9 @@ const get_all_students = async function (req, res) {
                 lastName: 1,
                 phone: 1,
                 email: 1,
-              }
-            }
-          ]
+              },
+            },
+          ],
         },
       },
       {
