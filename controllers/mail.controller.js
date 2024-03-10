@@ -215,7 +215,12 @@ const sendWelcomeMail = (email, firstName, lastName) => {
  * @param {string} lastName
  * @returns
  */
-const sendMailToSupervisorEmail = ({email, firstName, lastName, password}) => {
+const sendMailToSupervisorEmail = ({
+  email,
+  firstName,
+  lastName,
+  password,
+}) => {
   return new Promise(async (resolve, reject) => {
     try {
       const transporter = createTransport({
@@ -250,7 +255,7 @@ const sendMailToSupervisorEmail = ({email, firstName, lastName, password}) => {
           firstName,
           lastName,
           email,
-          password
+          password,
         },
       };
 
@@ -268,5 +273,5 @@ module.exports = {
   sendErrorMail,
   sendLoginAlertMail,
   sendWelcomeMail,
-  sendMailToSupervisorEmail
+  sendMailToSupervisorEmail,
 };

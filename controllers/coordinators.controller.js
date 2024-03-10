@@ -15,7 +15,7 @@ const bcrypt = require("bcrypt");
 const { existsSync, unlinkSync } = require("fs");
 const jsonToCsvString = require("../utils/jsonToCsvString");
 const { ObjectId } = require("mongoose").Types;
-const {sendMailToSupervisorEmail} = require('./mail.controller');
+const { sendMailToSupervisorEmail } = require("./mail.controller");
 
 /**
  * adds a new coordinator
@@ -445,7 +445,7 @@ const get_all_students = async function (req, res) {
     // get pagination parameters
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const {sortOrder, sortBy} = req.query;
+    const { sortOrder, sortBy } = req.query;
 
     if (page < 1) {
       res.status(400).json({ message: "Invalid page number" });
@@ -465,19 +465,21 @@ const get_all_students = async function (req, res) {
     }
 
     let sortQuery = [];
-    const validSortOrder = ['asc', 'desc'];
-    const validSortBy = ['course', 'company.LGA', 'company.state'];
+    const validSortOrder = ["asc", "desc"];
+    const validSortBy = ["course", "company.LGA", "company.state"];
     if (
-      sortOrder && validSortOrder.includes(sortOrder.toLowerCase()) &&
-      sortBy && validSortBy.includes(sortBy)) 
-    {
+      sortOrder &&
+      validSortOrder.includes(sortOrder.toLowerCase()) &&
+      sortBy &&
+      validSortBy.includes(sortBy)
+    ) {
       sortQuery = [
         {
           $sort: {
-            [sortBy]: sortOrder.toLowerCase() === 'asc' ? 1 : -1
-          }
-        }
-      ]
+            [sortBy]: sortOrder.toLowerCase() === "asc" ? 1 : -1,
+          },
+        },
+      ];
     }
 
     const pipeline = [
@@ -506,7 +508,7 @@ const get_all_students = async function (req, res) {
                 name: 1,
                 address: 1,
                 state: 1,
-                LGA: 1
+                LGA: 1,
               },
             },
           ],
@@ -517,7 +519,7 @@ const get_all_students = async function (req, res) {
           company: {
             $arrayElemAt: ["$company", 0],
           },
-        }
+        },
       },
       ...sortQuery,
       {
