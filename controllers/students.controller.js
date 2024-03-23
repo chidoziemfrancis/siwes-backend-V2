@@ -235,7 +235,7 @@ const add_weekly_reports = async function (req, res) {
     const companyId = companyInfo._id;
     const currentDay = new Date(Date.now()).getDay();
 
-    if (currentDay === 6) {
+    if (currentDay === 0) {
       res.status(400).json({
         message:
           "We appreciate your hardwork across the week, but submissions are now closed for this week",
