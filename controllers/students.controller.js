@@ -281,11 +281,7 @@ const add_weekly_reports = async function (req, res) {
       return;
     }
 
-    await WEEKLY_REPORTS.updateOne(
-      { studentCode, companyId, weekId: currentWeek },
-      processedReport,
-      { upsert: true }
-    );
+    await WEEKLY_REPORTS.create(processedReport);
 
     res.status(200).json({ message: "Upload successful" });
   } catch (error) {
