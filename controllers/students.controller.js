@@ -281,7 +281,11 @@ const add_weekly_reports = async function (req, res) {
       return;
     }
 
-    await WEEKLY_REPORTS.create(processedReport);
+    await WEEKLY_REPORTS.updateOne(
+      { weekId: currentWeek },
+      processedReport,
+      { upsert: true }
+    );
 
     res.status(200).json({ message: "Upload successful" });
   } catch (error) {
