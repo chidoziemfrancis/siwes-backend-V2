@@ -1,17 +1,32 @@
 const { response, request } = require("express");
 const cloudinary = require('cloudinary').v2;
-          
-cloudinary.config({ 
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
-  api_key: process.env.CLOUDINARY_API_KEY, 
+const { Readable } = require("stream");
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-/**
- * Retrieves file from req.files and stores it
- * @param {request} req
- * @param {response} res
- */
+async function uploadStream(buffer) {
+  return new Promise((res, rej) => {
+    const options = {
+        use_filename: true,
+        resource_type: "auto",
+        folder: 'forms'
+    }
+    const theTransformStream = cloudinary.uploader.upload_stream(
+      options,
+      (err, result) => {
+        if (err) return rej(err);
+        res(result);
+      }
+    );
+    let str = Readable.from(buffer);
+    str.pipe(theTransformStream);
+  });
+}
+
 const processFileUpload = async function (req, res, next) {
   try {
     if (!req.files || Object.keys(req.files).length === 0) {
@@ -24,12 +39,8 @@ const processFileUpload = async function (req, res, next) {
       return;
     }
 
-    console.log(req.files.form.tempFilePath);
-
-    const file = req.files.form;
-    const result = await cloudinary.uploader.upload(file.tempFilePath);
-
-    console.log(result)
+    const buffer = req.files.form.data;
+    const result = await uploadStream(buffer);
 
     // update the req.body
     req.body = {
@@ -37,6 +48,7 @@ const processFileUpload = async function (req, res, next) {
       name: req.files.form.name.toLowerCase(),
       pathToFile: result.secure_url,
     };
+    next();
 
   } catch (error) {
     res
