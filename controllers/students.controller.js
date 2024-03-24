@@ -282,7 +282,7 @@ const add_weekly_reports = async function (req, res) {
     }
 
     await WEEKLY_REPORTS.updateOne(
-      { weekId: currentWeek },
+      { studentCode, companyId, weekId: currentWeek },
       processedReport,
       { upsert: true }
     );

@@ -2,6 +2,12 @@ const { response, request } = require("express");
 const cloudinary = require('cloudinary').v2;
 const { Readable } = require("stream");
 
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 async function uploadStream(buffer) {
   return new Promise((res, rej) => {
     const options = {
@@ -23,12 +29,6 @@ async function uploadStream(buffer) {
 
 const processFileUpload = async function (req, res, next) {
   try {
-    cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET
-    });
-
     if (!req.files || Object.keys(req.files).length === 0) {
       res.status(400).json({ message: "Please upload a file" });
       return;
