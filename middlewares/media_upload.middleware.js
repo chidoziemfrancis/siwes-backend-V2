@@ -1,4 +1,11 @@
 const { response, request } = require("express");
+const cloudinary = require('cloudinary').v2;
+          
+cloudinary.config({ 
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
+  api_key: process.env.CLOUDINARY_API_KEY, 
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 /**
  * Retrieves file from req.files and stores it
@@ -17,25 +24,20 @@ const processFileUpload = async function (req, res, next) {
       return;
     }
 
-    const uploadPath = "./uploads/forms/" + req.files.form.name.toLowerCase();
+    console.log(req.files.form.tempFilePath);
+
+    const file = req.files.form;
+    const result = await cloudinary.uploader.upload(file.tempFilePath);
+
+    console.log(result)
 
     // update the req.body
     req.body = {
       ...req.body,
       name: req.files.form.name.toLowerCase(),
-      pathToFile: uploadPath,
+      pathToFile: result.secure_url,
     };
 
-    req.files.form.mv(uploadPath, function (err) {
-      if (err) {
-        res
-          .status(500)
-          .json({ message: "Something went wrong while uploading file" });
-        return;
-      }
-
-      next();
-    });
   } catch (error) {
     res
       .status(500)
