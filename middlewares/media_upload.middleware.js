@@ -49,6 +49,7 @@ const processFileUpload = async function (req, res, next) {
       pathToFile: result.secure_url,
     };
     next();
+
   } catch (error) {
     res
       .status(500)

@@ -40,12 +40,10 @@ const handleError = async function (error, res) {
     );
 
     await sendErrorMail({ error: error.toString() });
-    res
-      .status(500)
-      .json({
-        error:
-          "An erorr occured on the server, the relavant team has been contacted, try again later",
-      });
+    res.status(500).json({
+      error:
+        "An erorr occured on the server, the relavant team has been contacted, try again later",
+    });
     return;
   }
 
@@ -59,12 +57,10 @@ const handleError = async function (error, res) {
     );
 
     await sendErrorMail({ error: error.toString() });
-    res
-      .status(500)
-      .json({
-        error:
-          "An erorr occured on the server, the relavant team has been contacted, try again later",
-      });
+    res.status(500).json({
+      error:
+        "An erorr occured on the server, the relavant team has been contacted, try again later",
+    });
     return;
   }
 

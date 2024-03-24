@@ -15,7 +15,7 @@ const bcrypt = require("bcrypt");
 const { existsSync, unlinkSync } = require("fs");
 const jsonToCsvString = require("../utils/jsonToCsvString");
 const { ObjectId } = require("mongoose").Types;
-const {sendMailToSupervisorEmail} = require('./mail.controller');
+const { sendMailToSupervisorEmail } = require("./mail.controller");
 
 /**
  * adds a new coordinator
@@ -288,10 +288,38 @@ const create_supervisor = async function (req, res) {
  */
 const get_all_supervisors = async function (req, res) {
   try {
-    const supervisors = await SUPERVISORS.find(
-      {},
-      { password: 0, validation_secret: 0, createdAt: 0, updatedAt: 0 }
-    );
+    const pipeline = [
+      {
+        $project: {
+          password: 0,
+          validation_secret: 0,
+          createdAt: 0,
+          updatedAt: 0,
+        },
+      },
+      {
+        $lookup: {
+          from: "inspection_lists",
+          foreignField: "supervisorId",
+          localField: "_id",
+          as: "assignedStudents",
+        },
+      },
+      {
+        $addFields: {
+          noOfAssignedStudents: {
+            $size: "$assignedStudents",
+          },
+        },
+      },
+      {
+        $project: {
+          assignedStudents: 0,
+        },
+      },
+    ];
+
+    const supervisors = await SUPERVISORS.aggregate(pipeline);
 
     if (supervisors.length === 0) {
       res.status(404).json({ message: "No supervisors found" });
@@ -445,7 +473,7 @@ const get_all_students = async function (req, res) {
     // get pagination parameters
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const {sortOrder, sortBy} = req.query;
+    const { sortOrder, sortBy } = req.query;
 
     if (page < 1) {
       res.status(400).json({ message: "Invalid page number" });
@@ -465,19 +493,21 @@ const get_all_students = async function (req, res) {
     }
 
     let sortQuery = [];
-    const validSortOrder = ['asc', 'desc'];
-    const validSortBy = ['course', 'company.LGA', 'company.state'];
+    const validSortOrder = ["asc", "desc"];
+    const validSortBy = ["course", "company.LGA", "company.state"];
     if (
-      sortOrder && validSortOrder.includes(sortOrder.toLowerCase()) &&
-      sortBy && validSortBy.includes(sortBy)) 
-    {
+      sortOrder &&
+      validSortOrder.includes(sortOrder.toLowerCase()) &&
+      sortBy &&
+      validSortBy.includes(sortBy)
+    ) {
       sortQuery = [
         {
           $sort: {
-            [sortBy]: sortOrder.toLowerCase() === 'asc' ? 1 : -1
-          }
-        }
-      ]
+            [sortBy]: sortOrder.toLowerCase() === "asc" ? 1 : -1,
+          },
+        },
+      ];
     }
 
     const pipeline = [
@@ -506,7 +536,7 @@ const get_all_students = async function (req, res) {
                 name: 1,
                 address: 1,
                 state: 1,
-                LGA: 1
+                LGA: 1,
               },
             },
           ],
@@ -517,7 +547,7 @@ const get_all_students = async function (req, res) {
           company: {
             $arrayElemAt: ["$company", 0],
           },
-        }
+        },
       },
       ...sortQuery,
       {
@@ -548,6 +578,46 @@ const get_all_students = async function (req, res) {
         $addFields: {
           grade: {
             $arrayElemAt: ["$grade", 0],
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "inspection_lists",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "inspectionInfo",
+        },
+      },
+      {
+        $addFields: {
+          inspectionInfo: {
+            $arrayElemAt: ["$inspectionInfo", 0],
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "supervisors",
+          localField: "inspectionInfo.supervisorId",
+          foreignField: "_id",
+          as: "assignedSupervisorInfo",
+          pipeline: [
+            {
+              $project: {
+                firstName: 1,
+                lastName: 1,
+                phone: 1,
+                email: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          assignedSupervisorInfo: {
+            $arrayElemAt: ["$assignedSupervisorInfo", 0],
           },
         },
       },

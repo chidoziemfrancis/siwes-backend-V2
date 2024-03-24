@@ -5,3 +5,4 @@ uploads/*
 node_modules/*
 .prettierignore
 .gitignore
+build/*
