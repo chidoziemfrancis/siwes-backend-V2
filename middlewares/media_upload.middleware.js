@@ -2,6 +2,12 @@ const { response, request } = require("express");
 const cloudinary = require('cloudinary').v2;
 const { Readable } = require("stream");
 
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 async function uploadStream(buffer) {
   return new Promise((res, rej) => {
     const options = {
@@ -44,6 +50,7 @@ const processFileUpload = async function (req, res, next) {
       publicId: result.public_id
     };
     next();
+
   } catch (error) {
     res
       .status(500)

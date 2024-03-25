@@ -60,7 +60,7 @@ const CoordinatorSchema = new mongoose.Schema(
       type: String,
       required: [true, "Faculty is required"],
       lowercase: true,
-    }
+    },
   },
   { timestamps: true }
 );

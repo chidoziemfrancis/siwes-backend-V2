@@ -272,17 +272,15 @@ const add_weekly_reports = async function (req, res) {
     // checks that termination date has not passed
     const currentDate = new Date(Date.now());
     if (isDate1GreaterThanDate2(currentDate, companyInfo.expectedEndDate)) {
-      res
-        .status(400)
-        .json({
-          message:
-            "You cannot add new reports as the expected date of termination you specified has already passed",
-        });
+      res.status(400).json({
+        message:
+          "You cannot add new reports as the expected date of termination you specified has already passed",
+      });
       return;
     }
 
     await WEEKLY_REPORTS.updateOne(
-      { weekId: currentWeek },
+      { studentCode, companyId, weekId: currentWeek },
       processedReport,
       { upsert: true }
     );
