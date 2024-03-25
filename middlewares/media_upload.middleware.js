@@ -23,12 +23,6 @@ async function uploadStream(buffer) {
 
 const processFileUpload = async function (req, res, next) {
   try {
-    cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET
-    });
-
     if (!req.files || Object.keys(req.files).length === 0) {
       res.status(400).json({ message: "Please upload a file" });
       return;
@@ -47,6 +41,7 @@ const processFileUpload = async function (req, res, next) {
       ...req.body,
       name: req.files.form.name.toLowerCase(),
       pathToFile: result.secure_url,
+      publicId: result.public_id
     };
     next();
   } catch (error) {

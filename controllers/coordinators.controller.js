@@ -16,6 +16,7 @@ const { existsSync, unlinkSync } = require("fs");
 const jsonToCsvString = require("../utils/jsonToCsvString");
 const { ObjectId } = require("mongoose").Types;
 const {sendMailToSupervisorEmail} = require('./mail.controller');
+const cloudinary = require('cloudinary').v2;
 
 /**
  * adds a new coordinator
@@ -1234,7 +1235,7 @@ const get_forms = async function (req, res) {
  * @param {response} res
  */
 const delete_form = async function (req, res) {
-  const { formId } = req.query;
+  const { formId, publicId } = req.query;
 
   try {
     if (mongoose.Types.ObjectId.isValid(formId) == false) {
@@ -1251,18 +1252,8 @@ const delete_form = async function (req, res) {
     }
 
     await FORMS.deleteOne({ _id: ObjectId(formId) });
-
-    const filePath = form.pathToFile;
-    const fullPath = __dirname + "/../" + filePath;
-
-    if (existsSync(fullPath) == false) {
-      res
-        .status(404)
-        .json({ message: "Form doesn't exist, please refresh and try again" });
-      return;
-    }
-
-    unlinkSync(fullPath);
+    
+    await cloudinary.uploader.destroy(publicId);
 
     res.status(201).json({ message: "Form has been deleted" });
   } catch (error) {

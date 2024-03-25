@@ -8,6 +8,7 @@ const cookieParser = require("cookie-parser");
 const fileUpload = require("express-fileupload");
 const apiRoutes = require("./routes/general.routes");
 const path = require('path');
+const cloudinary = require('cloudinary').v2;
 
 require("dotenv").config();
 
@@ -41,6 +42,11 @@ const DB_URI = process.env.NODE_ENV === 'production' ? process.env.DB_URI : (pro
 
 async function main() {
   try {
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET
+    });
     console.log("Connecting to database...");
 
     await mongoose.connect(DB_URI, {
