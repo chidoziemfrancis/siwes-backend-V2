@@ -20,6 +20,10 @@ const FormSchema = new mongoose.Schema(
       type: String,
       required: [true, "Form path is required"],
     },
+    publicId: {
+      type: String,
+      required: [true, "Form public id is required"],
+    },
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Coordinator",
@@ -30,10 +34,10 @@ const FormSchema = new mongoose.Schema(
 );
 
 // update the file path
-FormSchema.pre("save", function (next) {
+/* FormSchema.pre("save", function (next) {
   this.pathToFile = `uploads/forms/${this.name}`;
   next();
-});
+}); */
 
 const Form = mongoose.model("Form", FormSchema);
 

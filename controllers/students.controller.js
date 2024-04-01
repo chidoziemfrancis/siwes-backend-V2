@@ -155,6 +155,31 @@ const get_details = async function (req, res) {
 };
 
 /**
+ * Get Weekly Reports for a student
+ * @param {request} req
+ * @param {response} res
+ */
+const get_weekly_reports = async function (req, res) {
+  const { studentCode } = req.user;
+
+  try {
+    const weeklyReport = await WEEKLY_REPORTS.find({ studentCode });
+
+    if (weeklyReport === null){
+      res.status(404).json({
+        message:
+          "Unable to find your weekly report",
+      });
+      return;
+    }
+
+    res.status(200).json(weeklyReport);
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
  * Registers work information for a student
  * @param {request} req
  * @param {response} res
@@ -428,6 +453,7 @@ const update_details = async function (req, res) {
 
 module.exports = {
   get_details,
+  get_weekly_reports,
   add_work_details,
   add_weekly_reports,
   change_password,
