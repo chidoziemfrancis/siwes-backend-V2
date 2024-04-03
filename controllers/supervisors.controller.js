@@ -282,6 +282,21 @@ const get_assigned_students_for_inspection = async function (req, res) {
           supervisorId: 0,
         },
       },
+      {
+        $lookup: {
+          from: "grades",
+          localField: "studentDetails._id",
+          foreignField: "studentId",
+          as: "grade",
+        },
+      },
+      {
+        $addFields: {
+          grade: {
+            $arrayElemAt: ["$grade", 0],
+          },
+        },
+      },
     ];
 
     const inspectionList = await INSPECTION_LIST.aggregate(pipeline);
