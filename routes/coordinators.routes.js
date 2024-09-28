@@ -25,6 +25,7 @@ const {
   search_for_students,
   download_all_student_data,
   update_student_details,
+  assign_score_for_student_weekly_report
 } = require("./../controllers/coordinators.controller");
 const { isCoordinator } = require("./../middlewares/auth.middleware");
 const {
@@ -51,6 +52,8 @@ router.get("/students/:id", isCoordinator, get_a_student);
 router.get("/search/students", isCoordinator, search_for_students);
 
 router.get("/getWeeklyReports/:studentCode", isCoordinator, get_weekly_reports);
+
+router.get("/weeklyReportScore", isCoordinator, assign_score_for_student_weekly_report);
 
 router.get("/forms", isCoordinator, get_forms);
 

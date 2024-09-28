@@ -1725,6 +1725,63 @@ const update_student_details = async function (req, res) {
   }
 };
 
+const assign_score_for_student_weekly_report = async function (req, res){
+  const { studentCode } = req.params;
+
+  try {
+    if (/[A-Za-z]+\-\d{4}\-\d{4}/.test(studentCode) == false) {
+      res.status(400).json({ message: "Invalid student code" });
+      return;
+    }
+
+    const student_score = await WEEKLYREPORTS.aggregate([
+      {
+        $match: { studentCode }
+      },
+      {
+        $group: {
+          _id: "$studentCode",
+          reportCount: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          studentCode: "$_id",
+          marks: {
+            $switch: {
+              branches: [
+                {
+                  case: { $gte: ["$reportCount", 10] },
+                  then: 20
+                },
+                {
+                  case: { $and: [{ $gte: ["$reportCount", 8] }, { $lt: ["$reportCount", 10] }] },
+                  then: 17
+                },
+                {
+                  case: { $and: [{ $gte: ["$reportCount", 6] }, { $lt: ["$reportCount", 8] }] },
+                  then: 14
+                },
+                {
+                  case: { $and: [{ $gte: ["$reportCount", 5] }, { $lt: ["$reportCount", 6] }] },
+                  then: 10
+                }
+              ],
+              default: 0
+            }
+          }
+        }
+      }
+    ]);
+
+    res.status(200).json({ message: "Student score calculated successfully", data: student_score });
+
+
+  } catch (error) {
+    handleError(error, res);
+  }
+}
 module.exports = {
   add_a_new_coordinator,
   get_all_coordinators,
@@ -1751,4 +1808,5 @@ module.exports = {
   search_for_students,
   download_all_student_data,
   update_student_details,
+  assign_score_for_student_weekly_report
 };
