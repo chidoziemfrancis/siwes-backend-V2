@@ -1725,7 +1725,7 @@ const update_student_details = async function (req, res) {
   }
 };
 
-const assign_score_for_student_weekly_report = async function (req, res){
+const assign_score_for_student_weekly_report = async function (req, res) {
   const { studentCode } = req.params;
 
   try {
@@ -1736,18 +1736,31 @@ const assign_score_for_student_weekly_report = async function (req, res){
 
     const student_score = await WEEKLYREPORTS.aggregate([
       {
-        $match: { studentCode }
+        $lookup: {
+          from: "students",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "studentInfo"
+        }
+      },
+      {
+        $unwind: "$studentInfo"
       },
       {
         $group: {
           _id: "$studentCode",
-          reportCount: { $sum: 1 }
+          reportCount: { $sum: 1 },
+          firstName: { $first: "$studentInfo.firstName" },
+          lastName: { $first: "$studentInfo.lastName" },
+          matricNumber: { $first: "$studentInfo.matricNo" }
         }
       },
       {
         $project: {
           _id: 0,
           studentCode: "$_id",
+          studentName: 1,
+          reportCount: 1,
           marks: {
             $switch: {
               branches: [
@@ -1777,11 +1790,11 @@ const assign_score_for_student_weekly_report = async function (req, res){
 
     res.status(200).json({ message: "Student score calculated successfully", data: student_score });
 
-
   } catch (error) {
     handleError(error, res);
   }
-}
+};
+
 module.exports = {
   add_a_new_coordinator,
   get_all_coordinators,
