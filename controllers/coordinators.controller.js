@@ -1726,14 +1726,7 @@ const update_student_details = async function (req, res) {
 };
 
 const assign_score_for_student_weekly_report = async function (req, res) {
-  const { studentCode } = req.params;
-
   try {
-    if (/[A-Za-z]+\-\d{4}\-\d{4}/.test(studentCode) == false) {
-      res.status(400).json({ message: "Invalid student code" });
-      return;
-    }
-
     const student_score = await WEEKLYREPORTS.aggregate([
       {
         $lookup: {
