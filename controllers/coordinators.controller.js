@@ -1749,8 +1749,8 @@ const assign_score_for_student_weekly_report = async function (req, res) {
       }
     ]);
 
-    // Log the result to check the studentInfo structure after $unwind and $lookup
-    console.log("Aggregated Data (including studentInfo):", student_score);
+    // Store the log in a variable
+    const logData = { message: "Aggregated Data (including studentInfo):", data: student_score };
 
     // Continue with the rest of your logic after logging
     const final_result = await WEEKLYREPORTS.aggregate([
@@ -1809,9 +1809,10 @@ const assign_score_for_student_weekly_report = async function (req, res) {
       }
     ]);
 
-    // Send the final result as the response
+    // Send the final result and the log data as the response
     res.status(200).json({ 
       message: "Student score calculated successfully", 
+      log: logData,  // Include the log data in the response
       data: final_result
     });
 
@@ -1820,6 +1821,7 @@ const assign_score_for_student_weekly_report = async function (req, res) {
     handleError(error, res);
   }
 };
+
 
 
 
