@@ -1743,9 +1743,9 @@ const assign_score_for_student_weekly_report = async function (req, res) {
         $group: {
           _id: "$studentCode",
           reportCount: { $sum: 1 },
-          firstName: { $first: "$studentInfo.firstName" },
-          lastName: { $first: "$studentInfo.lastName" },
-          matricNumber: { $first: "$studentInfo.matricNo" }
+          firstName: { $first: "$firstName" },
+          lastName: { $first: "$lastName" },
+          matricNumber: { $first: "$matricNo" }
         }
       },
       {
@@ -1787,6 +1787,7 @@ const assign_score_for_student_weekly_report = async function (req, res) {
       message: "Student score calculated successfully", 
       data: student_score 
     });
+    console.log(student_score);
 
   } catch (error) {
     handleError(error, res);
