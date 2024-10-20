@@ -1816,10 +1816,10 @@ const download_csv_score_for_student_weekly_report = async function (req, res) {
       {
         $group: {
           _id: "$studentCode",
-          reportCount: { $sum: 1 },
           firstName: { $first: "$studentInfo.firstName" },  
           lastName: { $first: "$studentInfo.lastName" },
-          matricNumber: { $first: "$studentInfo.matricNo" } 
+          matricNumber: { $first: "$studentInfo.matricNo" },
+          reportCount: { $sum: 1 }
         }
       },
       {
