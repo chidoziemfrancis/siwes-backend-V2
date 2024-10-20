@@ -1727,28 +1727,6 @@ const update_student_details = async function (req, res) {
 
 const assign_score_for_student_weekly_report = async function (req, res) {
   try {
-    // Perform the aggregation
-    const student_score = await WEEKLYREPORTS.aggregate([
-      {
-        $lookup: {
-          from: "students",
-          localField: "studentCode",
-          foreignField: "studentCode",
-          as: "studentInfo"
-        }
-      },
-      {
-        $unwind: "$studentInfo"
-      },
-      {
-        $project: {
-          studentCode: 1,            
-          studentInfo: 1,            
-          reportCount: 1,      
-        }
-      }
-    ]);
-
     
     const final_result = await WEEKLYREPORTS.aggregate([
       {
@@ -1820,6 +1798,86 @@ const assign_score_for_student_weekly_report = async function (req, res) {
 
 
 
+const download_csv_score_for_student_weekly_report = async function (req, res) {
+  try {
+    // Perform the aggregation
+    const student_score = await WEEKLYREPORTS.aggregate([
+      {
+        $lookup: {
+          from: "students",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "studentInfo"
+        }
+      },
+      {
+        $unwind: "$studentInfo"
+      },
+      {
+        $group: {
+          _id: "$studentCode",
+          reportCount: { $sum: 1 },
+          firstName: { $first: "$studentInfo.firstName" },  
+          lastName: { $first: "$studentInfo.lastName" },
+          matricNumber: { $first: "$studentInfo.matricNo" } 
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          studentCode: "$_id",
+          firstName: 1,
+          lastName: 1,
+          matricNumber: 1,
+          reportCount: 1,
+          marks: {
+            $switch: {
+              branches: [
+                {
+                  case: { $gte: ["$reportCount", 10] },
+                  then: 20
+                },
+                {
+                  case: { $and: [{ $gte: ["$reportCount", 8] }, { $lt: ["$reportCount", 10] }] },
+                  then: 17
+                },
+                {
+                  case: { $and: [{ $gte: ["$reportCount", 6] }, { $lt: ["$reportCount", 8] }] },
+                  then: 14
+                },
+                {
+                  case: { $and: [{ $gte: ["$reportCount", 5] }, { $lt: ["$reportCount", 6] }] },
+                  then: 10
+                }
+              ],
+              default: 0
+            }
+          }
+        }
+      }
+    ]);
+
+    // Check if there are students
+    if (student_score.length === 0) {
+      return res.status(404).json({ message: "No student scores found" });
+    }
+
+    // Convert the result to a CSV string
+    const csvString = jsonToCsvString(student_score);
+
+    // Set headers and send CSV response
+    res
+      .status(200)
+      .header("Content-Type", "text/csv")
+      .header("Content-Disposition", "attachment; filename=student_scores.csv")
+      .send(csvString);
+
+  } catch (error) {
+    console.error("Error in aggregation pipeline: ", error);
+    res.status(500).json({ message: "An error occurred while processing the data" });
+  }
+};
+
 
 
 module.exports = {
@@ -1848,5 +1906,6 @@ module.exports = {
   search_for_students,
   download_all_student_data,
   update_student_details,
-  assign_score_for_student_weekly_report
+  assign_score_for_student_weekly_report,
+  download_csv_score_for_student_weekly_report
 };
