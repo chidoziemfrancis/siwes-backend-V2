@@ -1752,7 +1752,9 @@ const assign_score_for_student_weekly_report = async function (req, res) {
         $project: {
           _id: 0,
           studentCode: "$_id",
-          studentName: 1,
+          firstName: 1,           
+          lastName: 1,            
+          matricNumber: 1,         
           reportCount: 1,
           marks: {
             $switch: {
@@ -1781,12 +1783,16 @@ const assign_score_for_student_weekly_report = async function (req, res) {
       }
     ]);
 
-    res.status(200).json({ message: "Student score calculated successfully", data: student_score });
+    res.status(200).json({ 
+      message: "Student score calculated successfully", 
+      data: student_score 
+    });
 
   } catch (error) {
     handleError(error, res);
   }
 };
+
 
 module.exports = {
   add_a_new_coordinator,
