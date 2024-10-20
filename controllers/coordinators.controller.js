@@ -1742,17 +1742,14 @@ const assign_score_for_student_weekly_report = async function (req, res) {
       },
       {
         $project: {
-          studentCode: 1,            // Keep studentCode in the projection
-          studentInfo: 1,            // Log studentInfo for debugging purposes
-          reportCount: 1,            // Keep reportCount if needed
+          studentCode: 1,            
+          studentInfo: 1,            
+          reportCount: 1,      
         }
       }
     ]);
 
-    // Store the log in a variable
-    const logData = { message: "Aggregated Data (including studentInfo):", data: student_score };
-
-    // Continue with the rest of your logic after logging
+    
     const final_result = await WEEKLYREPORTS.aggregate([
       {
         $lookup: {
@@ -1812,7 +1809,6 @@ const assign_score_for_student_weekly_report = async function (req, res) {
     // Send the final result and the log data as the response
     res.status(200).json({ 
       message: "Student score calculated successfully", 
-      log: logData,  // Include the log data in the response
       data: final_result
     });
 
