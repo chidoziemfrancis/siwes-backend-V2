@@ -1787,12 +1787,13 @@ const assign_score_for_student_weekly_report = async function (req, res) {
       message: "Student score calculated successfully", 
       data: student_score 
     });
-    console.log(student_score);
 
   } catch (error) {
+    console.error("Error in aggregation pipeline: ", error);
     handleError(error, res);
   }
 };
+
 
 
 module.exports = {
