@@ -1727,7 +1727,33 @@ const update_student_details = async function (req, res) {
 
 const assign_score_for_student_weekly_report = async function (req, res) {
   try {
+    // Perform the aggregation
     const student_score = await WEEKLYREPORTS.aggregate([
+      {
+        $lookup: {
+          from: "students",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "studentInfo"
+        }
+      },
+      {
+        $unwind: "$studentInfo"
+      },
+      {
+        $project: {
+          studentCode: 1,            // Keep studentCode in the projection
+          studentInfo: 1,            // Log studentInfo for debugging purposes
+          reportCount: 1,            // Keep reportCount if needed
+        }
+      }
+    ]);
+
+    // Log the result to check the studentInfo structure after $unwind and $lookup
+    console.log("Aggregated Data (including studentInfo):", student_score);
+
+    // Continue with the rest of your logic after logging
+    const final_result = await WEEKLYREPORTS.aggregate([
       {
         $lookup: {
           from: "students",
@@ -1747,14 +1773,14 @@ const assign_score_for_student_weekly_report = async function (req, res) {
           lastName: { $first: "$studentInfo.lastName" },
           matricNumber: { $first: "$studentInfo.matricNo" } 
         }
-      },      
+      },
       {
         $project: {
           _id: 0,
           studentCode: "$_id",
-          firstName: 1,           
-          lastName: 1,            
-          matricNumber: 1,         
+          firstName: 1,
+          lastName: 1,
+          matricNumber: 1,
           reportCount: 1,
           marks: {
             $switch: {
@@ -1783,9 +1809,10 @@ const assign_score_for_student_weekly_report = async function (req, res) {
       }
     ]);
 
+    // Send the final result as the response
     res.status(200).json({ 
       message: "Student score calculated successfully", 
-      data: student_score 
+      data: final_result
     });
 
   } catch (error) {
@@ -1793,6 +1820,7 @@ const assign_score_for_student_weekly_report = async function (req, res) {
     handleError(error, res);
   }
 };
+
 
 
 
