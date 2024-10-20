@@ -1743,11 +1743,11 @@ const assign_score_for_student_weekly_report = async function (req, res) {
         $group: {
           _id: "$studentCode",
           reportCount: { $sum: 1 },
-          firstName: { $first: "$firstName" },
-          lastName: { $first: "$lastName" },
-          matricNumber: { $first: "$matricNo" }
+          firstName: { $first: "$studentInfo.firstName" },  
+          lastName: { $first: "$studentInfo.lastName" },
+          matricNumber: { $first: "$studentInfo.matricNo" } 
         }
-      },
+      },      
       {
         $project: {
           _id: 0,
