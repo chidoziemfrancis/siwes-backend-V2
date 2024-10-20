@@ -56,7 +56,7 @@ router.get("/getWeeklyReports/:studentCode", isCoordinator, get_weekly_reports);
 
 router.get("/weeklyReportScore", isCoordinator, assign_score_for_student_weekly_report);
 
-router.get("/weeklyReportScore", isCoordinator, download_csv_score_for_student_weekly_report);
+router.get("/weeklyReportScore/csv", isCoordinator, download_csv_score_for_student_weekly_report);
 
 router.get("/forms", isCoordinator, get_forms);
 
