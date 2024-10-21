@@ -1727,7 +1727,6 @@ const update_student_details = async function (req, res) {
 
 const assign_score_for_student_weekly_report = async function (req, res) {
   try {
-    
     const final_result = await WEEKLYREPORTS.aggregate([
       {
         $lookup: {
@@ -1744,10 +1743,10 @@ const assign_score_for_student_weekly_report = async function (req, res) {
         $group: {
           _id: "$studentCode",
           reportCount: { $sum: 1 },
-          firstName: { $first: "$studentInfo.firstName" },  
+          firstName: { $first: "$studentInfo.firstName" },
           lastName: { $first: "$studentInfo.lastName" },
           course: { $first: "$studentInfo.course" },
-          matricNumber: { $first: "$studentInfo.matricNo" } 
+          matricNumber: { $first: "$studentInfo.matricNo" }
         }
       },
       {
@@ -1757,6 +1756,7 @@ const assign_score_for_student_weekly_report = async function (req, res) {
           firstName: 1,
           lastName: 1,
           matricNumber: 1,
+          course: 1, // Added course to the projection
           reportCount: 1,
           marks: {
             $switch: {
@@ -1799,6 +1799,7 @@ const assign_score_for_student_weekly_report = async function (req, res) {
 
 
 
+
 const download_csv_score_for_student_weekly_report = async function (req, res) {
   try {
     // Perform the aggregation
@@ -1830,6 +1831,7 @@ const download_csv_score_for_student_weekly_report = async function (req, res) {
           studentCode: "$_id",
           firstName: 1,
           lastName: 1,
+          course: 1,
           matricNumber: 1,
           reportCount: 1,
           marks: {
