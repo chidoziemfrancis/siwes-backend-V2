@@ -1746,6 +1746,7 @@ const assign_score_for_student_weekly_report = async function (req, res) {
           reportCount: { $sum: 1 },
           firstName: { $first: "$studentInfo.firstName" },  
           lastName: { $first: "$studentInfo.lastName" },
+          course: { $first: "$studentInfo.course" },
           matricNumber: { $first: "$studentInfo.matricNo" } 
         }
       },
@@ -1819,6 +1820,7 @@ const download_csv_score_for_student_weekly_report = async function (req, res) {
           firstName: { $first: "$studentInfo.firstName" },  
           lastName: { $first: "$studentInfo.lastName" },
           matricNumber: { $first: "$studentInfo.matricNo" },
+          course: { $first: "$studentInfo.course" },
           reportCount: { $sum: 1 }
         }
       },
