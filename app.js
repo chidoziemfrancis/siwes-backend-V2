@@ -18,7 +18,7 @@ const app = express();
 // set up middlewares
 const corsOption = {
   credentials: true,
-  origin: ["http://localhost:3000", "http://localhost:3001", "https://siwes-fe.onrender.com/"], // Add your production frontend domain here
+  origin: ["http://localhost:3000", "http://localhost:3001", "https://siwes-fe.onrender.com"], // Add your production frontend domain here
 };
 
 app.use(cors(corsOption));
