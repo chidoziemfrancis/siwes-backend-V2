@@ -16,7 +16,11 @@ require("dotenv").config();
 const app = express();
 
 // set up middlewares
-const corsOption = process.env.NODE_ENV == "production" ? {} : { credentials: true, origin: ['http://localhost:3000', 'http://localhost:3001'] };
+const corsOption = {
+  credentials: true,
+  origin: ["http://localhost:3000", "http://localhost:3001", "https://siwes-fe.onrender.com/"], // Add your production frontend domain here
+};
+
 app.use(cors(corsOption));
 app.use(compression());
 app.use(bodyParser.json());
@@ -40,6 +44,7 @@ app.use(express.static(path.join(__dirname, 'build')));
 const PORT = process.env.PORT || 3000;
 // const DB_URI = process.env.NODE_ENV === 'production' ? process.env.DB_URI : (process.env.NODE_ENV === "staging" ? process.env.DEV_DB_URI : process.env.LOCAL_DB_URI);
 const DB_URI = process.env.DB_URI;
+
 async function main() {
   try {
     cloudinary.config({
