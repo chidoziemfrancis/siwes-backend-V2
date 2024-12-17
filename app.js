@@ -53,7 +53,7 @@ async function main() {
     console.log("Connected to database");
 
     console.log("Starting app...");
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`App is live on port: ${PORT}`);
     });
 
