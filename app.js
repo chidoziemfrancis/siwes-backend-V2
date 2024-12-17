@@ -38,8 +38,8 @@ app.use(express.static(path.join(__dirname, 'build')));
 
 // connect to database and start app
 const PORT = process.env.PORT || 3000;
-const DB_URI = process.env.NODE_ENV === 'production' ? process.env.DB_URI : (process.env.NODE_ENV === "staging" ? process.env.DEV_DB_URI : process.env.LOCAL_DB_URI);
-
+// const DB_URI = process.env.NODE_ENV === 'production' ? process.env.DB_URI : (process.env.NODE_ENV === "staging" ? process.env.DEV_DB_URI : process.env.LOCAL_DB_URI);
+const DB_URI = process.env.DB_URI;
 async function main() {
   try {
     cloudinary.config({
@@ -49,10 +49,7 @@ async function main() {
     });
     console.log("Connecting to database...");
 
-    await mongoose.connect(DB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(DB_URI);
     console.log("Connected to database");
 
     console.log("Starting app...");
