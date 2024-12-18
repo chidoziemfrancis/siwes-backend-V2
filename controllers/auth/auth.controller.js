@@ -322,7 +322,7 @@ const verify_OTP = async function (req, res) {
     const resetToken = jwt.sign(
       { email },
       process.env.RESET_PASSWORD_TOKEN_SECRET,
-      { expiresIn: "20m" }
+      { expiresIn: "5m" }
     );
 
     res
