@@ -24,7 +24,7 @@ const OTPSchema = new mongoose.Schema(
       default: new Date(),
     },
   },
-  { timestamps: true, expireAfterSeconds: 1200 } // 20 minutes
+  { timestamps: true, expireAfterSeconds: 300 } // 20 minutes
 );
 
 const OTP = mongoose.model("otp", OTPSchema);
