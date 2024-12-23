@@ -44,7 +44,7 @@ app.use(
   })
 );
 
-// app.use(express.static(path.join(__dirname, 'build')));
+app.use(express.static(path.join(__dirname, 'build')));
 
 // connect to database and start app
 const PORT = process.env.PORT || 3000;
@@ -71,9 +71,9 @@ async function main() {
     // re route to api
     app.use("/api", apiRoutes);
 
-    // app.get('*', (req, res) => {
-    //   res.sendFile(path.join(__dirname, 'build', 'index.html'));
-    // });
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, 'build', 'index.html'));
+    });
   } catch (error) {
     console.log(`App failed to start due to ${error}`);
   }
