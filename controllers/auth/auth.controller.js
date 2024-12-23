@@ -299,8 +299,7 @@ const send_OTP = async function (req, res) {
     );
 
     console.log("Adding email to queue:", { email, token });
-    emailQueue.add({ email, token });
-    sendOTPMail(email, token);
+    await sendOTPMail(email, token);
     console.log("Responding to client");
     res
       .status(200)
