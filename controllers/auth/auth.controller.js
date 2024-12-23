@@ -245,9 +245,13 @@ const logout = async function (req, res) {
  */
 const send_OTP = async function (req, res) {
   try {
+    console.log("Request received:", req.body); // Log the request body
+
     const { email, purpose } = req.body;
+    console.log("Email:", email, "Purpose:", purpose); // Log email and purpose
 
     if (!email || /student.babcock.edu.ng/.test(email) === false) {
+      console.log("Invalid email address provided");
       res.status(400).json({
         message: "Invalid email address, please enter a valid babcock mail",
       });
@@ -255,45 +259,57 @@ const send_OTP = async function (req, res) {
     }
 
     if (purpose !== "registration") {
+      console.log("Checking if student exists for email:", email);
       const studentExists = await STUDENTS.findOne({ email });
 
       if (!studentExists) {
+        console.log("Student does not exist");
         res.status(400).json({
           message: "An OTP will be sent to the account if it exists.",
         });
         return;
       }
+      console.log("Student exists:", studentExists);
     }
 
+    console.log("Checking for existing OTP for email:", email);
     const existingOtp = await OTP.findOne({ email });
+    console.log("Existing OTP:", existingOtp);
+
     if (existingOtp && existingOtp.expiry > Date.now()) {
+      console.log("An active OTP already exists");
       res.status(400).json({
         message: "An OTP has already been sent, please check your spam folder.",
       });
       return;
     }
 
-    // Generate OTP
+    console.log("Generating new OTP");
     const token = randomBytes(3).toString("hex").padStart(6, "0");
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
     const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
+    console.log("Generated token:", token, "Hashed token:", hashedToken, "Expiry:", expiry);
 
+    console.log("Saving OTP to database");
     await OTP.findOneAndUpdate(
       { email },
       { token: hashedToken, email, expiry },
       { upsert: true }
     );
 
-    // Queue email sending
+    console.log("Adding email to queue:", { email, token });
     emailQueue.add({ email, token });
 
+    console.log("Responding to client");
     res
       .status(200)
       .json({ message: "An OTP will be sent to the account if it exists." });
   } catch (error) {
+    console.error("Error occurred:", error); // Log the error
     handleError(error, res);
   }
 };
+
 
 /**
  * Verifies the OTP
