@@ -247,7 +247,7 @@ const send_OTP = async function (req, res) {
   try {
     const { email, purpose } = req.body;
 
-    if (!email || /student.babcock.edu.ng/.test(email) == false) {
+    if (!email || /student.babcock.edu.ng/.test(email) === false) {
       res.status(400).json({
         message: "Invalid email address, please enter a valid babcock mail",
       });
@@ -265,21 +265,27 @@ const send_OTP = async function (req, res) {
       }
     }
 
-    const token = randomBytes(3).toString("hex");
-
-    const otpExists = await OTP.findOne({ email });
-
-    if (otpExists) {
+    const existingOtp = await OTP.findOne({ email });
+    if (existingOtp && existingOtp.expiry > Date.now()) {
       res.status(400).json({
-        message:
-          "An OTP has already been sent to the specified email, ensure to check your spam folder",
+        message: "An OTP has already been sent, please check your spam folder.",
       });
       return;
     }
 
-    await OTP.create({ token, email });
+    // Generate OTP
+    const token = randomBytes(3).toString("hex").padStart(6, "0");
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
 
-    await sendOTPMail(email, token);
+    await OTP.findOneAndUpdate(
+      { email },
+      { token: hashedToken, email, expiry },
+      { upsert: true }
+    );
+
+    // Queue email sending
+    emailQueue.add({ email, token });
 
     res
       .status(200)
@@ -298,36 +304,43 @@ const verify_OTP = async function (req, res) {
   try {
     const { email, token } = req.body;
 
+    // Validate input
     if (
       !email ||
-      /student.babcock.edu.ng$/.test(email) == false ||
+      /student.babcock.edu.ng$/.test(email) === false ||
       !token ||
       token.length !== 6
     ) {
-      res.status(400).json({ message: "Invalid OTP" });
+      res.status(400).json({ message: "Invalid OTP or email address." });
       return;
     }
 
-    const doc = await OTP.findOne({ email, token });
+    // Hash the provided token
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-    if (!doc) {
-      res.status(400).json({ message: "Invalid OTP" });
+    // Find OTP in database
+    const doc = await OTP.findOne({ email, token: hashedToken });
+
+    // Check if OTP exists and is not expired
+    if (!doc || doc.expiry < Date.now()) {
+      res.status(400).json({ message: "Invalid or expired OTP." });
       return;
     }
 
+    // Delete OTP to prevent reuse
     await OTP.deleteOne({ email });
 
-    // this token will be used to change the password or verify the next API call after this, it serves as a guard to prevent a user from by passing the
-    // OTP call
     const resetToken = jwt.sign(
       { email },
       process.env.RESET_PASSWORD_TOKEN_SECRET,
       { expiresIn: "5m" }
     );
 
-    res
-      .status(200)
-      .json({ message: "OTP verified successfully", data: { resetToken } });
+    // Respond with success
+    res.status(200).json({
+      message: "OTP verified successfully.",
+      data: { resetToken },
+    });
   } catch (error) {
     handleError(error, res);
   }

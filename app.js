@@ -9,6 +9,8 @@ const fileUpload = require("express-fileupload");
 const apiRoutes = require("./routes/general.routes");
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./swaggerConfig");
 
 require("dotenv").config();
 
@@ -20,6 +22,10 @@ const corsOption = {
   credentials: true,
   origin: ["http://localhost:3000", "http://localhost:3001", "https://siwes-fe.onrender.com"], // Add your production frontend domain here
 };
+
+// Serve Swagger UI
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 
 app.use(cors(corsOption));
 app.use(compression());

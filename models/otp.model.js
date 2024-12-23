@@ -5,28 +5,28 @@ const OTPSchema = new mongoose.Schema(
   {
     token: {
       type: String,
-      min: [6, "OTP must be at least 6 characters long"],
-      max: [6, "OTP must be at most 6 characters long"],
       required: [true, "OTP must be set"],
+      match: [/^[a-f0-9]{6}$/, "OTP must be a 6-character hexadecimal string"],
     },
     email: {
       type: String,
       required: [true, "Email is required"],
       lowercase: true,
       minLength: [3, "Email must be at least 3 characters"],
-      unique: true,
       validate: [isEmail, "Email must be a valid email"],
       match: [/student.babcock.edu.ng$/, "Invalid email type"],
       trim: true,
     },
     createdAt: {
       type: Date,
-      default: new Date(),
+      default: Date.now,
+      expires: 300,
     },
   },
-  { timestamps: true, expireAfterSeconds: 300 } // 20 minutes
+  { timestamps: true }
 );
 
+// Create the model
 const OTP = mongoose.model("otp", OTPSchema);
 
 module.exports = OTP;
