@@ -14,6 +14,8 @@ const {
   sendWelcomeMail,
   sendLoginAlertMail,
 } = require("../../controllers/mail.controller");
+const crypto = require("crypto");
+
 
 /**
  * Creates and appends the access and refresh tokens to the cookies of the client
@@ -286,20 +288,19 @@ const send_OTP = async function (req, res) {
 
     console.log("Generating new OTP");
     const token = randomBytes(3).toString("hex").padStart(6, "0");
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-    const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
-    console.log("Generated token:", token, "Hashed token:", hashedToken, "Expiry:", expiry);
+    const expiry = new Date(Date.now() + 5 * 60 * 1000);
+    console.log("Generated token:", token,"Expiry:", expiry);
 
     console.log("Saving OTP to database");
     await OTP.findOneAndUpdate(
       { email },
-      { token: hashedToken, email, expiry },
+      { token: token, email, expiry },
       { upsert: true }
     );
 
     console.log("Adding email to queue:", { email, token });
     emailQueue.add({ email, token });
-
+    sendOTPMail(email, token);
     console.log("Responding to client");
     res
       .status(200)
@@ -331,11 +332,8 @@ const verify_OTP = async function (req, res) {
       return;
     }
 
-    // Hash the provided token
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-
     // Find OTP in database
-    const doc = await OTP.findOne({ email, token: hashedToken });
+    const doc = await OTP.findOne({ email, token });
 
     // Check if OTP exists and is not expired
     if (!doc || doc.expiry < Date.now()) {
