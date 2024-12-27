@@ -254,9 +254,9 @@ const send_OTP = async (req, res) => {
   try {
     const { email } = req.body;
 
-    if (!email || !/^[a-zA-Z0-9._%+-]+@student\.babcock\.edu\.ng$/.test(email)) {
-      return res.status(400).json({ message: "Invalid email address." });
-    }
+    // if (!email || !/^[a-zA-Z0-9._%+-]+@student\.babcock\.edu\.ng$/.test(email)) {
+    //   return res.status(400).json({ message: "Invalid email address." });
+    // }
 
     // Check if an OTP exists for this email
     const existingOtp = await redisClient.get(`otp:${email}`);
@@ -293,9 +293,9 @@ const verify_OTP = async (req, res) => {
   try {
     const { email, token } = req.body;
 
-    if (!email || !/student.babcock.edu.ng$/.test(email) || !token) {
-      return res.status(400).json({ message: "Invalid input." });
-    }
+    // if (!email || !/student.babcock.edu.ng$/.test(email) || !token) {
+    //   return res.status(400).json({ message: "Invalid input." });
+    // }
 
     // Retrieve OTP from Redis
     const storedOtp = await redisClient.get(`otp:${email}`);
