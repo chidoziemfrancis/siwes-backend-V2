@@ -3,6 +3,7 @@ const coordinatorsRoutes = require("./coordinators.routes");
 const studentsRoutes = require("./students.routes");
 const supervisorsRoutes = require("./supervisors.routes");
 const authRoutes = require("./auth.routes");
+const redisClient = require("../utils/redisClient");
 
 // render needs a route that will always return success
 router.get("/render", (req, res) => {
@@ -19,5 +20,20 @@ router.use("/supervisor", supervisorsRoutes);
 router.use("/student", studentsRoutes);
 
 router.use("/auth", authRoutes);
+
+
+router.get("/health", async (req, res) => {
+  try {
+    await redisClient.set("healthCheck", "OK", { EX: 10 }); 
+    const value = await redisClient.get("healthCheck");
+    if (value === "OK") {
+      res.status(200).json({ message: "Redis is healthy" });
+    } else {
+      res.status(500).json({ message: "Redis test failed" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Redis connection error", error });
+  }
+});
 
 module.exports = router;

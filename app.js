@@ -7,10 +7,11 @@ const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const fileUpload = require("express-fileupload");
 const apiRoutes = require("./routes/general.routes");
-const path = require('path');
-const cloudinary = require('cloudinary').v2;
+const path = require("path");
+const cloudinary = require("cloudinary").v2;
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swaggerConfig");
+const redisClient = require("./utils/redisClient");
 
 require("dotenv").config();
 
@@ -20,12 +21,15 @@ const app = express();
 // set up middlewares
 const corsOption = {
   credentials: true,
-  origin: ["http://localhost:3000", "http://localhost:3001", "https://siwes-fe.onrender.com"], // Add your production frontend domain here
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://siwes-fe.onrender.com",
+  ], // Add your production frontend domain here
 };
 
 // Serve Swagger UI
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
 
 app.use(cors(corsOption));
 app.use(compression());
@@ -44,7 +48,7 @@ app.use(
   })
 );
 
-app.use(express.static(path.join(__dirname, 'build')));
+app.use(express.static(path.join(__dirname, "build")));
 
 // connect to database and start app
 const PORT = process.env.PORT || 3000;
@@ -56,7 +60,7 @@ async function main() {
     cloudinary.config({
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
       api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET
+      api_secret: process.env.CLOUDINARY_API_SECRET,
     });
     console.log("Connecting to database...");
 
@@ -64,15 +68,34 @@ async function main() {
     console.log("Connected to database");
 
     console.log("Starting app...");
-    app.listen(PORT, '0.0.0.0', () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(`App is live on port: ${PORT}`);
     });
+
+    //redis configuration test
+    (async () => {
+      try {
+        // Test if Redis set and get work correctly
+        const key = "testKey";
+        const value = "testValue";
+        
+        await redisClient.set(key, value, { EX: 10 }); // Set with 10 seconds expiry
+        const storedValue = await redisClient.get(key); 
+        if (storedValue === value) {
+          console.log("Redis connection is working!");
+        } else {
+          console.error("Redis test failed: value mismatch");
+        }
+      } catch (error) {
+        console.error("Redis test failed:", error);
+      }
+    })();
 
     // re route to api
     app.use("/api", apiRoutes);
 
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(__dirname, 'build', 'index.html'));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(__dirname, "build", "index.html"));
     });
   } catch (error) {
     console.log(`App failed to start due to ${error}`);
