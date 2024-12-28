@@ -254,24 +254,34 @@ const send_OTP = async (req, res) => {
   try {
     const { email } = req.body;
 
-    // if (!email || !/^[a-zA-Z0-9._%+-]+@student\.babcock\.edu\.ng$/.test(email)) {
-    //   return res.status(400).json({ message: "Invalid email address." });
-    // }
+    if (!email || !/^[a-zA-Z0-9._%+-]+@student\.babcock\.edu\.ng$/.test(email)) {
+      return res.status(400).json({ message: "Invalid email address." });
+    }
 
-    // Check if an OTP exists for this email
+    // Check if an OTP exists for this email in Redis
     const existingOtp = await redisClient.get(`otp:${email}`);
     if (existingOtp) {
-      return res.status(429).json({ message: "An OTP has already been sent. Please check your email." });
+      return res.status(429).json({
+        message: "An OTP has already been sent. Please check your email.",
+      });
     }
 
     // Generate and store new OTP
     const token = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-    await redisClient.set(`otp:${email}`, token, { EX: 300 }); // 5-minute expiry
+
+    // Store OTP in Redis with a 5-minute expiry
+    await redisClient.set(`otp:${email}`, token, { EX: 300 });
+
+    // Store OTP in MongoDB
+    await OTP.create({
+      token,
+      email,
+    });
 
     // Send OTP email
     try {
       console.log(`Sending OTP ${token} to ${email}`);
-      await sendOTPMail(email, token);  // Replace with actual email-sending function
+      await sendOTPMail(email, token);
     } catch (emailError) {
       console.error("Error sending OTP email:", emailError);
       return res.status(500).json({ message: "Failed to send OTP email." });
@@ -286,6 +296,7 @@ const send_OTP = async (req, res) => {
 
 
 
+
 /**
  * Verify OTP
  */
@@ -293,24 +304,36 @@ const verify_OTP = async (req, res) => {
   try {
     const { email, token } = req.body;
 
-    // if (!email || !/student.babcock.edu.ng$/.test(email) || !token) {
-    //   return res.status(400).json({ message: "Invalid input." });
-    // }
+    // Validate the input
+    if (!email || !/student.babcock.edu.ng$/.test(email) || !token) {
+      return res.status(400).json({ message: "Invalid input." });
+    }
 
-    // Retrieve OTP from Redis
+    // Check OTP in Redis
     const storedOtp = await redisClient.get(`otp:${email}`);
-    if (!storedOtp || storedOtp !== token) {
+    if (storedOtp === token) {
+      // OTP is valid; delete it from Redis
+      await redisClient.del(`otp:${email}`);
+      return res.status(200).json({ message: "OTP verified successfully." });
+    }
+
+    // If not in Redis, check MongoDB
+    const otpRecord = await OTP.findOne({ email, token });
+
+    if (!otpRecord) {
       return res.status(400).json({ message: "Invalid or expired OTP." });
     }
 
-    // OTP is valid; delete it from Redis
-    await redisClient.del(`otp:${email}`);
+    // OTP is valid in MongoDB; delete it
+    await OTP.deleteOne({ _id: otpRecord._id });
+
     res.status(200).json({ message: "OTP verified successfully." });
   } catch (error) {
     console.error("Error in verify_OTP:", error);
     res.status(500).json({ message: "Internal server error." });
   }
 };
+
 
 
 /**
