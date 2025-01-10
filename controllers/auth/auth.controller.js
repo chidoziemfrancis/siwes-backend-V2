@@ -159,7 +159,7 @@ const register = async function (req, res) {
 
     res
       .status(200)
-      .json({ message: "Registration successfull", data: student._id });
+      .json({ message: "Registration successful", data: student._id });
   } catch (error) {
     handleError(error, res);
   }
