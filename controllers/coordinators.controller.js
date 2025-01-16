@@ -1727,29 +1727,6 @@ const update_student_details = async function (req, res) {
 
 const assign_score_for_student_weekly_report = async function (req, res) {
   try {
-    // Perform the aggregation
-    const student_score = await WEEKLYREPORTS.aggregate([
-      {
-        $lookup: {
-          from: "students",
-          localField: "studentCode",
-          foreignField: "studentCode",
-          as: "studentInfo"
-        }
-      },
-      {
-        $unwind: "$studentInfo"
-      },
-      {
-        $project: {
-          studentCode: 1,            
-          studentInfo: 1,            
-          reportCount: 1,      
-        }
-      }
-    ]);
-
-    
     const final_result = await WEEKLYREPORTS.aggregate([
       {
         $lookup: {
@@ -1766,9 +1743,10 @@ const assign_score_for_student_weekly_report = async function (req, res) {
         $group: {
           _id: "$studentCode",
           reportCount: { $sum: 1 },
-          firstName: { $first: "$studentInfo.firstName" },  
+          firstName: { $first: "$studentInfo.firstName" },
           lastName: { $first: "$studentInfo.lastName" },
-          matricNumber: { $first: "$studentInfo.matricNo" } 
+          course: { $first: "$studentInfo.course" },
+          matricNumber: { $first: "$studentInfo.matricNo" }
         }
       },
       {
@@ -1778,6 +1756,7 @@ const assign_score_for_student_weekly_report = async function (req, res) {
           firstName: 1,
           lastName: 1,
           matricNumber: 1,
+          course: 1, // Added course to the projection
           reportCount: 1,
           marks: {
             $switch: {
@@ -1819,8 +1798,11 @@ const assign_score_for_student_weekly_report = async function (req, res) {
 };
 
 
-const download_csv_for_student_weekly_report = async function (req, res) {
+
+
+const download_csv_score_for_student_weekly_report = async function (req, res) {
   try {
+    // Perform the aggregation
     const student_score = await WEEKLYREPORTS.aggregate([
       {
         $lookup: {
@@ -1836,10 +1818,11 @@ const download_csv_for_student_weekly_report = async function (req, res) {
       {
         $group: {
           _id: "$studentCode",
-          reportCount: { $sum: 1 },
           firstName: { $first: "$studentInfo.firstName" },  
           lastName: { $first: "$studentInfo.lastName" },
-          matricNumber: { $first: "$studentInfo.matricNo" } 
+          matricNumber: { $first: "$studentInfo.matricNo" },
+          course: { $first: "$studentInfo.course" },
+          reportCount: { $sum: 1 }
         }
       },
       {
@@ -1848,6 +1831,7 @@ const download_csv_for_student_weekly_report = async function (req, res) {
           studentCode: "$_id",
           firstName: 1,
           lastName: 1,
+          course: 1,
           matricNumber: 1,
           reportCount: 1,
           marks: {
@@ -1877,12 +1861,15 @@ const download_csv_for_student_weekly_report = async function (req, res) {
       }
     ]);
 
+    // Check if there are students
     if (student_score.length === 0) {
       return res.status(404).json({ message: "No student scores found" });
     }
 
+    // Convert the result to a CSV string
     const csvString = jsonToCsvString(student_score);
 
+    // Set headers and send CSV response
     res
       .status(200)
       .header("Content-Type", "text/csv")
@@ -1894,6 +1881,7 @@ const download_csv_for_student_weekly_report = async function (req, res) {
     res.status(500).json({ message: "An error occurred while processing the data" });
   }
 };
+
 
 
 module.exports = {
@@ -1923,5 +1911,5 @@ module.exports = {
   download_all_student_data,
   update_student_details,
   assign_score_for_student_weekly_report,
-  download_csv_for_student_weekly_report
+  download_csv_score_for_student_weekly_report
 };
