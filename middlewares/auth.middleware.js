@@ -201,20 +201,26 @@ const decode_jwt = function (req, res, type) {
  */
 const isStudent = async function (req, res, next) {
   try {
+    console.log("Middleware called"); // Log when the middleware is invoked
+
     const data = await decode_jwt(req, res, "student");
+    console.log("Decoded JWT:", data); // Log decoded token data
 
     const user = await STUDENTS.findOne({ _id: data.id });
+    console.log("User found:", user); // Log the user document (or null if not found)
 
     if (user === null) {
-      throw Error("access denied");
+      console.error("Access denied: User not found");
+      throw new Error("access denied");
     }
 
     req.user = user;
+    console.log("User set in req:", req.user); // Log the user set in the request
 
-    next();
+    next(); // Proceed to the next middleware or route handler
   } catch (error) {
+    console.error("Error in isStudent middleware:", error.message); // Log the error message
     res.status(401).json({ message: error.message });
-    return;
   }
 };
 
