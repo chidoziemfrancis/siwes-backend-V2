@@ -201,13 +201,15 @@ const decode_jwt = function (req, res, type) {
  */
 const isStudent = async function (req, res, next) {
   try {
-    console.log("Middleware called"); // Log when the middleware is invoked
+    console.log("Middleware called");
+    console.log("Authorization header:", req.headers.authorization);
 
     const data = await decode_jwt(req, res, "student");
-    console.log("Decoded JWT:", data); // Log decoded token data
+    console.log("Decoded JWT:", data);
 
     const user = await STUDENTS.findOne({ _id: data.id });
-    console.log("User found:", user); // Log the user document (or null if not found)
+    console.log("Data ID used for query:", data.id);
+    console.log("Query result:", user);
 
     if (user === null) {
       console.error("Access denied: User not found");
@@ -215,14 +217,15 @@ const isStudent = async function (req, res, next) {
     }
 
     req.user = user;
-    console.log("User set in req:", req.user); // Log the user set in the request
+    console.log("User set in req:", req.user);
 
-    next(); // Proceed to the next middleware or route handler
+    next();
   } catch (error) {
-    console.error("Error in isStudent middleware:", error.message); // Log the error message
+    console.error("Error in isStudent middleware:", error.message);
     res.status(401).json({ message: error.message });
   }
 };
+
 
 /**
  * Determines if a user is a supervisor
