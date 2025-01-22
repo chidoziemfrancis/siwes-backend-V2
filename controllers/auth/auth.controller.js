@@ -303,7 +303,6 @@ const verify_OTP = async (req, res) => {
   try {
     const { email, token } = req.body;
 
-    // Validate the input
     if (!email || !/student.babcock.edu.ng$/.test(email) || !token) {
       return res.status(400).json({ message: "Invalid input." });
     }
@@ -313,7 +312,18 @@ const verify_OTP = async (req, res) => {
     if (storedOtp === token) {
       // OTP is valid; delete it from Redis
       await redisClient.del(`otp:${email}`);
-      return res.status(200).json({ message: "OTP verified successfully." });
+
+      // Generate reset token
+      const resetToken = jwt.sign(
+        { email }, // Payload
+        process.env.RESET_PASSWORD_TOKEN_SECRET, // Secret
+        { expiresIn: "15m" } // Token expiry
+      );
+
+      return res.status(200).json({
+        message: "OTP verified successfully.",
+        data: { resetToken }, // Send reset token
+      });
     }
 
     // If not in Redis, check MongoDB
@@ -326,12 +336,23 @@ const verify_OTP = async (req, res) => {
     // OTP is valid in MongoDB; delete it
     await OTP.deleteOne({ _id: otpRecord._id });
 
-    res.status(200).json({ message: "OTP verified successfully." });
+    // Generate reset token
+    const resetToken = jwt.sign(
+      { email }, // Payload
+      process.env.RESET_PASSWORD_TOKEN_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    res.status(200).json({
+      message: "OTP verified successfully.",
+      data: { resetToken }, // Send reset token
+    });
   } catch (error) {
     console.error("Error in verify_OTP:", error);
     res.status(500).json({ message: "Internal server error." });
   }
 };
+
 
 
 
