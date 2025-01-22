@@ -209,9 +209,8 @@ const login = async function (req, res) {
     }
 
     const passwordIsValid = await bcrypt.compare(password, user.password);
-
     if (!passwordIsValid) {
-      res.status(400).json({ message: "Invalid credentials" });
+      res.status(400).json({ message: "Invalid Password" });
       return;
     }
 
