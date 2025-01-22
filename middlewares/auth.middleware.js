@@ -49,7 +49,7 @@ const verify_token_status = function (token, type) {
 };
 
 /**
- * Rotates jwt tokens
+ * Rotates jwt tokens and supports header-based token storage
  * @param {userInfo} user
  * @param {response} res
  * @param {String} type
@@ -83,7 +83,6 @@ const assign_new_tokens = function (user, res, type) {
         expiresIn: "15m",
       });
 
-      // update the user record to include the most recent token secret
       let updateInfo = null;
       switch (type) {
         case "student":
@@ -111,7 +110,7 @@ const assign_new_tokens = function (user, res, type) {
           break;
       }
 
-      if (updateInfo === null || updateInfo.modifiedCount === 0) {
+      if (!updateInfo || updateInfo.modifiedCount === 0) {
         throw Error(
           "Something went wrong while logging you in, please try again"
         );
@@ -119,11 +118,7 @@ const assign_new_tokens = function (user, res, type) {
 
       const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "development" ? false : true,
-        domain:
-          process.env.NODE_ENV === "development"
-            ? process.env.DEV_SERVER
-            : process.env.PROD_SERVER, // undefined else it messes up the other cookie settings
+        secure: process.env.NODE_ENV !== "development",
         sameSite: "none",
         maxAge: 604800000, // 7 days
       };
@@ -135,6 +130,10 @@ const assign_new_tokens = function (user, res, type) {
         maxAge: 604800000,
       });
 
+      // Include tokens in the response headers for flexibility
+      res.setHeader("Authorization", `Bearer ${accessToken}`);
+      res.setHeader("X-Refresh-Token", refreshToken);
+
       resolve({ id: user._id });
     } catch (error) {
       reject(error);
@@ -143,7 +142,7 @@ const assign_new_tokens = function (user, res, type) {
 };
 
 /**
- * Retrieves, decodes and returns the user id from the jwt present on the request object
+ * Decodes jwt token from cookies or headers
  * @param {request} req
  * @param {response} res
  * @param {String} type
@@ -153,34 +152,38 @@ const assign_new_tokens = function (user, res, type) {
 const decode_jwt = function (req, res, type) {
   return new Promise(async (resolve, reject) => {
     try {
-      if (typeof req.cookies.umis_siwesA === "undefined") {
+      const accessToken =
+        req.cookies?.umis_siwesA || req.headers.authorization?.split(" ")[1];
+      if (!accessToken) {
         throw Error("access denied");
       }
 
-      const accessToken = jwt.verify(
-        req.cookies.umis_siwesA,
+      const decodedToken = jwt.verify(
+        accessToken,
         process.env.ACCESS_TOKEN_SECRET
       );
 
-      await verify_token_status(accessToken, type);
+      await verify_token_status(decodedToken, type);
 
-      resolve({ id: accessToken.id });
+      resolve({ id: decodedToken.id });
     } catch (error) {
       try {
-        if (typeof req.cookies.umis_siwesR === "undefined") {
+        const refreshToken =
+          req.cookies?.umis_siwesR || req.headers["x-refresh-token"];
+        if (!refreshToken) {
           throw Error("access denied");
         }
 
-        const refreshToken = jwt.verify(
-          req.cookies.umis_siwesR,
+        const decodedRefreshToken = jwt.verify(
+          refreshToken,
           process.env.REFRESH_TOKEN_SECRET
         );
 
-        await verify_token_status(refreshToken, type);
+        await verify_token_status(decodedRefreshToken, type);
 
-        // refresh token is valid
+        // Refresh token is valid, issue new tokens
         const data = await assign_new_tokens(
-          { _id: refreshToken.id },
+          { _id: decodedRefreshToken.id },
           res,
           type
         );
@@ -193,23 +196,18 @@ const decode_jwt = function (req, res, type) {
   });
 };
 
+
 /**
- * Determines if a user is a student
+ * Determines if a user is a studentr
  * @param {request} req
  * @param {response} res
  * @param {*} next
  */
 const isStudent = async function (req, res, next) {
   try {
-    console.log("Middleware called");
-    console.log("Authorization header:", req.headers.authorization);
-
     const data = await decode_jwt(req, res, "student");
-    console.log("Decoded JWT:", data);
 
     const user = await STUDENTS.findOne({ _id: data.id });
-    console.log("Data ID used for query:", data.id);
-    console.log("Query result:", user);
 
     if (user === null) {
       console.error("Access denied: User not found");
@@ -217,7 +215,6 @@ const isStudent = async function (req, res, next) {
     }
 
     req.user = user;
-    console.log("User set in req:", req.user);
 
     next();
   } catch (error) {
