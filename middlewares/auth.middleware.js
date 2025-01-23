@@ -152,6 +152,9 @@ const assign_new_tokens = function (user, res, type) {
 const decode_jwt = function (req, res, type) {
   return new Promise(async (resolve, reject) => {
     try {
+      console.log(req.cookies?.umis_siwesA);
+      console.log(req.cookies);
+      console.log(req.headers.cookie?.umis_siwesA);
       const accessToken =
         req.cookies?.umis_siwesA || req.headers.authorization?.split(" ")[1];
       if (!accessToken) {

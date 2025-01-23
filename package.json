@@ -10,7 +10,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
     "build": "npm install",
-    "dev": "export NODE_ENV=development && node --watch --watch-preserve-output app",
+    "dev": "nodemon app.js",
     "lint": "npx prettier -w */**",
     "staging": "export NODE_ENV=staging && node app.js"
   },
@@ -35,6 +35,7 @@
     "mongoose": "^6.3.5",
     "nodemailer": "^6.9.7",
     "nodemailer-express-handlebars": "^6.1.0",
+    "nodemon": "^3.1.9",
     "redis": "^4.7.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",

@@ -18,7 +18,6 @@ const {
  */
 const get_details = async function (req, res) {
   const { _id: id } = req.user;
-
   try {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ message: "Invalid student id" });

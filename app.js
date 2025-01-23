@@ -1,4 +1,3 @@
-// import packages
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -15,24 +14,28 @@ const redisClient = require("./utils/redisClient");
 
 require("dotenv").config();
 
-// initialize app
 const app = express();
 
-// set up middlewares
 const corsOption = {
   credentials: true,
-  origin: [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "https://siwes-fe.onrender.com",
-    "https://siwes-fe-sqhb.onrender.com",
-    "https://siwes-dev.onrender.com",
-  ], // Add your production frontend domain here
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://siwes-fe.onrender.com",
+      "https://siwes-fe-sqhb.onrender.com",
+      "https://siwes-dev.onrender.com",
+    ];
+
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
 };
 
-// Serve Swagger UI
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
 app.use(cors(corsOption));
 app.use(compression());
 app.use(bodyParser.json());
@@ -52,9 +55,7 @@ app.use(
 
 app.use(express.static(path.join(__dirname, "build")));
 
-// connect to database and start app
 const PORT = process.env.PORT || 3000;
-// const DB_URI = process.env.NODE_ENV === 'production' ? process.env.DB_URI : (process.env.NODE_ENV === "staging" ? process.env.DEV_DB_URI : process.env.LOCAL_DB_URI);
 const DB_URI = process.env.DB_URI;
 
 async function main() {
@@ -64,25 +65,19 @@ async function main() {
       api_key: process.env.CLOUDINARY_API_KEY,
       api_secret: process.env.CLOUDINARY_API_SECRET,
     });
-    console.log("Connecting to database...");
 
-    await mongoose.connect(DB_URI);
-    console.log("Connected to database");
+     mongoose.connect(DB_URI);
 
-    console.log("Starting app...");
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`App is live on port: ${PORT}`);
     });
 
-    //redis configuration test
     (async () => {
       try {
-        // Test if Redis set and get work correctly
         const key = "testKey";
         const value = "testValue";
-        
-        await redisClient.set(key, value, { EX: 10 }); // Set with 10 seconds expiry
-        const storedValue = await redisClient.get(key); 
+        await redisClient.set(key, value, { EX: 10 });
+        const storedValue = await redisClient.get(key);
         if (storedValue === value) {
           console.log("Redis connection is working!");
         } else {
@@ -93,7 +88,6 @@ async function main() {
       }
     })();
 
-    // re route to api
     app.use("/api", apiRoutes);
 
     app.get("*", (req, res) => {
