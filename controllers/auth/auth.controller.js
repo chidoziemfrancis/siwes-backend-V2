@@ -171,6 +171,7 @@ const register = async function (req, res) {
  * @param {response} res
  */
 const login = async function (req, res) {
+  console.log(req.headers.authorization)
   const { email, password, type } = req.body;
 
   try {
