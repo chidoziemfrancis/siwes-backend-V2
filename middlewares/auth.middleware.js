@@ -130,9 +130,6 @@ const assign_new_tokens = function (user, res, type) {
         maxAge: 604800000,
       });
 
-      // Include tokens in the response headers for flexibility
-      res.setHeader("Authorization", `Bearer ${accessToken}`);
-      res.setHeader("X-Refresh-Token", refreshToken);
 
       resolve({ id: user._id });
     } catch (error) {
@@ -152,7 +149,6 @@ const assign_new_tokens = function (user, res, type) {
 const decode_jwt = function (req, res, type) {
   return new Promise(async (resolve, reject) => {
     const token = req.headers.authorization?.split(' ')[1];
-    console.log(req.cookies)
     try {
       const accessToken =
         req.headers.authorization?.split(" ")[1] || req.cookies?.umis_siwesA;

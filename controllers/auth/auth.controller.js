@@ -69,7 +69,6 @@ const create_tokens = function (user, res, type) {
       }
 
       const cookieOptions = {
-        httpOnly: true,
         secure: process.env.NODE_ENV !== "development",
         domain: process.env.NODE_ENV === "development"
           ? process.env.DEV_SERVER
