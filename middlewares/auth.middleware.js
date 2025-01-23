@@ -154,6 +154,7 @@ const decode_jwt = function (req, res, type) {
     try {
       console.log(req.cookies?.umis_siwesA);
       console.log(req.cookies);
+      console.log(req);
       console.log(req.headers.cookie?.umis_siwesA);
       const accessToken =
         req.cookies?.umis_siwesA || req.headers.authorization?.split(" ")[1];
