@@ -151,15 +151,13 @@ const assign_new_tokens = function (user, res, type) {
  */
 const decode_jwt = function (req, res, type) {
   return new Promise(async (resolve, reject) => {
+    const token = req.headers.authorization?.split(' ')[1];
     try {
-      console.log(req.cookies?.umis_siwesA);
-      console.log(req.cookies);
-      console.log(req);
-      console.log(req.headers.cookie?.umis_siwesA);
       const accessToken =
-        req.cookies?.umis_siwesA || req.headers.authorization?.split(" ")[1];
+        req.headers.authorization?.split(" ")[1] || req.cookies?.umis_siwesA;
+
       if (!accessToken) {
-        throw Error("access denied");
+        throw Error("Access denied: No token provided");
       }
 
       const decodedToken = jwt.verify(
@@ -173,9 +171,10 @@ const decode_jwt = function (req, res, type) {
     } catch (error) {
       try {
         const refreshToken =
-          req.cookies?.umis_siwesR || req.headers["x-refresh-token"];
+          req.headers["x-refresh-token"] || req.cookies?.umis_siwesR;
+
         if (!refreshToken) {
-          throw Error("access denied");
+          throw Error("Access denied: No refresh token provided");
         }
 
         const decodedRefreshToken = jwt.verify(
