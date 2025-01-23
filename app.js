@@ -26,6 +26,7 @@ const corsOption = {
     "http://localhost:3001",
     "https://siwes-fe.onrender.com",
     "https://siwes-fe-sqhb.onrender.com",
+    "https://siwes-dev.onrender.com",
   ], // Add your production frontend domain here
 };
 
