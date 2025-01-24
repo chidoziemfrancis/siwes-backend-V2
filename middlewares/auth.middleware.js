@@ -130,9 +130,6 @@ const assign_new_tokens = function (user, res, type) {
         maxAge: 604800000,
       });
 
-      // Include tokens in the response headers for flexibility
-      res.setHeader("Authorization", `Bearer ${accessToken}`);
-      res.setHeader("X-Refresh-Token", refreshToken);
 
       resolve({ id: user._id });
     } catch (error) {
@@ -151,11 +148,17 @@ const assign_new_tokens = function (user, res, type) {
  */
 const decode_jwt = function (req, res, type) {
   return new Promise(async (resolve, reject) => {
+    const token = req.headers.authorization?.split(' ')[1];
     try {
       const accessToken =
-        req.cookies?.umis_siwesA || req.headers.authorization?.split(" ")[1];
+        req.headers.authorization?.split(" ")[1] || req.cookies?.umis_siwesA;
+console.log({accessToken})
+console.log(' headers',req.headers.authorization?.split(" ")[1])
+console.log({token})
+console.log("access token",req.cookies?.umis_siwesA)
+console.log("refresh token",req.cookies?.umis_siwesR)
       if (!accessToken) {
-        throw Error("access denied");
+        throw Error("Access denied: No token provided");
       }
 
       const decodedToken = jwt.verify(
@@ -169,9 +172,10 @@ const decode_jwt = function (req, res, type) {
     } catch (error) {
       try {
         const refreshToken =
-          req.cookies?.umis_siwesR || req.headers["x-refresh-token"];
+          req.headers["x-refresh-token"] || req.cookies?.umis_siwesR;
+
         if (!refreshToken) {
-          throw Error("access denied");
+          throw Error("Access denied: No refresh token provided");
         }
 
         const decodedRefreshToken = jwt.verify(

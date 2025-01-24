@@ -29,92 +29,73 @@ const redisClient = require("../../utils/redisClient");
 const create_tokens = function (user, res, type) {
   return new Promise(async (resolve, reject) => {
     try {
-      const salt = await bcrypt.genSalt(10);
       const clientPayload = {
         id: user._id,
-        secret: await bcrypt.hash(new Date().getTime().toString(), salt),
+        secret: crypto.randomBytes(32).toString("hex"),
       };
-      const clientId = {
-        id: user._id,
-        role: type,
-      };
+      if (type === "coordinator") clientPayload.faculty = user.faculty;
 
-      if (type === "coordinator") {
-        clientPayload.faculty = user.faculty;
-      }
+      const clientId = { id: user._id, role: type };
 
-      const accessToken = jwt.sign(
-        clientPayload,
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "15m" }
-      );
-      const refreshToken = jwt.sign(
-        clientPayload,
-        process.env.REFRESH_TOKEN_SECRET,
-        { expiresIn: "7d" }
-      );
+      const accessToken = jwt.sign(clientPayload, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "15m",
+      });
+      const refreshToken = jwt.sign(clientPayload, process.env.REFRESH_TOKEN_SECRET, {
+        expiresIn: "7d",
+      });
       const clientToken = jwt.sign(clientId, process.env.CLIENT_TOKEN_SECRET, {
         expiresIn: "15m",
       });
 
-      // update the user record to include the most recent token secret
+      // Update user's validation_secret
+      const updateQuery = { validation_secret: clientPayload.secret };
       let updateInfo = null;
       switch (type) {
         case "student":
-          updateInfo = await STUDENTS.updateOne(
-            { _id: user._id },
-            { validation_secret: clientPayload.secret }
-          );
+          updateInfo = await STUDENTS.updateOne({ _id: user._id }, updateQuery);
           break;
-
         case "coordinator":
-          updateInfo = await COORDINATORS.updateOne(
-            { _id: user._id },
-            { validation_secret: clientPayload.secret }
-          );
+          updateInfo = await COORDINATORS.updateOne({ _id: user._id }, updateQuery);
           break;
-
         case "supervisor":
-          updateInfo = await SUPERVISORS.updateOne(
-            { _id: user._id },
-            { validation_secret: clientPayload.secret }
-          );
+          updateInfo = await SUPERVISORS.updateOne({ _id: user._id }, updateQuery);
           break;
-
         default:
           break;
       }
 
-      if (updateInfo === null || updateInfo.modifiedCount === 0) {
-        throw Error(
-          "Something went wrong while logging you in, please try again"
-        ); // TODO: will need an error code
+      if (!updateInfo || updateInfo.modifiedCount === 0) {
+        throw new Error("Failed to update user validation secret");
       }
 
       const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "development" ? false : true,
-        domain:
-          process.env.NODE_ENV === "development"
-            ? process.env.DEV_SERVER
-            : process.env.PROD_SERVER,
+        secure: process.env.NODE_ENV !== "development",
+        domain: process.env.NODE_ENV === "development"
+          ? process.env.DEV_SERVER
+          : process.env.PROD_SERVER,
         sameSite: process.env.NODE_ENV === "development" ? "strict" : "none",
-        maxAge: 604800000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       };
 
       res.cookie("umis_siwesA", accessToken, cookieOptions);
       res.cookie("umis_siwesR", refreshToken, cookieOptions);
       res.cookie("umis_siwesC", clientToken, {
-        sameSite: process.env.NODE_ENV === "development" ? "strict" : "none",
-        maxAge: 604800000,
+        sameSite: cookieOptions.sameSite,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
-      resolve();
+      // Resolve the tokens
+      resolve({
+        accessToken,
+        refreshToken,
+        clientToken,
+      });
     } catch (error) {
       reject(error);
     }
   });
 };
+
 
 /**
  * Register's a new student
@@ -214,14 +195,13 @@ const login = async function (req, res) {
       return;
     }
 
-    await create_tokens(user, res, type);
-
+    const tokens  = await create_tokens(user, res, type);
     await sendLoginAlertMail(
       user.email,
       new Date().toLocaleString("en-GB", { timeZone: "Africa/Lagos" })
     );
 
-    res.status(200).json({ message: "Login successful", data: user._id });
+    res.status(200).json({ message: "Login successful", data: user._id, tokens });
   } catch (error) {
     handleError(error, res);
   }
@@ -303,7 +283,6 @@ const verify_OTP = async (req, res) => {
   try {
     const { email, token } = req.body;
 
-    // Validate the input
     if (!email || !/student.babcock.edu.ng$/.test(email) || !token) {
       return res.status(400).json({ message: "Invalid input." });
     }
@@ -313,7 +292,18 @@ const verify_OTP = async (req, res) => {
     if (storedOtp === token) {
       // OTP is valid; delete it from Redis
       await redisClient.del(`otp:${email}`);
-      return res.status(200).json({ message: "OTP verified successfully." });
+
+      // Generate reset token
+      const resetToken = jwt.sign(
+        { email }, // Payload
+        process.env.RESET_PASSWORD_TOKEN_SECRET, // Secret
+        { expiresIn: "15m" } // Token expiry
+      );
+
+      return res.status(200).json({
+        message: "OTP verified successfully.",
+        data: { resetToken }, // Send reset token
+      });
     }
 
     // If not in Redis, check MongoDB
@@ -326,12 +316,23 @@ const verify_OTP = async (req, res) => {
     // OTP is valid in MongoDB; delete it
     await OTP.deleteOne({ _id: otpRecord._id });
 
-    res.status(200).json({ message: "OTP verified successfully." });
+    // Generate reset token
+    const resetToken = jwt.sign(
+      { email }, // Payload
+      process.env.RESET_PASSWORD_TOKEN_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    res.status(200).json({
+      message: "OTP verified successfully.",
+      data: { resetToken }, // Send reset token
+    });
   } catch (error) {
     console.error("Error in verify_OTP:", error);
     res.status(500).json({ message: "Internal server error." });
   }
 };
+
 
 
 
