@@ -183,7 +183,7 @@ const login = async function (req, res) {
       default:
         break;
     }
-
+    console.log(user)
     if (user === null) {
       res.status(400).json({ message: "Invalid credentials" });
       return;
@@ -204,6 +204,7 @@ const login = async function (req, res) {
     res.status(200).json({ message: "Login successful", data: user._id, tokens });
   } catch (error) {
     handleError(error, res);
+    console.log(error)
   }
 };
 
