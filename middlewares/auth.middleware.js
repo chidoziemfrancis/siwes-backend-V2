@@ -152,7 +152,8 @@ const decode_jwt = function (req, res, type) {
     try {
       const accessToken =
         req.headers.authorization?.split(" ")[1] || req.cookies?.umis_siwesA;
-
+console.log(accessToken)
+console.log(token)
       if (!accessToken) {
         throw Error("Access denied: No token provided");
       }
