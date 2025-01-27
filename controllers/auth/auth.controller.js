@@ -183,7 +183,6 @@ const login = async function (req, res) {
       default:
         break;
     }
-
     if (user === null) {
       res.status(400).json({ message: "Invalid credentials" });
       return;
@@ -204,6 +203,7 @@ const login = async function (req, res) {
     res.status(200).json({ message: "Login successful", data: user._id, tokens });
   } catch (error) {
     handleError(error, res);
+    console.log(error)
   }
 };
 
@@ -233,9 +233,12 @@ const send_OTP = async (req, res) => {
   try {
     const { email } = req.body;
 
-    if (!email || !/^[a-zA-Z0-9._%+-]+@student\.babcock\.edu\.ng$/.test(email)) {
+    if (!email) {
       return res.status(400).json({ message: "Invalid email address." });
     }
+    // if (!email || !/^[a-zA-Z0-9._%+-]+@student\.babcock\.edu\.ng$/.test(email)) {
+    //   return res.status(400).json({ message: "Invalid email address." });
+    // }
 
     // Check if an OTP exists for this email in Redis
     const existingOtp = await redisClient.get(`otp:${email}`);
@@ -283,9 +286,12 @@ const verify_OTP = async (req, res) => {
   try {
     const { email, token } = req.body;
 
-    if (!email || !/student.babcock.edu.ng$/.test(email) || !token) {
-      return res.status(400).json({ message: "Invalid input." });
+    if (!email || !token) {
+      return res.status(400).json({ message: "Please Input a valid email or token." });
     }
+    // if (!email || !/student.babcock.edu.ng$/.test(email) || !token) {
+    //   return res.status(400).json({ message: "Invalid input." });
+    // }
 
     // Check OTP in Redis
     const storedOtp = await redisClient.get(`otp:${email}`);
@@ -346,8 +352,8 @@ const reset_password = async function (req, res) {
     if (
       !email ||
       !password ||
-      !token ||
-      /student.babcock.edu.ng$/.test(email) == false
+      !token
+      // /student.babcock.edu.ng$/.test(email) == false
     ) {
       res.status(400).json({ message: "Invalid request" });
       return;

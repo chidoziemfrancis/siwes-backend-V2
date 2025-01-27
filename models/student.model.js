@@ -58,7 +58,7 @@ const StudentSchema = new mongoose.Schema(
       minLength: [3, "Email must be at least 3 characters"],
       unique: true,
       validate: [isEmail, "Email must be a valid email"],
-      match: [/student.babcock.edu.ng$/, "Invalid email type"],
+      // match: [/student.babcock.edu.ng$/, "Invalid email type"],
       trim: true,
     },
     matricNo: {
