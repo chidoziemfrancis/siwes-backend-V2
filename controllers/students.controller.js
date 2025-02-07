@@ -386,69 +386,88 @@ const change_password = async function (req, res) {
  */
 const update_details = async function (req, res) {
   try {
-    const allowedFields = ["accountNumber", "bankName", "sortCode", "phone"];
+    const allowedFields = [
+      "accountNumber",
+      "bankName",
+      "sortCode",
+      "phone",
+      "resumptionDate",
+      "expectedEndDate",
+    ];
 
     const update = req.body;
 
-    if (
-      !update ||
-      typeof update !== "object" ||
-      Object.keys(update).length === 0
-    ) {
-      res.status(400).json({
-        message: "Please specify all the fields to update",
-      });
-      return;
+    if (!update || typeof update !== "object" || Object.keys(update).length === 0) {
+      return res.status(400).json({ message: "Please specify all the fields to update" });
     }
 
-    // check if all fields are valid
+    // Validate fields
     const fields = Object.keys(update);
-    // this checks to ensure that all fields specified are allowed and that they have values
     const isValid = fields.every(
-      (field) => update[field] && allowedFields.includes(field)
+      (field) => update[field] !== undefined && allowedFields.includes(field)
     );
 
     if (!isValid) {
-      res.status(400).json({
-        message: "Invalid or incomplete field(s) specified",
+      return res.status(400).json({ message: "Invalid or incomplete field(s) specified" });
+    }
+
+    // Map fields to nested structure
+    const updateFields = {};
+    if (update.accountNumber) updateFields["bankDetails.accountNumber"] = update.accountNumber;
+    if (update.bankName) updateFields["bankDetails.name"] = update.bankName;
+    if (update.sortCode) updateFields["bankDetails.sortCode"] = update.sortCode;
+    if (update.phone) updateFields["phone"] = update.phone;
+    if (update.resumptionDate) updateFields["resumptionDate"] = update.resumptionDate;
+    if (update.expectedEndDate) updateFields["expectedEndDate"] = update.expectedEndDate;
+
+    const { _id, studentCode } = req.user;
+
+
+    // Update Student Document
+    const studentUpdateResult = await STUDENTS.updateOne({ _id }, { $set: updateFields });
+
+
+    // Prepare fields for Company update
+    const companyUpdateFields = {};
+    if (update.resumptionDate) companyUpdateFields["resumptionDate"] = update.resumptionDate;
+    if (update.expectedEndDate) companyUpdateFields["expectedEndDate"] = update.expectedEndDate;
+
+    if (Object.keys(companyUpdateFields).length > 0) {
+
+      // Update Company Document
+      const companyUpdateResult = await COMPANY.updateOne(
+        { studentCode },
+        { $set: companyUpdateFields }
+      );
+
+    }
+
+    // Fetch and log the updated student document
+    const updatedStudent = await STUDENTS.findOne({ _id });
+
+    // Fetch and log the updated company document
+    const updatedCompany = await COMPANY.findOne({ studentCode });
+
+    // Check if any update was applied
+    if (studentUpdateResult.modifiedCount === 0 && companyUpdateResult?.modifiedCount === 0) {
+      return res.status(200).json({
+        message: "No changes detected or something went wrong, please try again",
       });
-      return;
-    }
-
-    // convert the fields to their appropriate paths
-    if (update.hasOwnProperty("accountNumber")) {
-      update["bankDetails.accountNumber"] = update.accountNumber;
-      delete update.accountNumber;
-    }
-
-    if (update.hasOwnProperty("bankName")) {
-      update["bankDetails.name"] = update.bankName;
-      delete update.bankName;
-    }
-
-    if (update.hasOwnProperty("sortCode")) {
-      update["bankDetails.sortCode"] = update.sortCode;
-      delete update.sortCode;
-    }
-
-    const { _id } = req.user;
-
-    const { modifiedCount } = await STUDENTS.updateOne({ _id }, update);
-
-    if (modifiedCount === 0) {
-      res.status(500).json({
-        message: "Something went wrong, please try again",
-      });
-      return;
     }
 
     res.status(200).json({
-      message: "Profile updated successfully",
+      message: "Profile and company details updated successfully",
+      updatedStudent,
+      updatedCompany,
     });
+
   } catch (error) {
     handleError(error, res);
   }
 };
+
+
+
 
 module.exports = {
   get_details,
