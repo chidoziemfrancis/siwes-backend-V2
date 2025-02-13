@@ -147,6 +147,7 @@ const assign_new_tokens = function (user, res, type) {
  * @returns {Promise<*>} jwt
  */
 const decode_jwt = function (req, res, type) {
+  console.log(req.cookies)
   return new Promise(async (resolve, reject) => {
     const token = req.headers.authorization?.split(' ')[1];
     try {
