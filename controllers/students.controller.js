@@ -164,10 +164,9 @@ const get_weekly_reports = async function (req, res) {
   try {
     const weeklyReport = await WEEKLY_REPORTS.find({ studentCode });
 
-    if (weeklyReport === null){
+    if (weeklyReport === null) {
       res.status(404).json({
-        message:
-          "Unable to find your weekly report",
+        message: "Unable to find your weekly report",
       });
       return;
     }
@@ -384,90 +383,178 @@ const change_password = async function (req, res) {
  * @param {request} req
  * @param {response} res
  */
+// Assuming STUDENTS and COMPANIES are your Mongoose models
+
 const update_details = async function (req, res) {
+  // Start a session and transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const allowedFields = [
+      "firstName",
+      "middleName",
+      "lastName",
+      "course",
+      "sex",
+      "level",
+      "faculty",
+      "phone",
       "accountNumber",
       "bankName",
       "sortCode",
+      "company", // expects a nested object for company updates
+    ];
+    const allowedCompanyFields = [
+      "name",
+      "address",
+      "state",
+      "LGA",
+      "email",
       "phone",
+      "assignedDepartment",
+      "jobDescription",
       "resumptionDate",
       "expectedEndDate",
     ];
 
     const update = req.body;
 
-    if (!update || typeof update !== "object" || Object.keys(update).length === 0) {
-      return res.status(400).json({ message: "Please specify all the fields to update" });
+    // Ensure update payload is provided
+    if (
+      !update ||
+      typeof update !== "object" ||
+      Object.keys(update).length === 0
+    ) {
+      throw {
+        message: "Please specify all the fields to update",
+        code: 400,
+        type: "frontend_error",
+      };
     }
 
-    // Validate fields
-    const fields = Object.keys(update);
-    const isValid = fields.every(
-      (field) => update[field] !== undefined && allowedFields.includes(field)
+    // Transform top-level company fields into a nested company object if not already provided.
+    if (!update.hasOwnProperty("company")) {
+      const companyFields = {};
+      if (update.companyName) {
+        companyFields.name = update.companyName;
+        delete update.companyName;
+      }
+      if (update.companyEmail) {
+        companyFields.email = update.companyEmail;
+        delete update.companyEmail;
+      }
+      if (update.companyLga) {
+        companyFields.LGA = update.companyLga;
+        delete update.companyLga;
+      }
+      if (update.companyState) {
+        companyFields.state = update.companyState;
+        delete update.companyState;
+      }
+      if (update.companyPhone) {
+        companyFields.phone = update.companyPhone;
+        delete update.companyPhone;
+      }
+      if (update.companyAddress) {
+        companyFields.address = update.companyAddress;
+        delete update.companyAddress;
+      }
+      if (update.assignedDept) {
+        companyFields.assignedDepartment = update.assignedDept;
+        delete update.assignedDept;
+      }
+      if (update.assignedDesc) {
+        companyFields.jobDescription = update.assignedDesc;
+        delete update.assignedDesc;
+      }
+      if (update.resumptionDate) {
+        companyFields.resumptionDate = update.resumptionDate;
+        delete update.resumptionDate;
+      }
+      if (update.expectedEndDate) {
+        companyFields.expectedEndDate = update.expectedEndDate;
+        delete update.expectedEndDate;
+      }
+      // If any company fields were provided, set them under update.company
+      if (Object.keys(companyFields).length > 0) {
+        update.company = companyFields;
+      }
+    }
+
+    // Convert bank fields to nested paths for the student document
+    if (update.hasOwnProperty("accountNumber")) {
+      update["bankDetails.accountNumber"] = update.accountNumber;
+      delete update.accountNumber;
+    }
+    if (update.hasOwnProperty("bankName")) {
+      update["bankDetails.name"] = update.bankName;
+      delete update.bankName;
+    }
+    if (update.hasOwnProperty("sortCode")) {
+      update["bankDetails.sortCode"] = update.sortCode;
+      delete update.sortCode;
+    }
+
+    // Extract studentId from req.user (ensure your authentication middleware sets req.user)
+    const { id: studentId } = req.user;
+    const studentDetails = await STUDENTS.findOne(
+      { _id: studentId },
+      {},
+      { session }
     );
-
-    if (!isValid) {
-      return res.status(400).json({ message: "Invalid or incomplete field(s) specified" });
+    if (!studentDetails) {
+      throw {
+        message: "Student not found",
+        code: 404,
+        type: "frontend_error",
+      };
     }
 
-    // Map fields to nested structure
-    const updateFields = {};
-    if (update.accountNumber) updateFields["bankDetails.accountNumber"] = update.accountNumber;
-    if (update.bankName) updateFields["bankDetails.name"] = update.bankName;
-    if (update.sortCode) updateFields["bankDetails.sortCode"] = update.sortCode;
-    if (update.phone) updateFields["phone"] = update.phone;
-    if (update.resumptionDate) updateFields["resumptionDate"] = update.resumptionDate;
-    if (update.expectedEndDate) updateFields["expectedEndDate"] = update.expectedEndDate;
+    // Handle company update if provided
+    if (update.hasOwnProperty("company")) {
+      // Clone the company object so we can work on it separately
+      const companyDetails = JSON.parse(JSON.stringify(update.company));
+      delete update.company;
 
-    const { _id, studentCode } = req.user;
-
-
-    // Update Student Document
-    const studentUpdateResult = await STUDENTS.updateOne({ _id }, { $set: updateFields });
-
-
-    // Prepare fields for Company update
-    const companyUpdateFields = {};
-    if (update.resumptionDate) companyUpdateFields["resumptionDate"] = update.resumptionDate;
-    if (update.expectedEndDate) companyUpdateFields["expectedEndDate"] = update.expectedEndDate;
-
-    if (Object.keys(companyUpdateFields).length > 0) {
-
-      // Update Company Document
-      const companyUpdateResult = await COMPANY.updateOne(
-        { studentCode },
-        { $set: companyUpdateFields }
-      );
-
-    }
-
-    // Fetch and log the updated student document
-    const updatedStudent = await STUDENTS.findOne({ _id });
-
-    // Fetch and log the updated company document
-    const updatedCompany = await COMPANY.findOne({ studentCode });
-
-    // Check if any update was applied
-    if (studentUpdateResult.modifiedCount === 0 && companyUpdateResult?.modifiedCount === 0) {
-      return res.status(200).json({
-        message: "No changes detected or something went wrong, please try again",
+      const companyKeys = Object.keys(companyDetails);
+      const isCompanyValid = companyKeys.every((field) => {
+        return allowedCompanyFields.includes(field) && companyDetails[field];
       });
+      if (!isCompanyValid) {
+        throw {
+          message: "Invalid or incomplete company field(s) specified",
+          code: 400,
+          type: "frontend_error",
+        };
+      }
+
+      // Update the company document using the student's studentCode as a key
+      await COMPANY.updateOne(
+        { studentCode: studentDetails.studentCode },
+        companyDetails,
+        { session }
+      );
     }
 
-    res.status(200).json({
-      message: "Profile and company details updated successfully",
-      updatedStudent,
-      updatedCompany,
-    });
+    // Update the student document with the remaining fields
+    await STUDENTS.updateOne({ _id: studentId }, update, { session });
 
+    // Commit the transaction on success
+    await session.commitTransaction();
+    res.status(200).json({ message: "Update successful" });
   } catch (error) {
-    handleError(error, res);
+    // Abort the transaction on error
+    await session.abortTransaction();
+    if (error.type === "frontend_error") {
+      res.status(error.code).json({ message: error.message });
+    } else {
+      console.error("Error updating details:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  } finally {
+    await session.endSession();
   }
 };
-
-
-
 
 module.exports = {
   get_details,
