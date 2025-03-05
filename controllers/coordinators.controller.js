@@ -476,46 +476,33 @@ const get_all_students = async function (req, res) {
     const limit = parseInt(req.query.limit) || 10;
     const { sortOrder, sortBy } = req.query;
 
-    if (page < 1) {
-      res.status(400).json({ message: "Invalid page number" });
-      return;
-    }
+    if (page < 1) return res.status(400).json({ message: "Invalid page number" });
+    if (limit < 1) return res.status(400).json({ message: "Invalid limit" });
+    if (limit > 50) return res.status(400).json({ message: "Limit too large, maximum allowed limit is 50" });
 
-    if (limit < 1) {
-      res.status(400).json({ message: "Invalid limit" });
-      return;
-    }
+    let sortQuery = [
+      { $sort: { "company.LGA": -1 } }, // Always keep LGA sorted in descending order
+    ];
 
-    if (limit > 50) {
-      res
-        .status(400)
-        .json({ message: "Limit too large, maximum allowed limit is 50" });
-      return;
-    }
-
-    let sortQuery = [];
     const validSortOrder = ["asc", "desc"];
-    const validSortBy = ["course", "company.LGA", "company.state"];
+    const validSortBy = ["course"];
+
     if (
       sortOrder &&
       validSortOrder.includes(sortOrder.toLowerCase()) &&
       sortBy &&
       validSortBy.includes(sortBy)
     ) {
-      sortQuery = [
-        {
-          $sort: {
-            [sortBy]: sortOrder.toLowerCase() === "asc" ? 1 : -1,
-          },
+      sortQuery.unshift({ // Apply course sorting before LGA sorting
+        $sort: {
+          [sortBy]: sortOrder.toLowerCase() === "asc" ? 1 : -1,
         },
-      ];
+      });
     }
 
     const pipeline = [
       {
-        $match: {
-          faculty: faculty,
-        },
+        $match: { faculty: faculty },
       },
       {
         $project: {
@@ -545,12 +532,10 @@ const get_all_students = async function (req, res) {
       },
       {
         $addFields: {
-          company: {
-            $arrayElemAt: ["$company", 0],
-          },
+          company: { $arrayElemAt: ["$company", 0] },
         },
       },
-      ...sortQuery,
+      ...sortQuery, // Apply sorting here
       {
         $skip: (page - 1) * limit,
       },
@@ -565,21 +550,14 @@ const get_all_students = async function (req, res) {
           as: "grade",
           pipeline: [
             {
-              $project: {
-                studentId: 0,
-                __v: 0,
-                createdAt: 0,
-                updatedAt: 0,
-              },
+              $project: { studentId: 0, __v: 0, createdAt: 0, updatedAt: 0 },
             },
           ],
         },
       },
       {
         $addFields: {
-          grade: {
-            $arrayElemAt: ["$grade", 0],
-          },
+          grade: { $arrayElemAt: ["$grade", 0] },
         },
       },
       {
@@ -592,9 +570,7 @@ const get_all_students = async function (req, res) {
       },
       {
         $addFields: {
-          inspectionInfo: {
-            $arrayElemAt: ["$inspectionInfo", 0],
-          },
+          inspectionInfo: { $arrayElemAt: ["$inspectionInfo", 0] },
         },
       },
       {
@@ -605,21 +581,14 @@ const get_all_students = async function (req, res) {
           as: "assignedSupervisorInfo",
           pipeline: [
             {
-              $project: {
-                firstName: 1,
-                lastName: 1,
-                phone: 1,
-                email: 1,
-              },
+              $project: { firstName: 1, lastName: 1, phone: 1, email: 1 },
             },
           ],
         },
       },
       {
         $addFields: {
-          assignedSupervisorInfo: {
-            $arrayElemAt: ["$assignedSupervisorInfo", 0],
-          },
+          assignedSupervisorInfo: { $arrayElemAt: ["$assignedSupervisorInfo", 0] },
         },
       },
     ];
@@ -627,26 +596,23 @@ const get_all_students = async function (req, res) {
     const students = await STUDENTS.aggregate(pipeline);
 
     if (students.length === 0) {
-      res.status(404).json({ message: "No students found" });
-      return;
+      return res.status(404).json({ message: "No students found" });
     }
 
-    // get the total number of students
-    const totalStudents = await STUDENTS.countDocuments();
+    const totalStudents = await STUDENTS.countDocuments({ faculty });
 
-    const data = {
+    res.status(200).json({
       students,
       totalStudents,
       currentPage: page,
       currentLimit: limit,
-    };
-
-    res.status(200).json(data);
-    return;
+    });
   } catch (error) {
+    console.error("Error fetching students:", error);
     handleError(error, res);
   }
 };
+
 
 /**
  * Returns the details of a particular student
