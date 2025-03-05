@@ -481,7 +481,7 @@ const get_all_students = async function (req, res) {
     if (limit > 50) return res.status(400).json({ message: "Limit too large, maximum allowed limit is 50" });
 
     let sortQuery = [
-      { $sort: { "company.LGA": +1 } }, // Always keep LGA sorted in descending order
+      { $sort: { "company.LGA": -1 } }, // Always keep LGA sorted in descending order
     ];
 
     const validSortOrder = ["asc", "desc"];
