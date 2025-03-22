@@ -628,21 +628,28 @@ const get_all_students = async function (req, res) {
 const download_all_students = async function (req, res) {
   const { faculty } = req.user;
 // Put this at the top or in a separate utils file
-function flattenObject(obj, parentKey = '', acc = {}) {
-  for (const key in obj) {
-    const propName = parentKey ? `${parentKey}.${key}` : key;
-    const value = obj[key];
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      // Recursively flatten nested objects
-      flattenObject(value, propName, acc);
-    } else {
-      // Assign primitive values & arrays directly
-      acc[propName] = value;
-    }
-  }
-  return acc;
-}
+  function flattenObject(obj, parentKey = '', acc = {}) {
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        const propName = parentKey ? `${parentKey}.${key}` : key;
+        const value = obj[key];
 
+        // Skip MongoDB ObjectId methods and internal properties
+        if (key.startsWith('_') || key.startsWith('studentCode') ||typeof value === 'function') {
+          continue;
+        }
+
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+          // Recursively flatten nested objects
+          flattenObject(value, propName, acc);
+        } else {
+          // Assign primitive values & arrays directly
+          acc[propName] = value;
+        }
+      }
+    }
+    return acc;
+  }
 
   try {
     const { sortOrder, sortBy } = req.query;
@@ -732,7 +739,9 @@ function flattenObject(obj, parentKey = '', acc = {}) {
       },
       {
         $addFields: {
-          inspectionInfo: { $arrayElemAt: ["$inspectionInfo", 0] },
+          inspectionInfo: {
+            $arrayElemAt: ["$inspectionInfo", 0],
+          },
         },
       },
       {
@@ -743,7 +752,7 @@ function flattenObject(obj, parentKey = '', acc = {}) {
           as: "assignedSupervisorInfo",
           pipeline: [
             {
-              $project: { firstName: 1, lastName: 1, phone: 1, email: 1 },
+              $project: { firstName: 1, lastName: 1 },
             },
           ],
         },
@@ -765,19 +774,20 @@ function flattenObject(obj, parentKey = '', acc = {}) {
 
     const totalStudents = await STUDENTS.countDocuments({ faculty });
     // Convert the result to a CSV string
-    
+
 
     // Set headers and send CSV response
     const flattenedStudents = students.map(student => flattenObject(student));
+
     const csvString = jsonToCsvString(flattenedStudents);
-    
+
     // Now send the CSV string as usual:
     res
       .status(200)
       .header("Content-Type", "text/csv")
       .header("Content-Disposition", "attachment; filename=student_inspection_list.csv")
       .send(csvString);
-    
+
   } catch (error) {
     console.error("Error fetching students:", error);
     handleError(error, res);
