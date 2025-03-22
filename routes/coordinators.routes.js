@@ -26,7 +26,8 @@ const {
   download_all_student_data,
   update_student_details,
   assign_score_for_student_weekly_report,
-  download_csv_score_for_student_weekly_report
+  download_csv_score_for_student_weekly_report,
+  download_all_students
 } = require("./../controllers/coordinators.controller");
 const { isCoordinator } = require("./../middlewares/auth.middleware");
 const {
@@ -45,6 +46,9 @@ router.get("/inspectionList", isCoordinator, get_inspection_list);
 router.get("/supervisors", isCoordinator, get_all_supervisors);
 
 router.get("/students", isCoordinator, get_all_students);
+
+router.get("/students/inspection/download", isCoordinator, download_all_students);
+
 
 router.get("/students/download", isCoordinator, download_all_student_data);
 

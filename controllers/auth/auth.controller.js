@@ -382,6 +382,7 @@ const reset_password = async function (req, res) {
     }
 
     handleError(error, res);
+    console.log(error)
   }
 };
 
