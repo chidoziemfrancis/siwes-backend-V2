@@ -6,6 +6,7 @@ const {
   send_OTP,
   verify_OTP,
   reset_password,
+  supervisor_reset_password,
 } = require("./../controllers/auth/auth.controller");
 
 /**
@@ -169,5 +170,9 @@ router.post("/verifyOTP", verify_OTP);
  *         description: Invalid input or passwords do not match
  */
 router.patch("/forgotPassword/changePassword", reset_password);
+
+
+
+router.patch("/forgotPassword/changePassword/supervisor", supervisor_reset_password);
 
 module.exports = router;
