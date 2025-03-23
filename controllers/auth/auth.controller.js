@@ -16,6 +16,7 @@ const {
 } = require("../../controllers/mail.controller");
 const crypto = require("crypto");
 const redisClient = require("../../utils/redisClient");
+const Supervisor = require("./../../models/supervisor.model");
 
 
 /**
@@ -385,6 +386,46 @@ const reset_password = async function (req, res) {
     console.log(error)
   }
 };
+const supervisor_reset_password = async function (req, res) {
+  try {
+    const { email, password, token } = req.body;
+
+    if (
+      !email ||
+      !password ||
+      !token
+      // /student.babcock.edu.ng$/.test(email) == false
+    ) {
+      res.status(400).json({ message: "Invalid request" });
+      return;
+    }
+
+    const decoded = jwt.verify(token, process.env.RESET_PASSWORD_TOKEN_SECRET);
+
+    if (decoded.email !== email) {
+      res.status(400).json({ message: "Invalid request" });
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    await Supervisor.updateOne({ email }, { password: hashedPassword });
+
+    res.status(200).json({ message: "Password changed successfully" });
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      res.status(400).json({
+        message:
+          "Reset token is expired, please try to reset the password again starting from OTP verification",
+      });
+      return;
+    }
+
+    handleError(error, res);
+    console.log(error)
+  }
+};
 
 /**
  * @typedef userInfo
@@ -398,4 +439,5 @@ module.exports = {
   send_OTP,
   verify_OTP,
   reset_password,
+  supervisor_reset_password
 };
