@@ -16,7 +16,7 @@ const { existsSync, unlinkSync } = require("fs");
 const jsonToCsvString = require("../utils/jsonToCsvString");
 const { ObjectId } = require("mongoose").Types;
 const { sendMailToSupervisorEmail } = require("./mail.controller");
-const cloudinary = require('cloudinary').v2;
+const cloudinary = require("cloudinary").v2;
 
 /**
  * adds a new coordinator
@@ -476,9 +476,13 @@ const get_all_students = async function (req, res) {
     const limit = parseInt(req.query.limit) || 10;
     const { sortOrder, sortBy } = req.query;
 
-    if (page < 1) return res.status(400).json({ message: "Invalid page number" });
+    if (page < 1)
+      return res.status(400).json({ message: "Invalid page number" });
     if (limit < 1) return res.status(400).json({ message: "Invalid limit" });
-    if (limit > 50) return res.status(400).json({ message: "Limit too large, maximum allowed limit is 50" });
+    if (limit > 50)
+      return res
+        .status(400)
+        .json({ message: "Limit too large, maximum allowed limit is 50" });
 
     let sortQuery = [
       { $sort: { "company.LGA": -1 } }, // Always keep LGA sorted in descending order
@@ -493,7 +497,8 @@ const get_all_students = async function (req, res) {
       sortBy &&
       validSortBy.includes(sortBy)
     ) {
-      sortQuery.unshift({ // Apply course sorting before LGA sorting
+      sortQuery.unshift({
+        // Apply course sorting before LGA sorting
         $sort: {
           [sortBy]: sortOrder.toLowerCase() === "asc" ? 1 : -1,
         },
@@ -588,7 +593,9 @@ const get_all_students = async function (req, res) {
       },
       {
         $addFields: {
-          assignedSupervisorInfo: { $arrayElemAt: ["$assignedSupervisorInfo", 0] },
+          assignedSupervisorInfo: {
+            $arrayElemAt: ["$assignedSupervisorInfo", 0],
+          },
         },
       },
     ];
@@ -600,7 +607,7 @@ const get_all_students = async function (req, res) {
     }
 
     const totalStudents = await STUDENTS.countDocuments({ faculty });
-
+    const csvString = jsonToCsvString(students);
     res.status(200).json({
       students,
       totalStudents,
@@ -613,6 +620,179 @@ const get_all_students = async function (req, res) {
   }
 };
 
+/**
+ * Returns a list containing all students
+ * @param {request} req
+ * @param {response} res
+ */
+const download_all_students = async function (req, res) {
+  const { faculty } = req.user;
+// Put this at the top or in a separate utils file
+  function flattenObject(obj, parentKey = '', acc = {}) {
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        const propName = parentKey ? `${parentKey}.${key}` : key;
+        const value = obj[key];
+
+        // Skip MongoDB ObjectId methods and internal properties
+        if (key.startsWith('_') || key.startsWith('studentCode') ||typeof value === 'function') {
+          continue;
+        }
+
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+          // Recursively flatten nested objects
+          flattenObject(value, propName, acc);
+        } else {
+          // Assign primitive values & arrays directly
+          acc[propName] = value;
+        }
+      }
+    }
+    return acc;
+  }
+
+  try {
+    const { sortOrder, sortBy } = req.query;
+
+    let sortQuery = [
+      { $sort: { "company.LGA": -1 } }, // Always keep LGA sorted in descending order
+    ];
+
+    const validSortOrder = ["asc", "desc"];
+    const validSortBy = ["course"];
+
+    if (
+      sortOrder &&
+      validSortOrder.includes(sortOrder.toLowerCase()) &&
+      sortBy &&
+      validSortBy.includes(sortBy)
+    ) {
+      sortQuery.unshift({
+        // Apply course sorting before LGA sorting
+        $sort: {
+          [sortBy]: sortOrder.toLowerCase() === "asc" ? 1 : -1,
+        },
+      });
+    }
+
+    const pipeline = [
+      {
+        $match: { faculty: faculty },
+      },
+      {
+        $project: {
+          password: 0,
+          validation_secret: 0,
+          createdAt: 0,
+          updatedAt: 0,
+        },
+      },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                address: 1,
+                state: 1,
+                LGA: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          company: { $arrayElemAt: ["$company", 0] },
+        },
+      },
+      ...sortQuery,
+      {
+        $lookup: {
+          from: "grades",
+          localField: "_id",
+          foreignField: "studentId",
+          as: "grade",
+          pipeline: [
+            {
+              $project: { studentId: 0, __v: 0, createdAt: 0, updatedAt: 0 },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          grade: { $arrayElemAt: ["$grade", 0] },
+        },
+      },
+      {
+        $lookup: {
+          from: "inspection_lists",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "inspectionInfo",
+        },
+      },
+      {
+        $addFields: {
+          inspectionInfo: {
+            $arrayElemAt: ["$inspectionInfo", 0],
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "supervisors",
+          localField: "inspectionInfo.supervisorId",
+          foreignField: "_id",
+          as: "assignedSupervisorInfo",
+          pipeline: [
+            {
+              $project: { firstName: 1, lastName: 1 },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          assignedSupervisorInfo: {
+            $arrayElemAt: ["$assignedSupervisorInfo", 0],
+          },
+        },
+      },
+    ];
+
+    const students = await STUDENTS.aggregate(pipeline);
+
+    if (students.length === 0) {
+      return res.status(404).json({ message: "No students found" });
+    }
+
+    const totalStudents = await STUDENTS.countDocuments({ faculty });
+    // Convert the result to a CSV string
+
+
+    // Set headers and send CSV response
+    const flattenedStudents = students.map(student => flattenObject(student));
+
+    const csvString = jsonToCsvString(flattenedStudents);
+
+    // Now send the CSV string as usual:
+    res
+      .status(200)
+      .header("Content-Type", "text/csv")
+      .header("Content-Disposition", "attachment; filename=student_inspection_list.csv")
+      .send(csvString);
+
+  } catch (error) {
+    console.error("Error fetching students:", error);
+    handleError(error, res);
+  }
+};
 
 /**
  * Returns the details of a particular student
@@ -1288,7 +1468,7 @@ const delete_form = async function (req, res) {
     }
 
     await FORMS.deleteOne({ _id: ObjectId(formId) });
-    
+
     await cloudinary.uploader.destroy(publicId);
 
     res.status(201).json({ message: "Form has been deleted" });
@@ -1399,6 +1579,8 @@ const search_for_students = async function (req, res) {
               $project: {
                 name: 1,
                 address: 1,
+                state: 1,
+                LGA: 1,
               },
             },
           ],
@@ -1411,6 +1593,39 @@ const search_for_students = async function (req, res) {
           },
           company: {
             $arrayElemAt: ["$company", 0],
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "inspection_lists",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "inspectionInfo",
+        },
+      },
+      {
+        $addFields: {
+          inspectionInfo: { $arrayElemAt: ["$inspectionInfo", 0] },
+        },
+      },
+      {
+        $lookup: {
+          from: "supervisors",
+          localField: "inspectionInfo.supervisorId",
+          foreignField: "_id",
+          as: "assignedSupervisorInfo",
+          pipeline: [
+            {
+              $project: { firstName: 1, lastName: 1, phone: 1, email: 1 },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          assignedSupervisorInfo: {
+            $arrayElemAt: ["$assignedSupervisorInfo", 0],
           },
         },
       },
@@ -1699,11 +1914,11 @@ const assign_score_for_student_weekly_report = async function (req, res) {
           from: "students",
           localField: "studentCode",
           foreignField: "studentCode",
-          as: "studentInfo"
-        }
+          as: "studentInfo",
+        },
       },
       {
-        $unwind: "$studentInfo"
+        $unwind: "$studentInfo",
       },
       {
         $group: {
@@ -1712,8 +1927,8 @@ const assign_score_for_student_weekly_report = async function (req, res) {
           firstName: { $first: "$studentInfo.firstName" },
           lastName: { $first: "$studentInfo.lastName" },
           course: { $first: "$studentInfo.course" },
-          matricNumber: { $first: "$studentInfo.matricNo" }
-        }
+          matricNumber: { $first: "$studentInfo.matricNo" },
+        },
       },
       {
         $project: {
@@ -1729,42 +1944,53 @@ const assign_score_for_student_weekly_report = async function (req, res) {
               branches: [
                 {
                   case: { $gte: ["$reportCount", 10] },
-                  then: 20
+                  then: 20,
                 },
                 {
-                  case: { $and: [{ $gte: ["$reportCount", 8] }, { $lt: ["$reportCount", 10] }] },
-                  then: 17
+                  case: {
+                    $and: [
+                      { $gte: ["$reportCount", 8] },
+                      { $lt: ["$reportCount", 10] },
+                    ],
+                  },
+                  then: 17,
                 },
                 {
-                  case: { $and: [{ $gte: ["$reportCount", 6] }, { $lt: ["$reportCount", 8] }] },
-                  then: 14
+                  case: {
+                    $and: [
+                      { $gte: ["$reportCount", 6] },
+                      { $lt: ["$reportCount", 8] },
+                    ],
+                  },
+                  then: 14,
                 },
                 {
-                  case: { $and: [{ $gte: ["$reportCount", 5] }, { $lt: ["$reportCount", 6] }] },
-                  then: 10
-                }
+                  case: {
+                    $and: [
+                      { $gte: ["$reportCount", 5] },
+                      { $lt: ["$reportCount", 6] },
+                    ],
+                  },
+                  then: 10,
+                },
               ],
-              default: 0
-            }
-          }
-        }
-      }
+              default: 0,
+            },
+          },
+        },
+      },
     ]);
 
     // Send the final result and the log data as the response
-    res.status(200).json({ 
-      message: "Student score calculated successfully", 
-      data: final_result
+    res.status(200).json({
+      message: "Student score calculated successfully",
+      data: final_result,
     });
-
   } catch (error) {
     console.error("Error in aggregation pipeline: ", error);
     handleError(error, res);
   }
 };
-
-
-
 
 const download_csv_score_for_student_weekly_report = async function (req, res) {
   try {
@@ -1775,21 +2001,21 @@ const download_csv_score_for_student_weekly_report = async function (req, res) {
           from: "students",
           localField: "studentCode",
           foreignField: "studentCode",
-          as: "studentInfo"
-        }
+          as: "studentInfo",
+        },
       },
       {
-        $unwind: "$studentInfo"
+        $unwind: "$studentInfo",
       },
       {
         $group: {
           _id: "$studentCode",
-          firstName: { $first: "$studentInfo.firstName" },  
+          firstName: { $first: "$studentInfo.firstName" },
           lastName: { $first: "$studentInfo.lastName" },
           matricNumber: { $first: "$studentInfo.matricNo" },
           course: { $first: "$studentInfo.course" },
-          reportCount: { $sum: 1 }
-        }
+          reportCount: { $sum: 1 },
+        },
       },
       {
         $project: {
@@ -1805,26 +2031,41 @@ const download_csv_score_for_student_weekly_report = async function (req, res) {
               branches: [
                 {
                   case: { $gte: ["$reportCount", 10] },
-                  then: 20
+                  then: 20,
                 },
                 {
-                  case: { $and: [{ $gte: ["$reportCount", 8] }, { $lt: ["$reportCount", 10] }] },
-                  then: 17
+                  case: {
+                    $and: [
+                      { $gte: ["$reportCount", 8] },
+                      { $lt: ["$reportCount", 10] },
+                    ],
+                  },
+                  then: 17,
                 },
                 {
-                  case: { $and: [{ $gte: ["$reportCount", 6] }, { $lt: ["$reportCount", 8] }] },
-                  then: 14
+                  case: {
+                    $and: [
+                      { $gte: ["$reportCount", 6] },
+                      { $lt: ["$reportCount", 8] },
+                    ],
+                  },
+                  then: 14,
                 },
                 {
-                  case: { $and: [{ $gte: ["$reportCount", 5] }, { $lt: ["$reportCount", 6] }] },
-                  then: 10
-                }
+                  case: {
+                    $and: [
+                      { $gte: ["$reportCount", 5] },
+                      { $lt: ["$reportCount", 6] },
+                    ],
+                  },
+                  then: 10,
+                },
               ],
-              default: 0
-            }
-          }
-        }
-      }
+              default: 0,
+            },
+          },
+        },
+      },
     ]);
 
     // Check if there are students
@@ -1841,14 +2082,13 @@ const download_csv_score_for_student_weekly_report = async function (req, res) {
       .header("Content-Type", "text/csv")
       .header("Content-Disposition", "attachment; filename=student_scores.csv")
       .send(csvString);
-
   } catch (error) {
     console.error("Error in aggregation pipeline: ", error);
-    res.status(500).json({ message: "An error occurred while processing the data" });
+    res
+      .status(500)
+      .json({ message: "An error occurred while processing the data" });
   }
 };
-
-
 
 module.exports = {
   add_a_new_coordinator,
@@ -1865,6 +2105,7 @@ module.exports = {
   assign_defense_supervisor,
   assign_inspection_supervisor,
   get_all_students,
+  download_all_students,
   get_a_student,
   set_registration_deadline,
   get_weekly_reports,
@@ -1877,5 +2118,5 @@ module.exports = {
   download_all_student_data,
   update_student_details,
   assign_score_for_student_weekly_report,
-  download_csv_score_for_student_weekly_report
+  download_csv_score_for_student_weekly_report,
 };
