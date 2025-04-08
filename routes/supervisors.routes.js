@@ -11,6 +11,7 @@ const {
   update_inspection_time,
   assign_grade,
   download_form,
+  download_assigned_defense_students,
 } = require("./../controllers/supervisors.controller");
 
 router.get("/get/:id", isSupervisor, get_a_supervisor);
@@ -40,5 +41,7 @@ router.patch("/updateInspectionTime", isSupervisor, update_inspection_time);
 router.patch("/updateDefenseTime", isSupervisor, update_defense_time);
 
 router.post("/assignGrade", isSupervisor, assign_grade);
+
+router.get("/defense/download-assigned",isSupervisor, download_assigned_defense_students);
 
 module.exports = router;
