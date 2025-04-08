@@ -643,8 +643,13 @@ const download_all_students = async function (req, res) {
           // Recursively flatten nested objects
           flattenObject(value, propName, acc);
         } else {
-          // Assign primitive values & arrays directly
-          acc[propName] = value;
+          // Replace commas with spaces in string values
+          if (typeof value === 'string') {
+            acc[propName] = value.replace(/,/g, ' ').replace(/\n/g, ' ');
+          } else {
+            // Assign non-string values directly
+            acc[propName] = value;
+          }
         }
       }
     }
