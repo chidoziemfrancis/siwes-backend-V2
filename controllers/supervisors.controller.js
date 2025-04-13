@@ -8,6 +8,7 @@ const mongoose = require("mongoose");
 const { request, response } = require("express");
 const bcrypt = require("bcrypt");
 const { existsSync } = require("fs");
+const jsonToCsvString = require("../utils/jsonToCsvString");
 
 /**
  * Gets the details of a specific supervisor
@@ -166,16 +167,16 @@ const get_assigned_students_for_defense = async function (req, res) {
       },
     ];
 
-    const defenseList = await DEFENSE_LIST.aggregate(pipeline);
+    const inspectionList = await DEFENSE_LIST.aggregate(pipeline);
 
-    if (defenseList.length === 0) {
+    if (inspectionList.length === 0) {
       res
         .status(404)
         .json({ message: "You have not been assigned to any student" });
       return;
     }
 
-    res.status(200).json(defenseList);
+    res.status(200).json(inspectionList);
     return;
   } catch (error) {
     handleError(error, res);
@@ -694,6 +695,157 @@ const download_form = async function (req, res) {
   }
 };
 
+
+// Helper function to flatten nested objects
+function flattenObject(obj, parentKey = '', acc = {}) {
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const propName = parentKey ? `${parentKey}.${key}` : key;
+      const value = obj[key];
+
+      if (key.startsWith('_') || typeof value === 'function') {
+        continue;
+      }
+
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        flattenObject(value, propName, acc);
+      } else {
+        acc[propName] = value;
+      }
+    }
+  }
+  return acc;
+}
+
+const download_assigned_supervisor_students = async function (req, res) {
+  const { _id } = req.user;
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(_id)) {
+      return res.status(401).json({
+        message: "Invalid user ID. Re-authenticate and try again.",
+      });
+    }
+
+    const pipeline = [
+      {
+        $match: {
+          supervisorId: mongoose.Types.ObjectId(_id),
+        },
+      },
+      {
+        $lookup: {
+          from: "students",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "studentDetails",
+          pipeline: [
+            {
+              $project: {
+                name: {
+                  $concat: [
+                    "$firstName",
+                    " ",
+                    { $ifNull: [{ $concat: ["$middleName", " "] }, ""] },
+                    "$lastName",
+                  ],
+                },
+                matricNo: 1,
+                studentCode: 1,
+                course: 1,
+                email: 1,
+                phone: 1,
+              },
+            },
+          ],
+        },
+      },
+      { $unwind: "$studentDetails" },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "companyDetails",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                address: 1,
+                phone: 1,
+                state: 1,
+                LGA: 1,
+                email: 1,
+                assignedDepartment: 1,
+                jobDescription: 1,
+                resumptionDate: 1,
+                expectedEndDate: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: {
+          path: "$companyDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "supervisors",
+          localField: "supervisorId",
+          foreignField: "_id",
+          as: "supervisorDetails",
+          pipeline: [
+            {
+              $project: {
+                name: { $concat: ["$firstName", " ", "$lastName"] },
+              },
+            },
+          ],
+        },
+      },
+      { $unwind: "$supervisorDetails" },
+      {
+        $lookup: {
+          from: "grades",
+          localField: "studentDetails._id",
+          foreignField: "studentId",
+          as: "grade",
+        },
+      },
+      {
+        $addFields: {
+          grade: { $arrayElemAt: ["$grade", 0] },
+        },
+      },
+    ];
+
+    const inspectionList = await INSPECTION_LIST.aggregate(pipeline);
+
+    if (inspectionList.length === 0) {
+      return res.status(404).json({ message: "You have not been assigned to any student" });
+    }
+
+    const flattened = inspectionList.map(item => flattenObject(item));
+    const csvString = jsonToCsvString(flattened);
+
+    res
+      .status(200)
+      .header("Content-Type", "text/csv")
+      .header("Content-Disposition", "attachment; filename=assigned_defense_students.csv")
+      .send(csvString);
+  } catch (error) {
+    console.error("CSV download error:", error);
+    handleError(error, res);
+  }
+};
+
+
+
+
+
 module.exports = {
   get_a_supervisor,
   get_assigned_students_for_defense,
@@ -705,4 +857,5 @@ module.exports = {
   update_inspection_time,
   assign_grade,
   download_form,
+  download_assigned_supervisor_students,
 };
