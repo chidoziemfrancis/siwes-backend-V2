@@ -25,6 +25,7 @@ const corsOption = {
       "https://siwes-fe.onrender.com",
       "https://siwes-fe-sqhb.onrender.com",
       "https://siwes-dev.onrender.com",
+      "https://www.babcock-siwes.com",
     ];
 
     if (!origin || allowedOrigins.includes(origin)) {
