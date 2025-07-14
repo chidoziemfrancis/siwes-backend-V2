@@ -23,9 +23,13 @@ const CompanySchema = new mongoose.Schema(
     },
     LGA: {
       type: String,
-      required: [true, "LGA is required"],
+      required: [false, "LGA is required"],
       lowercase: true,
       minLength: [3, "LGA must be at least 3 characters"],
+    },
+    street: {
+      type: String,
+      required: [true, "Street is required"],
     },
     email: {
       type: String,
