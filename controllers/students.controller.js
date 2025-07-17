@@ -402,6 +402,7 @@ const update_details = async function (req, res) {
       "accountNumber",
       "bankName",
       "sortCode",
+      "street",
       "company", // expects a nested object for company updates
     ];
     const allowedCompanyFields = [
@@ -415,6 +416,7 @@ const update_details = async function (req, res) {
       "jobDescription",
       "resumptionDate",
       "expectedEndDate",
+      "street",
     ];
 
     const update = req.body;
@@ -474,6 +476,10 @@ const update_details = async function (req, res) {
       if (update.expectedEndDate) {
         companyFields.expectedEndDate = update.expectedEndDate;
         delete update.expectedEndDate;
+      }
+      if (update.street) {
+        companyFields.street = update.street;
+        delete update.street;
       }
       // If any company fields were provided, set them under update.company
       if (Object.keys(companyFields).length > 0) {
