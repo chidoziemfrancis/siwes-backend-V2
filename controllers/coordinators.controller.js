@@ -530,6 +530,7 @@ const get_all_students = async function (req, res) {
                 address: 1,
                 state: 1,
                 LGA: 1,
+                street: 1,
               },
             },
           ],
@@ -627,25 +628,33 @@ const get_all_students = async function (req, res) {
  */
 const download_all_students = async function (req, res) {
   const { faculty } = req.user;
-// Put this at the top or in a separate utils file
-  function flattenObject(obj, parentKey = '', acc = {}) {
+  // Put this at the top or in a separate utils file
+  function flattenObject(obj, parentKey = "", acc = {}) {
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) {
         const propName = parentKey ? `${parentKey}.${key}` : key;
         const value = obj[key];
 
         // Skip MongoDB ObjectId methods and internal properties
-        if (key.startsWith('_') || key.startsWith('studentCode') ||typeof value === 'function') {
+        if (
+          key.startsWith("_") ||
+          key.startsWith("studentCode") ||
+          typeof value === "function"
+        ) {
           continue;
         }
 
-        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        if (
+          typeof value === "object" &&
+          value !== null &&
+          !Array.isArray(value)
+        ) {
           // Recursively flatten nested objects
           flattenObject(value, propName, acc);
         } else {
           // Replace commas with spaces in string values
-          if (typeof value === 'string') {
-            acc[propName] = value.replace(/,/g, ' ').replace(/\n/g, ' ');
+          if (typeof value === "string") {
+            acc[propName] = value.replace(/,/g, " ").replace(/\n/g, " ");
           } else {
             // Assign non-string values directly
             acc[propName] = value;
@@ -780,9 +789,8 @@ const download_all_students = async function (req, res) {
     const totalStudents = await STUDENTS.countDocuments({ faculty });
     // Convert the result to a CSV string
 
-
     // Set headers and send CSV response
-    const flattenedStudents = students.map(student => flattenObject(student));
+    const flattenedStudents = students.map((student) => flattenObject(student));
 
     const csvString = jsonToCsvString(flattenedStudents);
 
@@ -790,9 +798,11 @@ const download_all_students = async function (req, res) {
     res
       .status(200)
       .header("Content-Type", "text/csv")
-      .header("Content-Disposition", "attachment; filename=student_inspection_list.csv")
+      .header(
+        "Content-Disposition",
+        "attachment; filename=student_inspection_list.csv"
+      )
       .send(csvString);
-
   } catch (error) {
     console.error("Error fetching students:", error);
     handleError(error, res);
