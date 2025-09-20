@@ -117,6 +117,7 @@ async function main() {
   } catch (error) {
     console.log(`App failed to start due to ${error}`);
   }
+  // Dara
 }
 
 main();
