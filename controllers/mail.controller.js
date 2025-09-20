@@ -1,6 +1,7 @@
 const { createTransport } = require("nodemailer");
 const hbs = require("nodemailer-express-handlebars");
 const { promisify } = require("util");
+const path = require("path");
 
 /**
  * This sends the mail for OTP to the specified email address
@@ -25,7 +26,7 @@ const sendOTPMail = (email, token) => {
           defaultLayout: false,
           // this will make sure it requests a new template each time
         },
-        viewPath: "./controllers/mail-templates",
+        viewPath: path.join(__dirname, "mail-templates"),
       };
 
       transporter.use("compile", hbs(handlebarOptions));
@@ -76,7 +77,7 @@ const sendErrorMail = (error) => {
         viewEngine: {
           defaultLayout: false,
         },
-        viewPath: "./controllers/mail-templates",
+        viewPath: path.join(__dirname, "mail-templates"),
       };
 
       transporter.use("compile", hbs(handlebarOptions));
@@ -128,7 +129,7 @@ const sendLoginAlertMail = (email, loginTime) => {
         viewEngine: {
           defaultLayout: false,
         },
-        viewPath: "./controllers/mail-templates",
+        viewPath: path.join(__dirname, "mail-templates"),
       };
 
       transporter.use("compile", hbs(handlebarOptions));
@@ -180,7 +181,7 @@ const sendWelcomeMail = (email, firstName, lastName) => {
         viewEngine: {
           defaultLayout: false,
         },
-        viewPath: "./controllers/mail-templates",
+        viewPath: path.join(__dirname, "mail-templates"),
       };
 
       transporter.use("compile", hbs(handlebarOptions));
@@ -237,7 +238,7 @@ const sendMailToSupervisorEmail = ({
         viewEngine: {
           defaultLayout: false,
         },
-        viewPath: "./controllers/mail-templates",
+        viewPath: path.join(__dirname, "mail-templates"),
       };
 
       transporter.use("compile", hbs(handlebarOptions));
