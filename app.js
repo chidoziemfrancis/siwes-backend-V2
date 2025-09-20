@@ -14,6 +14,9 @@ const redisClient = require("./utils/redisClient");
 
 require("dotenv").config();
 
+// Fix Mongoose deprecation warning
+mongoose.set("strictQuery", false);
+
 const app = express();
 
 const corsOption = {
@@ -67,25 +70,42 @@ async function main() {
       api_secret: process.env.CLOUDINARY_API_SECRET,
     });
 
-     mongoose.connect(DB_URI);
+    mongoose.connect(DB_URI);
 
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`App is live on port: ${PORT}`);
     });
 
+    // Test Redis connection with timeout
     (async () => {
       try {
+        // Wait a bit for Redis to connect
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
         const key = "testKey";
         const value = "testValue";
-        await redisClient.set(key, value, { EX: 10 });
-        const storedValue = await redisClient.get(key);
-        if (storedValue === value) {
+
+        // Set a timeout for the Redis test
+        const testPromise = Promise.race([
+          (async () => {
+            await redisClient.set(key, value, { EX: 10 });
+            const storedValue = await redisClient.get(key);
+            return storedValue === value;
+          })(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Redis test timeout")), 5000)
+          ),
+        ]);
+
+        const testResult = await testPromise;
+        if (testResult) {
           console.log("Redis connection is working!");
         } else {
           console.error("Redis test failed: value mismatch");
         }
       } catch (error) {
-        console.error("Redis test failed:", error);
+        console.error("Redis test failed:", error.message);
+        console.log("App will continue without Redis functionality");
       }
     })();
 
