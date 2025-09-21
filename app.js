@@ -24,6 +24,7 @@ const corsOption = {
   origin: (origin, callback) => {
     const allowedOrigins = [
       "http://localhost:3000",
+      "http://localhost:3060",
       "http://localhost:3001",
       "https://siwes-fe.onrender.com",
       "https://siwes-fe-sqhb.onrender.com",
