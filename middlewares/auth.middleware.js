@@ -72,7 +72,7 @@ const assign_new_tokens = function (user, res, type) {
       const accessToken = jwt.sign(
         clientPayload,
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "15m" }
+        { expiresIn: "1h" }
       );
       const refreshToken = jwt.sign(
         clientPayload,
@@ -130,7 +130,6 @@ const assign_new_tokens = function (user, res, type) {
         maxAge: 604800000,
       });
 
-
       resolve({ id: user._id });
     } catch (error) {
       reject(error);
@@ -148,7 +147,7 @@ const assign_new_tokens = function (user, res, type) {
  */
 const decode_jwt = function (req, res, type) {
   return new Promise(async (resolve, reject) => {
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = req.headers.authorization?.split(" ")[1];
     try {
       const accessToken =
         req.headers.authorization?.split(" ")[1] || req.cookies?.umis_siwesA;
@@ -195,7 +194,6 @@ const decode_jwt = function (req, res, type) {
   });
 };
 
-
 /**
  * Determines if a user is a studentr
  * @param {request} req
@@ -221,7 +219,6 @@ const isStudent = async function (req, res, next) {
     res.status(401).json({ message: error.message });
   }
 };
-
 
 /**
  * Determines if a user is a supervisor

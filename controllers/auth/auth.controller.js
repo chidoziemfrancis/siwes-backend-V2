@@ -18,7 +18,6 @@ const crypto = require("crypto");
 const redisClient = require("../../utils/redisClient");
 const Supervisor = require("./../../models/supervisor.model");
 
-
 /**
  * Creates and appends the access and refresh tokens to the cookies of the client
  * @param {userInfo} user
@@ -38,12 +37,20 @@ const create_tokens = function (user, res, type) {
 
       const clientId = { id: user._id, role: type };
 
-      const accessToken = jwt.sign(clientPayload, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "15m",
-      });
-      const refreshToken = jwt.sign(clientPayload, process.env.REFRESH_TOKEN_SECRET, {
-        expiresIn: "7d",
-      });
+      const accessToken = jwt.sign(
+        clientPayload,
+        process.env.ACCESS_TOKEN_SECRET,
+        {
+          expiresIn: "1h",
+        }
+      );
+      const refreshToken = jwt.sign(
+        clientPayload,
+        process.env.REFRESH_TOKEN_SECRET,
+        {
+          expiresIn: "7d",
+        }
+      );
       const clientToken = jwt.sign(clientId, process.env.CLIENT_TOKEN_SECRET, {
         expiresIn: "15m",
       });
@@ -56,10 +63,16 @@ const create_tokens = function (user, res, type) {
           updateInfo = await STUDENTS.updateOne({ _id: user._id }, updateQuery);
           break;
         case "coordinator":
-          updateInfo = await COORDINATORS.updateOne({ _id: user._id }, updateQuery);
+          updateInfo = await COORDINATORS.updateOne(
+            { _id: user._id },
+            updateQuery
+          );
           break;
         case "supervisor":
-          updateInfo = await SUPERVISORS.updateOne({ _id: user._id }, updateQuery);
+          updateInfo = await SUPERVISORS.updateOne(
+            { _id: user._id },
+            updateQuery
+          );
           break;
         default:
           break;
@@ -71,9 +84,10 @@ const create_tokens = function (user, res, type) {
 
       const cookieOptions = {
         secure: process.env.NODE_ENV !== "development",
-        domain: process.env.NODE_ENV === "development"
-          ? process.env.DEV_SERVER
-          : process.env.PROD_SERVER,
+        domain:
+          process.env.NODE_ENV === "development"
+            ? process.env.DEV_SERVER
+            : process.env.PROD_SERVER,
         sameSite: process.env.NODE_ENV === "development" ? "strict" : "none",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       };
@@ -96,7 +110,6 @@ const create_tokens = function (user, res, type) {
     }
   });
 };
-
 
 /**
  * Register's a new student
@@ -195,16 +208,18 @@ const login = async function (req, res) {
       return;
     }
 
-    const tokens  = await create_tokens(user, res, type);
+    const tokens = await create_tokens(user, res, type);
     await sendLoginAlertMail(
       user.email,
       new Date().toLocaleString("en-GB", { timeZone: "Africa/Lagos" })
     );
 
-    res.status(200).json({ message: "Login successful", data: user._id, tokens });
+    res
+      .status(200)
+      .json({ message: "Login successful", data: user._id, tokens });
   } catch (error) {
     handleError(error, res);
-    console.log(error)
+    console.log(error);
   }
 };
 
@@ -277,9 +292,6 @@ const send_OTP = async (req, res) => {
   }
 };
 
-
-
-
 /**
  * Verify OTP
  */
@@ -288,7 +300,9 @@ const verify_OTP = async (req, res) => {
     const { email, token } = req.body;
 
     if (!email || !token) {
-      return res.status(400).json({ message: "Please Input a valid email or token." });
+      return res
+        .status(400)
+        .json({ message: "Please Input a valid email or token." });
     }
     // if (!email || !/student.babcock.edu.ng$/.test(email) || !token) {
     //   return res.status(400).json({ message: "Invalid input." });
@@ -340,9 +354,6 @@ const verify_OTP = async (req, res) => {
   }
 };
 
-
-
-
 /**
  * Allows a student specifically to reset their password if they forget it
  */
@@ -383,7 +394,7 @@ const reset_password = async function (req, res) {
     }
 
     handleError(error, res);
-    console.log(error)
+    console.log(error);
   }
 };
 const supervisor_reset_password = async function (req, res) {
@@ -423,7 +434,7 @@ const supervisor_reset_password = async function (req, res) {
     }
 
     handleError(error, res);
-    console.log(error)
+    console.log(error);
   }
 };
 
@@ -439,5 +450,5 @@ module.exports = {
   send_OTP,
   verify_OTP,
   reset_password,
-  supervisor_reset_password
+  supervisor_reset_password,
 };

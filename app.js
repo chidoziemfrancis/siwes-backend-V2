@@ -30,6 +30,7 @@ const corsOption = {
       "https://siwes-fe-sqhb.onrender.com",
       "https://siwes-dev.onrender.com",
       "https://www.babcock-siwes.com",
+      "http://www.babcock-siwes.com/",
       "https://bucc-siwes-website.vercel.app",
     ];
 
