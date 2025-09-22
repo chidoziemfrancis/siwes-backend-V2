@@ -247,16 +247,39 @@ const upload_inspection_forms = async function (req, res) {
   const { _id } = req.user;
 
   try {
-    if (typeof formInfo !== "object" || Object.keys(formInfo).length === 0) {
-      res.status(400).json({ message: "Please fill all the fields" });
+    // Validate required fields
+    const { name, pathToFile, publicId, description, purpose } = formInfo;
+
+    if (!name || !pathToFile || !publicId) {
+      res.status(400).json({
+        message: "File upload failed. Please try again.",
+      });
       return;
     }
 
-    await FORMS.create({ ...formInfo, uploadedBy: _id });
+    if (!description || !purpose) {
+      res.status(400).json({
+        message: "Please provide both description and purpose for the form",
+      });
+      return;
+    }
+
+    // Create the form with all required fields
+    const formData = {
+      name,
+      pathToFile,
+      publicId,
+      description,
+      purpose,
+      uploadedBy: _id,
+    };
+
+    await FORMS.create(formData);
 
     res.status(200).json({ message: "Form was added successfully" });
     return;
   } catch (error) {
+    console.error("Form upload error:", error);
     handleError(error, res);
   }
 };
