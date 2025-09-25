@@ -27,8 +27,7 @@ RUN npm ci --include=dev
 # Copy application code
 COPY . .
 
-# Build application
-RUN npm run build
+# No build step needed for backend-only application
 
 # Remove development dependencies
 RUN npm prune --omit=dev

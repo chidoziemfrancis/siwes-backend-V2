@@ -9,7 +9,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
-    "build": "npm install",
+    "build": "echo 'No build step required for backend-only application'",
     "dev": "nodemon app.js",
     "lint": "npx prettier -w */**",
     "staging": "export NODE_ENV=staging && node app.js"

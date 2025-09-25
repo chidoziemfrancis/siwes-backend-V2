@@ -60,7 +60,7 @@ app.use(
   })
 );
 
-app.use(express.static(path.join(__dirname, "build")));
+// Static file serving removed - this is a backend-only API
 
 const PORT = process.env.PORT || 3000;
 const DB_URI = process.env.DB_URI;
@@ -114,8 +114,13 @@ async function main() {
 
     app.use("/api", apiRoutes);
 
+    // Catch-all route for API requests
     app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "build", "index.html"));
+      res.status(404).json({
+        success: false,
+        message: "API endpoint not found. This is a backend-only API service.",
+        availableEndpoints: ["/api"],
+      });
     });
   } catch (error) {
     console.log(`App failed to start due to ${error}`);
