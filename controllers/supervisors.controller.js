@@ -152,8 +152,30 @@ const get_assigned_students_for_defense = async function (req, res) {
       },
       {
         $lookup: {
+          from: "inspection_lists",
+          localField: "studentDetails.studentCode",
+          foreignField: "studentCode",
+          as: "inspectionDetails",
+          pipeline: [
+            {
+              $project: {
+                assignedDate: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          inspectionDate: {
+            $arrayElemAt: ["$inspectionDetails.assignedDate", 0],
+          },
+        },
+      },
+      {
+        $lookup: {
           from: "grades",
-          localField: "studentDetails._id",
+          localField: "_id",
           foreignField: "studentId",
           as: "grade",
         },
@@ -163,6 +185,11 @@ const get_assigned_students_for_defense = async function (req, res) {
           grade: {
             $arrayElemAt: ["$grade", 0],
           },
+        },
+      },
+      {
+        $project: {
+          inspectionDetails: 0,
         },
       },
     ];
@@ -300,8 +327,30 @@ const get_assigned_students_for_inspection = async function (req, res) {
       },
       {
         $lookup: {
+          from: "defense_lists",
+          localField: "studentDetails.studentCode",
+          foreignField: "studentCode",
+          as: "defenseDetails",
+          pipeline: [
+            {
+              $project: {
+                assignedDate: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          defenseDate: {
+            $arrayElemAt: ["$defenseDetails.assignedDate", 0],
+          },
+        },
+      },
+      {
+        $lookup: {
           from: "grades",
-          localField: "studentDetails._id",
+          localField: "_id",
           foreignField: "studentId",
           as: "grade",
         },
@@ -311,6 +360,12 @@ const get_assigned_students_for_inspection = async function (req, res) {
           grade: {
             $arrayElemAt: ["$grade", 0],
           },
+          inspectionDate: "$assignedDate",
+        },
+      },
+      {
+        $project: {
+          defenseDetails: 0,
         },
       },
     ];
@@ -695,19 +750,22 @@ const download_form = async function (req, res) {
   }
 };
 
-
 // Helper function to flatten nested objects
-function flattenObject(obj, parentKey = '', acc = {}) {
+function flattenObject(obj, parentKey = "", acc = {}) {
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const propName = parentKey ? `${parentKey}.${key}` : key;
       const value = obj[key];
 
-      if (key.startsWith('_') || typeof value === 'function') {
+      if (key.startsWith("_") || typeof value === "function") {
         continue;
       }
 
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      if (
+        typeof value === "object" &&
+        value !== null &&
+        !Array.isArray(value)
+      ) {
         flattenObject(value, propName, acc);
       } else {
         acc[propName] = value;
@@ -825,26 +883,27 @@ const download_assigned_supervisor_students = async function (req, res) {
     const inspectionList = await INSPECTION_LIST.aggregate(pipeline);
 
     if (inspectionList.length === 0) {
-      return res.status(404).json({ message: "You have not been assigned to any student" });
+      return res
+        .status(404)
+        .json({ message: "You have not been assigned to any student" });
     }
 
-    const flattened = inspectionList.map(item => flattenObject(item));
+    const flattened = inspectionList.map((item) => flattenObject(item));
     const csvString = jsonToCsvString(flattened);
 
     res
       .status(200)
       .header("Content-Type", "text/csv")
-      .header("Content-Disposition", "attachment; filename=assigned_defense_students.csv")
+      .header(
+        "Content-Disposition",
+        "attachment; filename=assigned_defense_students.csv"
+      )
       .send(csvString);
   } catch (error) {
     console.error("CSV download error:", error);
     handleError(error, res);
   }
 };
-
-
-
-
 
 module.exports = {
   get_a_supervisor,
