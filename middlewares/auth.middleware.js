@@ -80,7 +80,7 @@ const assign_new_tokens = function (user, res, type) {
         { expiresIn: "7d" }
       );
       const clientToken = jwt.sign(clientId, process.env.CLIENT_TOKEN_SECRET, {
-        expiresIn: "15m",
+        expiresIn: "2h",
       });
 
       let updateInfo = null;
