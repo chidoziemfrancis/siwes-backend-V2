@@ -549,17 +549,6 @@ const get_all_students = async function (req, res) {
           localField: "_id",
           foreignField: "studentId",
           as: "grade",
-          pipeline: [
-            {
-              $project: {
-                inspectionScore: 1,
-                weeklyReportsScore: 1,
-                defenseScore: 1,
-                total: 1,
-                lastUpdatedBy: 1,
-              },
-            },
-          ],
         },
       },
       {
