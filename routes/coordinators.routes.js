@@ -16,6 +16,7 @@ const {
   get_all_students,
   get_a_student,
   set_registration_deadline,
+  get_registration_deadline,
   get_weekly_reports,
   assign_grade,
   collate_grades,
@@ -74,6 +75,8 @@ router.get(
 );
 
 router.get("/forms", isCoordinator, get_forms);
+
+router.get("/registrationDeadline", isCoordinator, get_registration_deadline);
 
 router.post("/add", isCoordinator, add_a_new_coordinator);
 

@@ -392,21 +392,6 @@ const assign_defense_supervisor = async function (req, res) {
       return;
     }
 
-    const studentSupervisionList = await INSPECTION_LIST.findOne({
-      studentCode,
-    });
-
-    if (
-      studentSupervisionList &&
-      studentSupervisionList.supervisorId.equals(supervisorId)
-    ) {
-      res.status(400).json({
-        message:
-          "The same supervisor can not inspect and be in charge of defense for the same student",
-      });
-      return;
-    }
-
     await DEFENSE_LIST.updateOne(
       { studentCode },
       { supervisorId },
@@ -454,19 +439,6 @@ const assign_inspection_supervisor = async function (req, res) {
       res
         .status(400)
         .json({ message: "No studet was found with that student code" });
-      return;
-    }
-
-    const studentSupervisionList = await DEFENSE_LIST.findOne({ studentCode });
-
-    if (
-      studentSupervisionList &&
-      studentSupervisionList.supervisorId.equals(supervisorId)
-    ) {
-      res.status(400).json({
-        message:
-          "The same supervisor can not inspect and be in charge of defense for the same student",
-      });
       return;
     }
 
@@ -579,7 +551,13 @@ const get_all_students = async function (req, res) {
           as: "grade",
           pipeline: [
             {
-              $project: { studentId: 0, __v: 0, createdAt: 0, updatedAt: 0 },
+              $project: {
+                inspectionScore: 1,
+                weeklyReportsScore: 1,
+                defenseScore: 1,
+                total: 1,
+                lastUpdatedBy: 1,
+              },
             },
           ],
         },
@@ -1267,6 +1245,36 @@ const set_registration_deadline = async function (req, res) {
     res
       .status(200)
       .json({ message: "Registration deadline has been assigned" });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * Gets the current registration deadline
+ * @param {request} req
+ * @param {response} res
+ */
+const get_registration_deadline = async function (req, res) {
+  try {
+    const deadline = await DEADLINE.findOne({}).sort({ createdAt: -1 });
+
+    if (!deadline) {
+      res.status(404).json({
+        message: "No registration deadline has been set",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Registration deadline retrieved successfully",
+      deadline: {
+        time: deadline.time,
+        updatedAt: deadline.updatedAt,
+        updatedBy: deadline.updatedBy,
+      },
+    });
     return;
   } catch (error) {
     handleError(error, res);
@@ -2146,6 +2154,7 @@ module.exports = {
   download_all_students,
   get_a_student,
   set_registration_deadline,
+  get_registration_deadline,
   get_weekly_reports,
   assign_grade,
   collate_grades,
