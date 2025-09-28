@@ -31,6 +31,8 @@ const corsOption = {
       "https://siwes-dev.onrender.com",
       "https://www.babcock-siwes.com",
       "https://bucc-siwes-website.vercel.app",
+      "https://siwes-website.vercel.app",
+      "https://siwes-website.vercel.app",
     ];
 
     if (!origin || allowedOrigins.includes(origin)) {
