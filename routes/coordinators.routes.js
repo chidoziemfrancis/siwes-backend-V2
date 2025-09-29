@@ -29,6 +29,7 @@ const {
   assign_score_for_student_weekly_report,
   download_csv_score_for_student_weekly_report,
   download_all_students,
+  download_student_inspection_supervisors,
 } = require("./../controllers/coordinators.controller");
 const { isCoordinator } = require("./../middlewares/auth.middleware");
 const {
@@ -55,6 +56,12 @@ router.get(
 );
 
 router.get("/students/download", isCoordinator, download_all_student_data);
+
+router.get(
+  "/students/inspection-supervisors/download",
+  isCoordinator,
+  download_student_inspection_supervisors
+);
 
 router.get("/students/:id", isCoordinator, get_a_student);
 

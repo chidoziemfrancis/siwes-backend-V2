@@ -2127,6 +2127,115 @@ const download_csv_score_for_student_weekly_report = async function (req, res) {
   }
 };
 
+/**
+ * Downloads student names and their assigned inspection supervisor names as CSV
+ * @param {request} req
+ * @param {response} res
+ */
+const download_student_inspection_supervisors = async function (req, res) {
+  const { faculty } = req.user;
+
+  try {
+    const pipeline = [
+      {
+        $match: { faculty: faculty },
+      },
+      {
+        $project: {
+          password: 0,
+          validation_secret: 0,
+          createdAt: 0,
+          updatedAt: 0,
+          __v: 0,
+        },
+      },
+      {
+        $addFields: {
+          studentName: {
+            $concat: [
+              "$firstName",
+              " ",
+              {
+                $ifNull: [
+                  {
+                    $concat: ["$middleName", " "],
+                  },
+                  "",
+                ],
+              },
+              "$lastName",
+            ],
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "inspection_lists",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "inspectionInfo",
+        },
+      },
+      {
+        $addFields: {
+          inspectionInfo: { $arrayElemAt: ["$inspectionInfo", 0] },
+        },
+      },
+      {
+        $lookup: {
+          from: "supervisors",
+          localField: "inspectionInfo.supervisorId",
+          foreignField: "_id",
+          as: "assignedSupervisorInfo",
+          pipeline: [
+            {
+              $project: {
+                supervisorName: {
+                  $concat: ["$firstName", " ", "$lastName"],
+                },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          assignedSupervisorInfo: {
+            $arrayElemAt: ["$assignedSupervisorInfo", 0],
+          },
+        },
+      },
+      {
+        $project: {
+          studentName: 1,
+          supervisorName: "$assignedSupervisorInfo.supervisorName",
+          _id: 0,
+        },
+      },
+    ];
+
+    const students = await STUDENTS.aggregate(pipeline);
+
+    if (students.length === 0) {
+      return res.status(404).json({ message: "No students found" });
+    }
+
+    const csvString = jsonToCsvString(students);
+
+    res
+      .status(200)
+      .header("Content-Type", "text/csv")
+      .header(
+        "Content-Disposition",
+        "attachment; filename=student_inspection_supervisors.csv"
+      )
+      .send(csvString);
+  } catch (error) {
+    console.error("Error fetching student inspection supervisors:", error);
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   add_a_new_coordinator,
   get_all_coordinators,
@@ -2157,4 +2266,5 @@ module.exports = {
   update_student_details,
   assign_score_for_student_weekly_report,
   download_csv_score_for_student_weekly_report,
+  download_student_inspection_supervisors,
 };

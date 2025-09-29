@@ -209,10 +209,10 @@ const login = async function (req, res) {
     }
 
     const tokens = await create_tokens(user, res, type);
-    await sendLoginAlertMail(
-      user.email,
-      new Date().toLocaleString("en-GB", { timeZone: "Africa/Lagos" })
-    );
+    // await sendLoginAlertMail(
+    //   user.email,
+    //   new Date().toLocaleString("en-GB", { timeZone: "Africa/Lagos" })
+    // );
 
     res
       .status(200)
