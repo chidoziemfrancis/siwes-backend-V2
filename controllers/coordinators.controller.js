@@ -467,17 +467,27 @@ const get_all_students = async function (req, res) {
 
   try {
     // get pagination parameters
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page);
+    const limit = parseInt(req.query.limit);
     const { sortOrder, sortBy } = req.query;
 
-    if (page < 1)
-      return res.status(400).json({ message: "Invalid page number" });
-    if (limit < 1) return res.status(400).json({ message: "Invalid limit" });
-    if (limit > 50)
-      return res
-        .status(400)
-        .json({ message: "Limit too large, maximum allowed limit is 50" });
+    // Check if pagination parameters are provided
+    const hasPagination = !isNaN(page) || !isNaN(limit);
+
+    // Set default values only if pagination is requested
+    const finalPage = hasPagination ? page || 1 : 1;
+    const finalLimit = hasPagination ? limit || 10 : null; // null means no limit
+
+    if (hasPagination) {
+      if (finalPage < 1)
+        return res.status(400).json({ message: "Invalid page number" });
+      if (finalLimit < 1)
+        return res.status(400).json({ message: "Invalid limit" });
+      if (finalLimit > 50)
+        return res
+          .status(400)
+          .json({ message: "Limit too large, maximum allowed limit is 50" });
+    }
 
     let sortQuery = [
       { $sort: { "company.LGA": -1 } }, // Always keep LGA sorted in descending order
@@ -536,12 +546,17 @@ const get_all_students = async function (req, res) {
         },
       },
       ...sortQuery, // Apply sorting here
-      {
-        $skip: (page - 1) * limit,
-      },
-      {
-        $limit: limit,
-      },
+      // Apply pagination only if requested
+      ...(hasPagination
+        ? [
+            {
+              $skip: (finalPage - 1) * finalLimit,
+            },
+            {
+              $limit: finalLimit,
+            },
+          ]
+        : []),
       {
         $lookup: {
           from: "grades",
@@ -593,6 +608,44 @@ const get_all_students = async function (req, res) {
           },
         },
       },
+      {
+        $lookup: {
+          from: "defense_lists",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "defenseInfo",
+        },
+      },
+      {
+        $addFields: {
+          defenseInfo: { $arrayElemAt: ["$defenseInfo", 0] },
+        },
+      },
+      {
+        $lookup: {
+          from: "supervisors",
+          localField: "defenseInfo.supervisorId",
+          foreignField: "_id",
+          as: "defenseSupervisorInfo",
+          pipeline: [
+            {
+              $project: { firstName: 1, lastName: 1, phone: 1, email: 1 },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          defenseSupervisorInfo: {
+            $arrayElemAt: ["$defenseSupervisorInfo", 0],
+          },
+        },
+      },
+      {
+        $project: {
+          defenseInfo: 0,
+        },
+      },
     ];
 
     const students = await STUDENTS.aggregate(pipeline);
@@ -603,12 +656,21 @@ const get_all_students = async function (req, res) {
 
     const totalStudents = await STUDENTS.countDocuments({ faculty });
     const csvString = jsonToCsvString(students);
-    res.status(200).json({
-      students,
-      totalStudents,
-      currentPage: page,
-      currentLimit: limit,
-    });
+
+    // Return appropriate response based on pagination
+    if (hasPagination) {
+      res.status(200).json({
+        students,
+        totalStudents,
+        currentPage: finalPage,
+        currentLimit: finalLimit,
+      });
+    } else {
+      res.status(200).json({
+        students,
+        totalStudents,
+      });
+    }
   } catch (error) {
     console.error("Error fetching students:", error);
     handleError(error, res);
@@ -2238,6 +2300,77 @@ const download_student_inspection_supervisors = async function (req, res) {
   }
 };
 
+/**
+ * Makes inspection supervisors defense supervisors for students who already have inspection supervisors
+ * @param {request} req
+ * @param {response} res
+ */
+const assign_siwes_inspectors = async function (req, res) {
+  try {
+    // Get all students who have inspection supervisors
+    const studentsWithInspectionSupervisors = await INSPECTION_LIST.find(
+      {},
+      {
+        studentCode: 1,
+        supervisorId: 1,
+      }
+    );
+
+    if (studentsWithInspectionSupervisors.length === 0) {
+      res.status(404).json({
+        message: "No students with inspection supervisors found",
+      });
+      return;
+    }
+
+    let defenseAssignedCount = 0;
+    const errors = [];
+
+    // Process each student with inspection supervisor
+    for (const inspectionAssignment of studentsWithInspectionSupervisors) {
+      try {
+        // Check if this student already has a defense supervisor
+        const existingDefenseAssignment = await DEFENSE_LIST.findOne({
+          studentCode: inspectionAssignment.studentCode,
+        });
+
+        // If no defense supervisor assigned, make the inspection supervisor the defense supervisor too
+        if (!existingDefenseAssignment) {
+          await DEFENSE_LIST.updateOne(
+            { studentCode: inspectionAssignment.studentCode },
+            {
+              supervisorId: inspectionAssignment.supervisorId,
+              assignedDate: new Date(),
+            },
+            { upsert: true }
+          );
+          defenseAssignedCount++;
+        }
+      } catch (error) {
+        console.error(
+          `Error assigning defense supervisor for student ${inspectionAssignment.studentCode}:`,
+          error
+        );
+        errors.push({
+          studentCode: inspectionAssignment.studentCode,
+          error: error.message,
+        });
+      }
+    }
+
+    res.status(200).json({
+      message: "Defense supervisors assignment completed",
+      totalStudentsWithInspectionSupervisors:
+        studentsWithInspectionSupervisors.length,
+      defenseAssignments: defenseAssignedCount,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (error) {
+    console.error("Error in assign_siwes_inspectors:", error);
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   add_a_new_coordinator,
   get_all_coordinators,
@@ -2269,4 +2402,5 @@ module.exports = {
   assign_score_for_student_weekly_report,
   download_csv_score_for_student_weekly_report,
   download_student_inspection_supervisors,
+  assign_siwes_inspectors,
 };

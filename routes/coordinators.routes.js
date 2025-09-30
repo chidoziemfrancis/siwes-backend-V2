@@ -30,6 +30,7 @@ const {
   download_csv_score_for_student_weekly_report,
   download_all_students,
   download_student_inspection_supervisors,
+  assign_siwes_inspectors,
 } = require("./../controllers/coordinators.controller");
 const { isCoordinator } = require("./../middlewares/auth.middleware");
 const {
@@ -107,6 +108,8 @@ router.post(
   isCoordinator,
   assign_defense_supervisor
 );
+
+router.post("/assignSiwesInspectors", isCoordinator, assign_siwes_inspectors);
 
 router.post(
   "/setRegistrationDeadline",
