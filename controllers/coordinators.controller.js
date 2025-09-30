@@ -525,7 +525,6 @@ const get_all_students = async function (req, res) {
                 address: 1,
                 state: 1,
                 LGA: 1,
-                street: 1,
               },
             },
           ],
@@ -542,6 +541,24 @@ const get_all_students = async function (req, res) {
       },
       {
         $limit: limit,
+      },
+      {
+        $lookup: {
+          from: "grades",
+          localField: "_id",
+          foreignField: "studentId",
+          as: "grade",
+          pipeline: [
+            {
+              $project: { studentId: 0, __v: 0, createdAt: 0, updatedAt: 0 },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          grade: { $arrayElemAt: ["$grade", 0] },
+        },
       },
       {
         $lookup: {
@@ -573,21 +590,6 @@ const get_all_students = async function (req, res) {
         $addFields: {
           assignedSupervisorInfo: {
             $arrayElemAt: ["$assignedSupervisorInfo", 0],
-          },
-        },
-      },
-      {
-        $lookup: {
-          from: "grades",
-          localField: "inspectionInfo._id",
-          foreignField: "studentId",
-          as: "grade",
-        },
-      },
-      {
-        $addFields: {
-          grade: {
-            $arrayElemAt: ["$grade", 0],
           },
         },
       },

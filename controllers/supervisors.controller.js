@@ -327,30 +327,8 @@ const get_assigned_students_for_inspection = async function (req, res) {
       },
       {
         $lookup: {
-          from: "defense_lists",
-          localField: "studentDetails.studentCode",
-          foreignField: "studentCode",
-          as: "defenseDetails",
-          pipeline: [
-            {
-              $project: {
-                assignedDate: 1,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $addFields: {
-          defenseDate: {
-            $arrayElemAt: ["$defenseDetails.assignedDate", 0],
-          },
-        },
-      },
-      {
-        $lookup: {
           from: "grades",
-          localField: "_id",
+          localField: "studentDetails._id",
           foreignField: "studentId",
           as: "grade",
         },
@@ -360,12 +338,6 @@ const get_assigned_students_for_inspection = async function (req, res) {
           grade: {
             $arrayElemAt: ["$grade", 0],
           },
-          inspectionDate: "$assignedDate",
-        },
-      },
-      {
-        $project: {
-          defenseDetails: 0,
         },
       },
     ];
