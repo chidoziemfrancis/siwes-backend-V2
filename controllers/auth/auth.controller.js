@@ -41,7 +41,7 @@ const create_tokens = function (user, res, type) {
         clientPayload,
         process.env.ACCESS_TOKEN_SECRET,
         {
-          expiresIn: "1h",
+          expiresIn: "2h",
         }
       );
       const refreshToken = jwt.sign(
@@ -52,7 +52,7 @@ const create_tokens = function (user, res, type) {
         }
       );
       const clientToken = jwt.sign(clientId, process.env.CLIENT_TOKEN_SECRET, {
-        expiresIn: "15m",
+        expiresIn: "2h",
       });
 
       // Update user's validation_secret

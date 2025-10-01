@@ -72,7 +72,7 @@ const assign_new_tokens = function (user, res, type) {
       const accessToken = jwt.sign(
         clientPayload,
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "1h" }
+        { expiresIn: "2h" }
       );
       const refreshToken = jwt.sign(
         clientPayload,
