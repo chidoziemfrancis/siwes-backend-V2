@@ -1600,18 +1600,7 @@ const search_for_students = async function (req, res) {
     }
 
     // this holds the fields that I want to be able to search
-    const indexedFields = [
-      "course",
-      "department",
-      "email",
-      "faculty",
-      "firstName",
-      "lastName",
-      "matricNo",
-      "middleName",
-      "phone",
-      "studentCode",
-    ];
+    const indexedFields = ["firstName", "lastName", "middleName"];
 
     const pipeline = [
       {
@@ -1739,7 +1728,10 @@ const search_for_students = async function (req, res) {
       return;
     }
 
-    res.status(200).json(students);
+    res.status(200).json({
+      students,
+      nHits: students.length,
+    });
   } catch (error) {
     handleError(error, res);
   }
@@ -2082,9 +2074,121 @@ const assign_score_for_student_weekly_report = async function (req, res) {
       },
     ]);
 
+    // Update the grades collection with the calculated weeklyReportsScore
+    for (const student of final_result) {
+      // Find the student by studentCode to get their _id
+      const studentDoc = await STUDENTS.findOne({
+        studentCode: student.studentCode,
+      });
+      if (studentDoc) {
+        // Update or create the grade record with the calculated weeklyReportsScore
+        await GRADES.updateOne(
+          { studentId: studentDoc._id },
+          {
+            $set: {
+              weeklyReportsScore: student.marks,
+              lastUpdatedBy: req.user._id,
+            },
+          },
+          { upsert: true }
+        );
+      }
+    }
+
     // Send the final result and the log data as the response
     res.status(200).json({
-      message: "Student score calculated successfully",
+      message: "Student score calculated and updated successfully",
+      data: final_result,
+    });
+  } catch (error) {
+    console.error("Error in aggregation pipeline: ", error);
+    handleError(error, res);
+  }
+};
+
+/**
+ * Fetches calculated weekly report scores without storing them in the database
+ * @param {request} req
+ * @param {response} res
+ */
+const fetch_weekly_report_scores = async function (req, res) {
+  try {
+    const final_result = await WEEKLYREPORTS.aggregate([
+      {
+        $lookup: {
+          from: "students",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "studentInfo",
+        },
+      },
+      {
+        $unwind: "$studentInfo",
+      },
+      {
+        $group: {
+          _id: "$studentCode",
+          reportCount: { $sum: 1 },
+          firstName: { $first: "$studentInfo.firstName" },
+          lastName: { $first: "$studentInfo.lastName" },
+          course: { $first: "$studentInfo.course" },
+          matricNumber: { $first: "$studentInfo.matricNo" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          studentCode: "$_id",
+          firstName: 1,
+          lastName: 1,
+          matricNumber: 1,
+          course: 1,
+          reportCount: 1,
+          marks: {
+            $switch: {
+              branches: [
+                {
+                  case: { $gte: ["$reportCount", 10] },
+                  then: 20,
+                },
+                {
+                  case: {
+                    $and: [
+                      { $gte: ["$reportCount", 8] },
+                      { $lt: ["$reportCount", 10] },
+                    ],
+                  },
+                  then: 17,
+                },
+                {
+                  case: {
+                    $and: [
+                      { $gte: ["$reportCount", 6] },
+                      { $lt: ["$reportCount", 8] },
+                    ],
+                  },
+                  then: 14,
+                },
+                {
+                  case: {
+                    $and: [
+                      { $gte: ["$reportCount", 5] },
+                      { $lt: ["$reportCount", 6] },
+                    ],
+                  },
+                  then: 10,
+                },
+              ],
+              default: 0,
+            },
+          },
+        },
+      },
+    ]);
+
+    // Send the calculated scores without storing them
+    res.status(200).json({
+      message: "Weekly report scores calculated successfully",
       data: final_result,
     });
   } catch (error) {
@@ -2400,6 +2504,7 @@ module.exports = {
   download_all_student_data,
   update_student_details,
   assign_score_for_student_weekly_report,
+  fetch_weekly_report_scores,
   download_csv_score_for_student_weekly_report,
   download_student_inspection_supervisors,
   assign_siwes_inspectors,

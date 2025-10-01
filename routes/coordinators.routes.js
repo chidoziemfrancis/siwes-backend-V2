@@ -27,6 +27,7 @@ const {
   download_all_student_data,
   update_student_details,
   assign_score_for_student_weekly_report,
+  fetch_weekly_report_scores,
   download_csv_score_for_student_weekly_report,
   download_all_students,
   download_student_inspection_supervisors,
@@ -74,6 +75,12 @@ router.get(
   "/weeklyReportScore",
   isCoordinator,
   assign_score_for_student_weekly_report
+);
+
+router.get(
+  "/weeklyReportScore/fetch",
+  isCoordinator,
+  fetch_weekly_report_scores
 );
 
 router.get(
