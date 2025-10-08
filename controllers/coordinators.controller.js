@@ -2405,11 +2405,11 @@ const download_student_inspection_supervisors = async function (req, res) {
 };
 
 /**
- * Makes inspection supervisors defense supervisors for students who already have inspection supervisors
+ * Bulk add siwes inspecor
  * @param {request} req
  * @param {response} res
  */
-const assign_siwes_inspectors = async function (req, res) {
+const assign_right_defense_supervisor = async function (req, res) {
   try {
     // Get all students who have inspection supervisors
     const studentsWithInspectionSupervisors = await INSPECTION_LIST.find(
@@ -2475,6 +2475,99 @@ const assign_siwes_inspectors = async function (req, res) {
   }
 };
 
+/**
+ * Assigns defense supervisors to students based on their course
+ * @param {request} req
+ * @param {response} res
+ */
+const assign_defense_supervisor_by_course = async function (req, res) {
+  try {
+    // Get all students
+    const students = await STUDENTS.find({}, { studentCode: 1, course: 1 });
+
+    if (students.length === 0) {
+      res.status(404).json({
+        message: "No students found",
+      });
+      return;
+    }
+
+    // Course to supervisor mapping
+    const courseSupervisorMapping = {
+      "software engineering": "65d7332e2f6747921841c438", // amos awoniyi
+      "computer science": "65d7290e2f6747921841c3d2", // oluwasefunmi famodimu
+      "information technology": "65d736432f6747921841c45d", // oluwaseyi adediran
+      "computer technology": "65df11f6308eb07ae2ab6e0b", // oluwayemisi fatade
+      "computer information system": "65df11f6308eb07ae2ab6e0b", // oluwayemisi fatade
+    };
+
+    // Default supervisor (amos awoniyi)
+    const defaultSupervisorId = "65d7332e2f6747921841c438";
+
+    let defenseAssignedCount = 0;
+    let defenseUpdatedCount = 0;
+    const errors = [];
+
+    // Process each student
+    for (const student of students) {
+      try {
+        // Get the appropriate supervisor based on course
+        const courseLower = student.course.toLowerCase().trim();
+        const supervisorId =
+          courseSupervisorMapping[courseLower] || defaultSupervisorId;
+
+        // Check if this student already has a defense supervisor
+        const existingDefenseAssignment = await DEFENSE_LIST.findOne({
+          studentCode: student.studentCode,
+        });
+
+        if (!existingDefenseAssignment) {
+          // Create new defense assignment
+          await DEFENSE_LIST.create({
+            studentCode: student.studentCode,
+            supervisorId: supervisorId,
+            assignedDate: new Date(),
+          });
+          defenseAssignedCount++;
+        } else if (
+          existingDefenseAssignment.supervisorId.toString() !== supervisorId
+        ) {
+          // Update existing defense assignment if supervisor is different
+          await DEFENSE_LIST.updateOne(
+            { studentCode: student.studentCode },
+            {
+              supervisorId: supervisorId,
+              assignedDate: new Date(),
+            }
+          );
+          defenseUpdatedCount++;
+        }
+      } catch (error) {
+        console.error(
+          `Error assigning defense supervisor for student ${student.studentCode}:`,
+          error
+        );
+        errors.push({
+          studentCode: student.studentCode,
+          course: student.course,
+          error: error.message,
+        });
+      }
+    }
+
+    res.status(200).json({
+      message: "Defense supervisors assignment by course completed",
+      totalStudents: students.length,
+      newDefenseAssignments: defenseAssignedCount,
+      updatedDefenseAssignments: defenseUpdatedCount,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (error) {
+    console.error("Error in assign_defense_supervisor_by_course:", error);
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   add_a_new_coordinator,
   get_all_coordinators,
@@ -2507,5 +2600,6 @@ module.exports = {
   fetch_weekly_report_scores,
   download_csv_score_for_student_weekly_report,
   download_student_inspection_supervisors,
-  assign_siwes_inspectors,
+  assign_right_defense_supervisor,
+  assign_defense_supervisor_by_course,
 };

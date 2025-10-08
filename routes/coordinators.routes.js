@@ -31,7 +31,8 @@ const {
   download_csv_score_for_student_weekly_report,
   download_all_students,
   download_student_inspection_supervisors,
-  assign_siwes_inspectors,
+  assign_right_defense_supervisor,
+  assign_defense_supervisor_by_course,
 } = require("./../controllers/coordinators.controller");
 const { isCoordinator } = require("./../middlewares/auth.middleware");
 const {
@@ -116,7 +117,17 @@ router.post(
   assign_defense_supervisor
 );
 
-router.post("/assignSiwesInspectors", isCoordinator, assign_siwes_inspectors);
+router.post(
+  "/assignSiwesInspectors",
+  isCoordinator,
+  assign_right_defense_supervisor
+);
+
+router.post(
+  "/assignDefenseSupervisorsByCourse",
+  isCoordinator,
+  assign_defense_supervisor_by_course
+);
 
 router.post(
   "/setRegistrationDeadline",
