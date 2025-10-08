@@ -11,6 +11,7 @@ const cloudinary = require("cloudinary").v2;
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swaggerConfig");
 const redisClient = require("./utils/redisClient");
+const { apiReference } = require("@scalar/express-api-reference");
 
 require("dotenv").config();
 
@@ -40,6 +41,14 @@ const corsOption = {
 };
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use(
+  "/reference",
+  apiReference({
+    spec: {
+      content: swaggerSpec,
+    },
+  })
+);
 app.use(cors(corsOption));
 app.use(compression());
 app.use(bodyParser.json());
@@ -116,7 +125,7 @@ async function main() {
       res.status(404).json({
         success: false,
         message: "API endpoint not found. This is a backend-only API service.",
-        availableEndpoints: ["/api"],
+        availableEndpoints: ["/api", "/api-docs", "/reference"],
       });
     });
   } catch (error) {
