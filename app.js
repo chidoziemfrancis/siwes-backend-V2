@@ -11,9 +11,19 @@ const cloudinary = require("cloudinary").v2;
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swaggerConfig");
 const redisClient = require("./utils/redisClient");
-const { apiReference } = require("@scalar/express-api-reference");
 
 require("dotenv").config();
+
+// Only load Scalar in non-production environments (development/staging)
+// Scalar is an ES module and causes issues in production environments like Vercel
+let apiReference = null;
+if (process.env.NODE_ENV !== "production") {
+  try {
+    apiReference = require("@scalar/express-api-reference").apiReference;
+  } catch (error) {
+    console.log("Scalar API Reference not available:", error.message);
+  }
+}
 
 // Fix Mongoose deprecation warning
 mongoose.set("strictQuery", false);
@@ -41,14 +51,19 @@ const corsOption = {
 };
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.use(
-  "/reference",
-  apiReference({
-    spec: {
-      content: swaggerSpec,
-    },
-  })
-);
+
+// Only enable Scalar API Reference in non-production environments
+if (apiReference) {
+  app.use(
+    "/reference",
+    apiReference({
+      spec: {
+        content: swaggerSpec,
+      },
+    })
+  );
+}
+
 app.use(cors(corsOption));
 app.use(compression());
 app.use(bodyParser.json());
@@ -122,10 +137,14 @@ async function main() {
 
     // Catch-all route for API requests
     app.get("*", (req, res) => {
+      const endpoints = ["/api", "/api-docs"];
+      if (apiReference) {
+        endpoints.push("/reference");
+      }
       res.status(404).json({
         success: false,
         message: "API endpoint not found. This is a backend-only API service.",
-        availableEndpoints: ["/api", "/api-docs", "/reference"],
+        availableEndpoints: endpoints,
       });
     });
   } catch (error) {
