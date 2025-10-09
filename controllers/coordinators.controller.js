@@ -2498,7 +2498,7 @@ const assign_defense_supervisor_by_course = async function (req, res) {
       "computer science": "65d7290e2f6747921841c3d2", // oluwasefunmi famodimu
       "information technology": "65d736432f6747921841c45d", // oluwaseyi adediran
       "computer technology": "65df11f6308eb07ae2ab6e0b", // oluwayemisi fatade
-      "computer information system": "65df11f6308eb07ae2ab6e0b", // oluwayemisi fatade
+      "computer information systems": "65df11f6308eb07ae2ab6e0b", // oluwayemisi fatade
     };
 
     // Default supervisor (amos awoniyi)
