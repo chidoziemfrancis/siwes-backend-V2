@@ -13,6 +13,8 @@ const {
   get_inspection_list,
   assign_defense_supervisor,
   assign_inspection_supervisor,
+  bulk_assign_inspection_supervisor,
+  bulk_assign_defense_supervisor,
   get_all_students,
   get_a_student,
   set_registration_deadline,
@@ -498,6 +500,12 @@ router.post(
   assign_inspection_supervisor
 );
 
+router.post(
+  "/bulkAssignInspectionSupervisor",
+  isCoordinator,
+  bulk_assign_inspection_supervisor
+);
+
 /**
  * @swagger
  * /coordinators/assignDefenseSupervisor:
@@ -529,6 +537,12 @@ router.post(
   "/assignDefenseSupervisor",
   isCoordinator,
   assign_defense_supervisor
+);
+
+router.post(
+  "/bulkAssignDefenseSupervisor",
+  isCoordinator,
+  bulk_assign_defense_supervisor
 );
 
 /**

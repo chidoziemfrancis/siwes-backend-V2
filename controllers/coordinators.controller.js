@@ -2405,6 +2405,176 @@ const download_student_inspection_supervisors = async function (req, res) {
 };
 
 /**
+ * Bulk assign multiple students to one inspection supervisor
+ * @param {request} req
+ * @param {response} res
+ */
+const bulk_assign_inspection_supervisor = async function (req, res) {
+  const { supervisorId, studentCodes } = req.body;
+
+  try {
+    // Validate supervisorId
+    if (!mongoose.Types.ObjectId.isValid(supervisorId)) {
+      res.status(400).json({ message: "Invalid supervisor id" });
+      return;
+    }
+
+    // Validate studentCodes array
+    if (!Array.isArray(studentCodes) || studentCodes.length === 0) {
+      res.status(400).json({
+        message: "studentCodes must be a non-empty array",
+      });
+      return;
+    }
+
+    // Check if supervisor exists
+    const supervisorExists = await SUPERVISORS.findOne({ _id: supervisorId });
+
+    if (supervisorExists === null) {
+      res.status(400).json({ message: "No supervisor was found with that id" });
+      return;
+    }
+
+    let assignedCount = 0;
+    let failedAssignments = [];
+
+    // Process each student code
+    for (const studentCode of studentCodes) {
+      try {
+        // Validate student code format
+        if (/\w+\-\d+\-\d+/.test(studentCode) === false) {
+          failedAssignments.push({
+            studentCode,
+            reason: "Invalid student code format",
+          });
+          continue;
+        }
+
+        // Check if student exists
+        const studentExists = await STUDENTS.findOne({ studentCode });
+
+        if (studentExists === null) {
+          failedAssignments.push({
+            studentCode,
+            reason: "Student not found",
+          });
+          continue;
+        }
+
+        // Assign supervisor to student
+        await INSPECTION_LIST.updateOne(
+          { studentCode },
+          { supervisorId },
+          { upsert: true }
+        );
+
+        assignedCount++;
+      } catch (error) {
+        failedAssignments.push({
+          studentCode,
+          reason: error.message,
+        });
+      }
+    }
+
+    res.status(200).json({
+      message: "Bulk inspection supervisor assignment completed",
+      totalRequested: studentCodes.length,
+      successfulAssignments: assignedCount,
+      failedAssignments:
+        failedAssignments.length > 0 ? failedAssignments : undefined,
+    });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * Bulk assign multiple students to one defense supervisor
+ * @param {request} req
+ * @param {response} res
+ */
+const bulk_assign_defense_supervisor = async function (req, res) {
+  const { supervisorId, studentCodes } = req.body;
+
+  try {
+    // Validate supervisorId
+    if (!mongoose.Types.ObjectId.isValid(supervisorId)) {
+      res.status(400).json({ message: "Invalid supervisor id" });
+      return;
+    }
+
+    // Validate studentCodes array
+    if (!Array.isArray(studentCodes) || studentCodes.length === 0) {
+      res.status(400).json({
+        message: "studentCodes must be a non-empty array",
+      });
+      return;
+    }
+
+    // Check if supervisor exists
+    const supervisorExists = await SUPERVISORS.findOne({ _id: supervisorId });
+
+    if (supervisorExists === null) {
+      res.status(400).json({ message: "No supervisor was found with that id" });
+      return;
+    }
+
+    let assignedCount = 0;
+    let failedAssignments = [];
+
+    // Process each student code
+    for (const studentCode of studentCodes) {
+      try {
+        // Validate student code format
+        if (/\w+\-\d+\-\d+/.test(studentCode) === false) {
+          failedAssignments.push({
+            studentCode,
+            reason: "Invalid student code format",
+          });
+          continue;
+        }
+
+        // Check if student exists
+        const studentExists = await STUDENTS.findOne({ studentCode });
+
+        if (studentExists === null) {
+          failedAssignments.push({
+            studentCode,
+            reason: "Student not found",
+          });
+          continue;
+        }
+
+        // Assign supervisor to student
+        await DEFENSE_LIST.updateOne(
+          { studentCode },
+          { supervisorId },
+          { upsert: true }
+        );
+
+        assignedCount++;
+      } catch (error) {
+        failedAssignments.push({
+          studentCode,
+          reason: error.message,
+        });
+      }
+    }
+
+    res.status(200).json({
+      message: "Bulk defense supervisor assignment completed",
+      totalRequested: studentCodes.length,
+      successfulAssignments: assignedCount,
+      failedAssignments:
+        failedAssignments.length > 0 ? failedAssignments : undefined,
+    });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
  * Bulk add siwes inspecor
  * @param {request} req
  * @param {response} res
@@ -2582,6 +2752,8 @@ module.exports = {
   get_inspection_list,
   assign_defense_supervisor,
   assign_inspection_supervisor,
+  bulk_assign_inspection_supervisor,
+  bulk_assign_defense_supervisor,
   get_all_students,
   download_all_students,
   get_a_student,
