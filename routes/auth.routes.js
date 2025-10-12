@@ -2,7 +2,6 @@ const router = require("express").Router();
 const {
   register,
   login,
-  login_director,
   logout,
   send_OTP,
   verify_OTP,
@@ -73,8 +72,6 @@ router.post("/register", register);
  *         description: Unauthorized, invalid credentials
  */
 router.post("/login", login);
-
-router.post("/login/director", login_director);
 
 /**
  * @swagger
@@ -174,8 +171,9 @@ router.post("/verifyOTP", verify_OTP);
  */
 router.patch("/forgotPassword/changePassword", reset_password);
 
-
-
-router.patch("/forgotPassword/changePassword/supervisor", supervisor_reset_password);
+router.patch(
+  "/forgotPassword/changePassword/supervisor",
+  supervisor_reset_password
+);
 
 module.exports = router;

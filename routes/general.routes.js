@@ -2,6 +2,7 @@ const router = require("express").Router();
 const coordinatorsRoutes = require("./coordinators.routes");
 const studentsRoutes = require("./students.routes");
 const supervisorsRoutes = require("./supervisors.routes");
+const directorsRoutes = require("./director.routes");
 const authRoutes = require("./auth.routes");
 const redisClient = require("../utils/redisClient");
 
@@ -19,12 +20,14 @@ router.use("/supervisor", supervisorsRoutes);
 // Student specific routes
 router.use("/student", studentsRoutes);
 
-router.use("/auth", authRoutes);
+// Director specific routes
+router.use("/directors", directorsRoutes);
 
+router.use("/auth", authRoutes);
 
 router.get("/health", async (req, res) => {
   try {
-    await redisClient.set("healthCheck", "OK", { EX: 10 }); 
+    await redisClient.set("healthCheck", "OK", { EX: 10 });
     const value = await redisClient.get("healthCheck");
     if (value === "OK") {
       res.status(200).json({ message: "Redis is healthy" });

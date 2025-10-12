@@ -1,11 +1,16 @@
 const router = require("express").Router();
 const {
-    get_all_supervisors,
-    get_a_specific_supervisor,
-    get_all_coordinators,
-    get_a_specific_coordinator,
-    get_all_students,
-    get_a_specific_student
+  add_director,
+  get_all_directors,
+  get_a_specific_director,
+  get_all_supervisors,
+  get_a_specific_supervisor,
+  get_all_coordinators,
+  get_a_specific_coordinator,
+  get_all_students,
+  get_a_specific_student,
+  update_director_details,
+  change_password,
 } = require("./../controllers/director.controller");
 const { isDirector } = require("./../middlewares/auth.middleware");
 
@@ -17,6 +22,43 @@ const { isDirector } = require("./../middlewares/auth.middleware");
  */
 
 // might need to change all /:id to refrence req.user._id to prevent accidentally creating a super admin and IDOR
+
+/**
+ * @swagger
+ * /directors/add:
+ *   post:
+ *     summary: Add a new director
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               office:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Director added successfully
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ */
+router.post("/add", isDirector, add_director);
 
 /**
  * @swagger
@@ -34,7 +76,7 @@ const { isDirector } = require("./../middlewares/auth.middleware");
  */
 router.get("/supervisors", isDirector, get_all_supervisors);
 
-/** 
+/**
  * @swagger
  * /directors/supervisors/{id}:
  *   get:
@@ -59,7 +101,7 @@ router.get("/supervisors", isDirector, get_all_supervisors);
 
 router.get("/supervisors/:id", isDirector, get_a_specific_supervisor);
 
-/** 
+/**
  * @swagger
  * /directors/coordinators:
  *   get:
@@ -75,7 +117,7 @@ router.get("/supervisors/:id", isDirector, get_a_specific_supervisor);
  */
 router.get("/coordinators", isDirector, get_all_coordinators);
 
-/** 
+/**
  * @swagger
  * /directors/coordinators/{id}:
  *   get:
@@ -138,3 +180,118 @@ router.get("/students", isDirector, get_all_students);
  *         description: Unauthorized
  */
 router.get("/students/:id", isDirector, get_a_specific_student);
+
+/**
+ * @swagger
+ * /directors/changePassword:
+ *   patch:
+ *     summary: Change director password
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *                 example: "oldPass123"
+ *               newPassword:
+ *                 type: string
+ *                 example: "newPass123"
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       400:
+ *         description: Bad request - incorrect old password or missing parameters
+ *       401:
+ *         description: Unauthorized
+ */
+router.patch("/changePassword", isDirector, change_password);
+
+/**
+ * @swagger
+ * /directors/update/{id}:
+ *   patch:
+ *     summary: Update director details
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Director ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               office:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Director updated successfully
+ *       404:
+ *         description: Director not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.patch("/update/:id", isDirector, update_director_details);
+
+/**
+ * @swagger
+ * /directors:
+ *   get:
+ *     summary: Get all directors
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all directors
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/", isDirector, get_all_directors);
+
+/**
+ * @swagger
+ * /directors/{id}:
+ *   get:
+ *     summary: Get a specific director by ID
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Director details
+ *       404:
+ *         description: Director not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/:id", isDirector, get_a_specific_director);
+
+module.exports = router;

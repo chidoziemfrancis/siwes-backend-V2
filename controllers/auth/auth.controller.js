@@ -176,7 +176,10 @@ const login = async function (req, res) {
   const { email, password, type } = req.body;
 
   try {
-    if (["student", "coordinator", "supervisor", "director"].includes(type) === false) {
+    if (
+      ["student", "coordinator", "supervisor", "director"].includes(type) ===
+      false
+    ) {
       res.status(400).json({ message: "Invalid request" });
       return;
     }
@@ -200,7 +203,7 @@ const login = async function (req, res) {
       case "supervisor":
         user = await SUPERVISORS.findOne({ email });
         break;
-      
+
       case "director":
         user = await DIRECTORS.findOne({ email });
         break;
@@ -233,51 +236,6 @@ const login = async function (req, res) {
     console.log(error);
   }
 };
-
-const login_director = async function (req, res) {
-  const { email, password } = req.body;
-  
-
-  try {
-    if (["director"].includes(type) === false) {
-      res.status(400).json({ message: "Invalid request" });
-      return;
-    }
-
-    if (email.trim().length === 0 || password.length === 0) {
-      res.status(400).json({ message: "Invalid request" });
-      return;
-    }
-
-    const user = null;
-
-    user = await DIRECTORS.findOne({ email });
-    if (user === null) {
-      res.status(400).json({ message: "Invalid credentials" });
-      return;
-    }
-
-    const passwordIsValid = await bcrypt.compare(password, user.password);
-    if (!passwordIsValid) {
-      res.status(400).json({ message: "Invalid Password" });
-      return;
-    }
-
-    const tokens = await create_tokens(user, res, type);
-    // await sendLoginAlertMail(
-    //   user.email,
-    //   new Date().toLocaleString("en-GB", { timeZone: "Africa/Lagos" })
-    // );
-
-    res
-      .status(200)
-      .json({ message: "Login successful", data: user._id, tokens });
-
-  } catch (error) {
-    handleError(error, res);
-    console.log(error);
-  }
-}
 
 /**
  * Logout
@@ -501,7 +459,6 @@ const supervisor_reset_password = async function (req, res) {
 
 module.exports = {
   login,
-  login_director,
   logout,
   register,
   send_OTP,
