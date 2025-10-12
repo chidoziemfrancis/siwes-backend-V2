@@ -42,7 +42,7 @@ const handleError = async function (error, res) {
     await sendErrorMail({ error: error.toString() });
     res.status(500).json({
       error:
-        "An error occured on the server, the relevant team has been contacted, try again later",
+        "An erorr occured on the server, the relavant team has been contacted, try again later",
     });
     return;
   }
