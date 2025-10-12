@@ -2,6 +2,7 @@ const router = require("express").Router();
 const {
   add_director,
   get_all_directors,
+  get_current_director,
   get_a_specific_director,
   get_all_supervisors,
   get_a_specific_supervisor,
@@ -269,6 +270,24 @@ router.patch("/update/:id", isDirector, update_director_details);
  *         description: Unauthorized
  */
 router.get("/", isDirector, get_all_directors);
+
+/**
+ * @swagger
+ * /directors/get:
+ *   get:
+ *     summary: Get current logged-in director's details
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Current director details
+ *       404:
+ *         description: Director not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/get", isDirector, get_current_director);
 
 /**
  * @swagger

@@ -51,6 +51,32 @@ const get_all_directors = async function (req, res) {
 };
 
 /**
+ * gets the current logged-in director's details
+ * @param {request} req
+ * @param {response} res
+ */
+const get_current_director = async function (req, res) {
+  try {
+    const { _id } = req.user;
+
+    const director = await DIRECTORS.findOne(
+      { _id },
+      { password: 0, validation_secret: 0 }
+    );
+
+    if (director === null) {
+      res.status(404).json({ message: "Director not found" });
+      return;
+    }
+
+    res.status(200).json(director);
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
  * gets a specific director
  * @param {request} req
  * @param {response} res
@@ -211,7 +237,12 @@ const get_all_students = async function (req, res) {
       return;
     }
 
-    res.status(200).json(students);
+    const totalStudents = await STUDENTS.countDocuments();
+
+    res.status(200).json({
+      students,
+      totalStudents,
+    });
     return;
   } catch (error) {
     handleError(error, res);
@@ -368,6 +399,7 @@ const change_password = async function (req, res) {
 module.exports = {
   add_director,
   get_all_directors,
+  get_current_director,
   get_a_specific_director,
   get_all_supervisors,
   get_a_specific_supervisor,
