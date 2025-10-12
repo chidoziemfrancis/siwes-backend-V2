@@ -139,12 +139,12 @@ const register = async function (req, res) {
       return;
     }
 
-    if (currentTime > deadline.time) {
-      res.status(400).json({
-        message: "Registration couldn't be completed as it is closed",
-      });
-      return;
-    }
+    // if (currentTime > deadline.time) {
+    //   res.status(400).json({
+    //     message: "Registration couldn't be completed as it is closed",
+    //   });
+    //   return;
+    // }
 
     const student = await STUDENTS.create(studentInfo);
 
