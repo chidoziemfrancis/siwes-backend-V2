@@ -59,4 +59,6 @@ DirectorSchema.pre("save", async function (next) {
   next();
 });
 
-module.exports = mongoose.model("Director", DirectorSchema);
+const Director = mongoose.model("Director", DirectorSchema);
+
+module.exports = Director;

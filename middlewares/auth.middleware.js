@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const COORDINATORS = require("./../models/coordinator.model");
 const STUDENTS = require("./../models/student.model");
 const SUPERVISORS = require("./../models/supervisor.model");
+const DIRECTORS = require("./../models/director.model");
 const bcrypt = require("bcrypt");
 
 /**
@@ -26,6 +27,10 @@ const verify_token_status = function (token, type) {
 
         case "supervisor":
           userInfo = await SUPERVISORS.findOne({ _id: token.id });
+          break;
+
+        case "director":
+          userInfo = await DIRECTORS.findOne({ _id: token.id });
           break;
 
         default:
@@ -101,6 +106,13 @@ const assign_new_tokens = function (user, res, type) {
 
         case "supervisor":
           updateInfo = await SUPERVISORS.updateOne(
+            { _id: user._id },
+            { validation_secret: clientPayload.secret }
+          );
+          break;
+        
+        case "director":
+          updateInfo = await DIRECTORS.updateOne(
             { _id: user._id },
             { validation_secret: clientPayload.secret }
           );
@@ -271,6 +283,29 @@ const isCoordinator = async function (req, res, next) {
 };
 
 /**
+ * Determines if a user is a director
+ * @param {request} req
+ * @param {response} res
+ */
+const isDirector = async function (req, res, next) {
+  try {
+    const data = await decode_jwt(req, res, "director");
+
+    const user = await DIRECTORS.findOne({ _id: data.id });
+
+    if (user === null) {
+      throw new Error("access denied");
+    }
+
+    req.user = user;
+
+    next();
+  } catch (error) {
+    res.status(401).json({ message: error.message });
+  }
+};
+
+/**
  * @typedef userInfo
  * @property {ObjectId} _id
  */
@@ -279,4 +314,5 @@ module.exports = {
   isSupervisor,
   isCoordinator,
   isStudent,
+  isDirector,
 };
