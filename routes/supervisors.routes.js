@@ -11,6 +11,7 @@ const {
   update_inspection_time,
   assign_grade,
   bulk_assign_defense_grade,
+  upload_csv_assign_grades,
   download_form,
   download_assigned_supervisor_students,
 } = require("./../controllers/supervisors.controller");
@@ -307,6 +308,61 @@ router.post("/assignGrade", isSupervisor, assign_grade);
  *         description: Unauthorized
  */
 router.post("/bulkAssignDefenseGrade", isSupervisor, bulk_assign_defense_grade);
+
+/**
+ * @swagger
+ * /supervisor/uploadCsvGrades:
+ *   post:
+ *     summary: Upload CSV file to assign defense grades to students
+ *     tags: [Supervisors]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               csvFile:
+ *                 type: string
+ *                 format: binary
+ *                 description: CSV file containing Student ID, Student Name, and Grade columns (defense grades 0-60)
+ *             required:
+ *               - csvFile
+ *     responses:
+ *       200:
+ *         description: CSV defense grade assignment completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 totalProcessed:
+ *                   type: number
+ *                 successfulAssignments:
+ *                   type: number
+ *                 failedAssignments:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       row:
+ *                         type: number
+ *                       studentId:
+ *                         type: string
+ *                       studentName:
+ *                         type: string
+ *                       reason:
+ *                         type: string
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ */
+router.post("/uploadCsvGrades", isSupervisor, upload_csv_assign_grades);
 
 /**
  * @swagger

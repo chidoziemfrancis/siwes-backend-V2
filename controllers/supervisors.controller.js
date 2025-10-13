@@ -3,12 +3,15 @@ const DEFENSE_LIST = require("../models/defense_list.model");
 const INSPECTION_LIST = require("../models/inspection_list.model");
 const FORMS = require("./../models/form.model");
 const GRADES = require("./../models/grade.model");
+const STUDENTS = require("./../models/student.model");
 const { handleError } = require("../utils/handleError");
 const mongoose = require("mongoose");
 const { request, response } = require("express");
 const bcrypt = require("bcrypt");
 const { existsSync } = require("fs");
 const jsonToCsvString = require("../utils/jsonToCsvString");
+const csv = require("csv-parser");
+const { Readable } = require("stream");
 
 /**
  * Gets the details of a specific supervisor
@@ -1004,6 +1007,227 @@ const bulk_assign_defense_grade = async function (req, res) {
   }
 };
 
+/**
+ * Upload CSV file and assign defense grades to students based on CSV data
+ * @param {request} req
+ * @param {response} res
+ */
+const upload_csv_assign_grades = async function (req, res) {
+  const { _id: lastUpdatedBy } = req.user;
+
+  try {
+    // Validate authentication
+    if (mongoose.Types.ObjectId.isValid(lastUpdatedBy) == false) {
+      res.status(401).json({ message: "Please re authenticate to proceed" });
+      return;
+    }
+
+    // Check if file was uploaded
+    if (!req.files || !req.files.csvFile) {
+      res.status(400).json({ message: "No CSV file uploaded" });
+      return;
+    }
+
+    const csvFile = req.files.csvFile;
+
+    // Validate file type
+    if (
+      !csvFile.mimetype.includes("text/csv") &&
+      !csvFile.name.endsWith(".csv")
+    ) {
+      res.status(400).json({ message: "Please upload a valid CSV file" });
+      return;
+    }
+
+    // Parse CSV data
+    const csvData = [];
+    const stream = Readable.from(csvFile.data.toString());
+
+    await new Promise((resolve, reject) => {
+      stream
+        .pipe(csv())
+        .on("data", (row) => {
+          csvData.push(row);
+        })
+        .on("end", resolve)
+        .on("error", reject);
+    });
+
+    if (csvData.length === 0) {
+      res.status(400).json({ message: "CSV file is empty or invalid" });
+      return;
+    }
+
+    // Validate CSV structure - should have 'Student ID', 'Student Name', and 'Grade' columns
+    const firstRow = csvData[0];
+    const expectedColumns = ["Student ID", "Student Name", "Grade"];
+    const hasRequiredColumns = expectedColumns.every((col) =>
+      Object.keys(firstRow).some(
+        (key) => key.toLowerCase().trim() === col.toLowerCase().trim()
+      )
+    );
+
+    if (!hasRequiredColumns) {
+      res.status(400).json({
+        message:
+          "CSV must contain 'Student ID', 'Student Name', and 'Grade' columns",
+      });
+      return;
+    }
+
+    // Find the correct column names (case insensitive)
+    const studentIdColumn = Object.keys(firstRow).find(
+      (key) => key.toLowerCase().trim() === "student id"
+    );
+    const studentNameColumn = Object.keys(firstRow).find(
+      (key) => key.toLowerCase().trim() === "student name"
+    );
+    const gradeColumn = Object.keys(firstRow).find(
+      (key) => key.toLowerCase().trim() === "grade"
+    );
+
+    let processedCount = 0;
+    let successfulAssignments = 0;
+    let failedAssignments = [];
+
+    // Process each row
+    for (const row of csvData) {
+      const studentCode = row[studentIdColumn]?.trim(); // This is actually studentCode from CSV
+      const studentName = row[studentNameColumn]?.trim();
+      const gradeValue = row[gradeColumn]?.trim();
+
+      processedCount++;
+
+      // Skip empty rows
+      if (!studentCode || !studentName || !gradeValue) {
+        failedAssignments.push({
+          row: processedCount,
+          studentId: studentCode || "N/A",
+          studentName: studentName || "N/A",
+          reason: "Missing Student ID, Student Name, or Grade",
+        });
+        continue;
+      }
+
+      // Parse and validate grade
+      let score;
+      if (gradeValue.toUpperCase() === "N/A" || gradeValue === "") {
+        score = null;
+      } else {
+        score = parseFloat(gradeValue);
+        if (isNaN(score)) {
+          failedAssignments.push({
+            row: processedCount,
+            studentId: studentCode,
+            studentName,
+            reason: "Invalid grade value",
+          });
+          continue;
+        }
+      }
+
+      // Validate defense score range
+      if (score !== null) {
+        if (score > 60 || score < 0) {
+          failedAssignments.push({
+            row: processedCount,
+            studentId: studentCode,
+            studentName,
+            reason: "Defense score must be between 0 and 60",
+          });
+          continue;
+        }
+      }
+
+      try {
+        // Check if student exists using studentCode
+        const student = await STUDENTS.findOne({ studentCode });
+        if (!student) {
+          failedAssignments.push({
+            row: processedCount,
+            studentId: studentCode,
+            studentName,
+            reason: "Student not found",
+          });
+          continue;
+        }
+
+        // Check if supervisor is assigned to this student for defense
+        const isAssigned = await DEFENSE_LIST.findOne({
+          supervisorId: lastUpdatedBy,
+          studentCode: studentCode,
+        });
+
+        if (!isAssigned) {
+          failedAssignments.push({
+            row: processedCount,
+            studentId: studentCode,
+            studentName,
+            reason: "You are not the defense supervisor for this student",
+          });
+          continue;
+        }
+
+        // Check if grades have been collated
+        const studentGrade = await GRADES.findOne({ studentId: student._id });
+        if (studentGrade && studentGrade.total !== null) {
+          failedAssignments.push({
+            row: processedCount,
+            studentId: studentCode,
+            studentName,
+            reason:
+              "Grades cannot be updated as they have been collated already",
+          });
+          continue;
+        }
+
+        // Update or create grade record
+        const updateData = { lastUpdatedBy };
+        if (score !== null) {
+          updateData.defenseScore = score;
+        }
+
+        const response = await GRADES.updateOne(
+          { studentId: student._id },
+          updateData,
+          {
+            upsert: true,
+          }
+        );
+
+        if (response.acknowledged) {
+          successfulAssignments++;
+        } else {
+          failedAssignments.push({
+            row: processedCount,
+            studentId: studentCode,
+            studentName,
+            reason: "Failed to update grade",
+          });
+        }
+      } catch (error) {
+        failedAssignments.push({
+          row: processedCount,
+          studentId: studentCode,
+          studentName,
+          reason: error.message,
+        });
+      }
+    }
+
+    res.status(200).json({
+      message: "CSV defense grade assignment completed",
+      totalProcessed: processedCount,
+      successfulAssignments,
+      failedAssignments:
+        failedAssignments.length > 0 ? failedAssignments : undefined,
+    });
+  } catch (error) {
+    console.log(error);
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   get_a_supervisor,
   get_assigned_students_for_defense,
@@ -1015,6 +1239,7 @@ module.exports = {
   update_inspection_time,
   assign_grade,
   bulk_assign_defense_grade,
+  upload_csv_assign_grades,
   download_form,
   download_assigned_supervisor_students,
 };
