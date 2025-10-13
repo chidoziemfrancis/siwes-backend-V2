@@ -178,7 +178,7 @@ const get_assigned_students_for_defense = async function (req, res) {
       {
         $lookup: {
           from: "grades",
-          localField: "_id",
+          localField: "studentDetails._id",
           foreignField: "studentId",
           as: "grade",
         },
@@ -636,6 +636,35 @@ const assign_grade = async function (req, res) {
       return;
     }
 
+    // Check if studentId is actually a student _id or a defense/inspection list _id
+    let actualStudentId = studentId;
+    const studentExists = await STUDENTS.findById(studentId);
+
+    if (!studentExists) {
+      // studentId might be from defense_list or inspection_list, try to find the actual student
+      let listItem;
+      if (type === "defense") {
+        listItem = await DEFENSE_LIST.findById(studentId);
+      } else if (type === "inspection" || type === "reports") {
+        listItem = await INSPECTION_LIST.findById(studentId);
+      }
+
+      if (listItem && listItem.studentCode) {
+        const student = await STUDENTS.findOne({
+          studentCode: listItem.studentCode,
+        });
+        if (student) {
+          actualStudentId = student._id;
+        } else {
+          res.status(404).json({ message: "Student not found" });
+          return;
+        }
+      } else {
+        res.status(404).json({ message: "Student not found" });
+        return;
+      }
+    }
+
     if (score == null || typeof score == "undefined") {
       res.status(400).json({ message: "Please specify a score" });
       return;
@@ -658,7 +687,7 @@ const assign_grade = async function (req, res) {
       return;
     }
 
-    const studentGrade = await GRADES.findOne({ studentId });
+    const studentGrade = await GRADES.findOne({ studentId: actualStudentId });
 
     // grades have been collated previously
     if (studentGrade !== null && studentGrade.total !== null) {
@@ -669,8 +698,8 @@ const assign_grade = async function (req, res) {
     }
 
     const response = await GRADES.updateOne(
-      { studentId },
-      { [validTypes[type]]: score, lastUpdatedBy },
+      { studentId: actualStudentId },
+      { $set: { [validTypes[type]]: score, lastUpdatedBy } },
       { upsert: true }
     );
 
@@ -1008,17 +1037,32 @@ const bulk_assign_defense_grade = async function (req, res) {
 };
 
 /**
- * Upload CSV file and assign defense grades to students based on CSV data
+ * Upload CSV file and assign grades to students based on CSV data
  * @param {request} req
  * @param {response} res
  */
 const upload_csv_assign_grades = async function (req, res) {
   const { _id: lastUpdatedBy } = req.user;
+  const { type } = req.body;
 
   try {
     // Validate authentication
     if (mongoose.Types.ObjectId.isValid(lastUpdatedBy) == false) {
       res.status(401).json({ message: "Please re authenticate to proceed" });
+      return;
+    }
+
+    // Validate type parameter
+    const validTypes = {
+      inspection: "inspectionScore",
+      defense: "defenseScore",
+      reports: "weeklyReportsScore",
+    };
+
+    if (Object.keys(validTypes).includes(type) == false) {
+      res.status(400).json({
+        message: "Invalid type specified, specify a valid type and try again",
+      });
       return;
     }
 
@@ -1126,14 +1170,27 @@ const upload_csv_assign_grades = async function (req, res) {
         }
       }
 
-      // Validate defense score range
+      // Validate score range based on type
       if (score !== null) {
-        if (score > 60 || score < 0) {
+        if (
+          (type == "inspection" || type == "reports") &&
+          (score > 20 || score < 0)
+        ) {
           failedAssignments.push({
             row: processedCount,
             studentId: studentCode,
             studentName,
-            reason: "Defense score must be between 0 and 60",
+            reason: `${type} score must be between 0 and 20`,
+          });
+          continue;
+        }
+
+        if (type == "defense" && (score > 60 || score < 0)) {
+          failedAssignments.push({
+            row: processedCount,
+            studentId: studentCode,
+            studentName,
+            reason: `${type} score must be between 0 and 60`,
           });
           continue;
         }
@@ -1152,18 +1209,26 @@ const upload_csv_assign_grades = async function (req, res) {
           continue;
         }
 
-        // Check if supervisor is assigned to this student for defense
-        const isAssigned = await DEFENSE_LIST.findOne({
-          supervisorId: lastUpdatedBy,
-          studentCode: studentCode,
-        });
+        // Check if supervisor is assigned to this student based on type
+        let isAssigned;
+        if (type === "defense") {
+          isAssigned = await DEFENSE_LIST.findOne({
+            supervisorId: lastUpdatedBy,
+            studentCode: studentCode,
+          });
+        } else if (type === "inspection" || type === "reports") {
+          isAssigned = await INSPECTION_LIST.findOne({
+            supervisorId: lastUpdatedBy,
+            studentCode: studentCode,
+          });
+        }
 
         if (!isAssigned) {
           failedAssignments.push({
             row: processedCount,
             studentId: studentCode,
             studentName,
-            reason: "You are not the defense supervisor for this student",
+            reason: `You are not the ${type} supervisor for this student`,
           });
           continue;
         }
@@ -1181,18 +1246,11 @@ const upload_csv_assign_grades = async function (req, res) {
           continue;
         }
 
-        // Update or create grade record
-        const updateData = { lastUpdatedBy };
-        if (score !== null) {
-          updateData.defenseScore = score;
-        }
-
+        // Update or create grade record using the same technique as assign_grade
         const response = await GRADES.updateOne(
           { studentId: student._id },
-          updateData,
-          {
-            upsert: true,
-          }
+          { $set: { [validTypes[type]]: score, lastUpdatedBy } },
+          { upsert: true }
         );
 
         if (response.acknowledged) {
@@ -1216,7 +1274,7 @@ const upload_csv_assign_grades = async function (req, res) {
     }
 
     res.status(200).json({
-      message: "CSV defense grade assignment completed",
+      message: `CSV ${type} grade assignment completed`,
       totalProcessed: processedCount,
       successfulAssignments,
       failedAssignments:
