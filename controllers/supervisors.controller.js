@@ -877,6 +877,133 @@ const download_assigned_supervisor_students = async function (req, res) {
   }
 };
 
+/**
+ * Bulk assign defense grade to multiple students
+ * @param {request} req
+ * @param {response} res
+ */
+const bulk_assign_defense_grade = async function (req, res) {
+  const { score, studentIds } = req.body;
+  const { _id: lastUpdatedBy } = req.user;
+
+  try {
+    // Validate lastUpdatedBy
+    if (mongoose.Types.ObjectId.isValid(lastUpdatedBy) == false) {
+      res.status(401).json({ message: "Please re authenticate to proceed" });
+      return;
+    }
+
+    // Validate studentIds array
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      res.status(400).json({
+        message: "studentIds must be a non-empty array",
+      });
+      return;
+    }
+
+    // Validate score
+    if (score == null || typeof score == "undefined") {
+      res.status(400).json({ message: "Please specify a score" });
+      return;
+    }
+
+    // Validate defense score range
+    if (score > 60 || score < 0) {
+      res
+        .status(400)
+        .json({ message: "Defense score must be between 0 and 60" });
+      return;
+    }
+
+    let assignedCount = 0;
+    let failedAssignments = [];
+
+    // Process each student ID
+    for (const studentId of studentIds) {
+      try {
+        // Validate student ID format
+        if (mongoose.Types.ObjectId.isValid(studentId) == false) {
+          failedAssignments.push({
+            studentId,
+            reason: "Invalid student id",
+          });
+          continue;
+        }
+
+        // Check if student exists
+        const studentExists = await STUDENTS.findOne({ _id: studentId });
+
+        if (studentExists === null) {
+          failedAssignments.push({
+            studentId,
+            reason: "Student not found",
+          });
+          continue;
+        }
+
+        // Check if supervisor is assigned to this student for defense
+        const isAssigned = await DEFENSE_LIST.findOne({
+          supervisorId: lastUpdatedBy,
+          studentCode: studentExists.studentCode,
+        });
+
+        if (isAssigned === null) {
+          failedAssignments.push({
+            studentId,
+            reason: "You are not the defense supervisor for this student",
+          });
+          continue;
+        }
+
+        // Check if grades have been collated
+        const studentGrade = await GRADES.findOne({ studentId });
+
+        if (studentGrade !== null && studentGrade.total !== null) {
+          failedAssignments.push({
+            studentId,
+            reason:
+              "Grades cannot be updated as they have been collated already",
+          });
+          continue;
+        }
+
+        // Assign defense grade to student
+        const response = await GRADES.updateOne(
+          { studentId },
+          { defenseScore: score, lastUpdatedBy },
+          { upsert: true }
+        );
+
+        if (response.acknowledged == false) {
+          failedAssignments.push({
+            studentId,
+            reason: "Failed to update grade",
+          });
+          continue;
+        }
+
+        assignedCount++;
+      } catch (error) {
+        failedAssignments.push({
+          studentId,
+          reason: error.message,
+        });
+      }
+    }
+
+    res.status(200).json({
+      message: "Bulk defense grade assignment completed",
+      totalRequested: studentIds.length,
+      successfulAssignments: assignedCount,
+      failedAssignments:
+        failedAssignments.length > 0 ? failedAssignments : undefined,
+    });
+  } catch (error) {
+    console.log(error);
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   get_a_supervisor,
   get_assigned_students_for_defense,
@@ -887,6 +1014,7 @@ module.exports = {
   update_defense_time,
   update_inspection_time,
   assign_grade,
+  bulk_assign_defense_grade,
   download_form,
   download_assigned_supervisor_students,
 };

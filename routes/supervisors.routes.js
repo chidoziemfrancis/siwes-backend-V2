@@ -10,6 +10,7 @@ const {
   update_defense_time,
   update_inspection_time,
   assign_grade,
+  bulk_assign_defense_grade,
   download_form,
   download_assigned_supervisor_students,
 } = require("./../controllers/supervisors.controller");
@@ -272,6 +273,40 @@ router.patch("/updateDefenseTime", isSupervisor, update_defense_time);
  *         description: Unauthorized
  */
 router.post("/assignGrade", isSupervisor, assign_grade);
+
+/**
+ * @swagger
+ * /supervisor/bulkAssignDefenseGrade:
+ *   post:
+ *     summary: Bulk assign defense grade to multiple students
+ *     tags: [Supervisors]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               score:
+ *                 type: number
+ *                 example: 50
+ *                 description: Defense score between 0 and 60
+ *               studentIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["64a8b9c1d2e3f4a5b6c7d8e9", "64a8b9c1d2e3f4a5b6c7d8ea"]
+ *     responses:
+ *       200:
+ *         description: Bulk defense grade assignment completed
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ */
+router.post("/bulkAssignDefenseGrade", isSupervisor, bulk_assign_defense_grade);
 
 /**
  * @swagger
