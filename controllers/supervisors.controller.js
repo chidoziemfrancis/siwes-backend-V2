@@ -1102,9 +1102,14 @@ const upload_csv_assign_grades = async function (req, res) {
       return;
     }
 
-    // Validate CSV structure - should have 'Student ID', 'Student Name', and 'Grade' columns
+    // Validate CSV structure - should have 'Student ID', 'Matric Number', 'Student Name', and 'Grade' columns
     const firstRow = csvData[0];
-    const expectedColumns = ["Student ID", "Student Name", "Grade"];
+    const expectedColumns = [
+      "Student ID",
+      "Matric Number",
+      "Student Name",
+      "Grade",
+    ];
     const hasRequiredColumns = expectedColumns.every((col) =>
       Object.keys(firstRow).some(
         (key) => key.toLowerCase().trim() === col.toLowerCase().trim()
@@ -1114,7 +1119,7 @@ const upload_csv_assign_grades = async function (req, res) {
     if (!hasRequiredColumns) {
       res.status(400).json({
         message:
-          "CSV must contain 'Student ID', 'Student Name', and 'Grade' columns",
+          "CSV must contain 'Student ID', 'Matric Number', 'Student Name', and 'Grade' columns",
       });
       return;
     }
@@ -1122,6 +1127,9 @@ const upload_csv_assign_grades = async function (req, res) {
     // Find the correct column names (case insensitive)
     const studentIdColumn = Object.keys(firstRow).find(
       (key) => key.toLowerCase().trim() === "student id"
+    );
+    const matricNumberColumn = Object.keys(firstRow).find(
+      (key) => key.toLowerCase().trim() === "matric number"
     );
     const studentNameColumn = Object.keys(firstRow).find(
       (key) => key.toLowerCase().trim() === "student name"
@@ -1137,18 +1145,19 @@ const upload_csv_assign_grades = async function (req, res) {
     // Process each row
     for (const row of csvData) {
       const studentCode = row[studentIdColumn]?.trim(); // This is actually studentCode from CSV
+      const matricNumber = row[matricNumberColumn]?.trim();
       const studentName = row[studentNameColumn]?.trim();
       const gradeValue = row[gradeColumn]?.trim();
 
       processedCount++;
 
       // Skip empty rows
-      if (!studentCode || !studentName || !gradeValue) {
+      if (!studentCode || !matricNumber || !studentName || !gradeValue) {
         failedAssignments.push({
           row: processedCount,
           studentId: studentCode || "N/A",
           studentName: studentName || "N/A",
-          reason: "Missing Student ID, Student Name, or Grade",
+          reason: "Missing Student ID, Matric Number, Student Name, or Grade",
         });
         continue;
       }
