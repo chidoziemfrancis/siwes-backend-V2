@@ -6,7 +6,7 @@ const OTPSchema = new mongoose.Schema(
     token: {
       type: String,
       required: [true, "OTP must be set"],
-      match: [/^[a-f0-9]{6}$/, "OTP must be a 6-character hexadecimal string"],
+      match: [/^[0-9]{6}$/, "OTP must be a 6-digit numeric string"],
     },
     email: {
       type: String,

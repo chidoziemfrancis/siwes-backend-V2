@@ -94,7 +94,16 @@ async function main() {
       api_secret: process.env.CLOUDINARY_API_SECRET,
     });
 
-    mongoose.connect(DB_URI);
+    await mongoose.connect(DB_URI);
+    console.log("MongoDB connected successfully");
+
+    mongoose.connection.on("error", (err) => {
+      console.error("MongoDB connection error:", err);
+    });
+
+    mongoose.connection.on("disconnected", () => {
+      console.log("MongoDB disconnected");
+    });
 
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`App is live on port: ${PORT}`);

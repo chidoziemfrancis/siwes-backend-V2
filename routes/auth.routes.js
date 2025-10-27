@@ -7,6 +7,8 @@ const {
   verify_OTP,
   reset_password,
   supervisor_reset_password,
+  get_active_otps,
+  get_otp_by_email,
 } = require("./../controllers/auth/auth.controller");
 
 /**
@@ -175,5 +177,57 @@ router.patch(
   "/forgotPassword/changePassword/supervisor",
   supervisor_reset_password
 );
+
+/**
+ * @swagger
+ * /activeOTPs:
+ *   get:
+ *     summary: Get all active OTPs (non-expired)
+ *     description: This endpoint is useful for debugging and monitoring. Returns active OTPs from both Redis and MongoDB.
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Active OTPs retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     redis_otps:
+ *                       type: array
+ *                     mongodb_otps:
+ *                       type: array
+ *                     total_count:
+ *                       type: number
+ */
+router.get("/activeOTPs", get_active_otps);
+
+/**
+ * @swagger
+ * /otp/{email}:
+ *   get:
+ *     summary: Get OTP by email
+ *     description: This endpoint is useful for debugging and testing. Returns the active OTP for a specific email from both Redis and MongoDB.
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: path
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The email address to look up
+ *         example: test@student.babcock.edu.ng
+ *     responses:
+ *       200:
+ *         description: OTP retrieved successfully
+ *       404:
+ *         description: No active OTP found for this email
+ */
+router.get("/otp/:email", get_otp_by_email);
 
 module.exports = router;

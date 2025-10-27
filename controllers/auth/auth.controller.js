@@ -266,9 +266,15 @@ const send_OTP = async (req, res) => {
     if (!email) {
       return res.status(400).json({ message: "Invalid email address." });
     }
-    // if (!email || !/^[a-zA-Z0-9._%+-]+@student\.babcock\.edu\.ng$/.test(email)) {
-    //   return res.status(400).json({ message: "Invalid email address." });
-    // }
+    if (
+      !email ||
+      !/^[a-zA-Z0-9._%+-]+@student\.babcock\.edu\.ng$/.test(email)
+    ) {
+      return res.status(400).json({
+        message:
+          "Invalid email address. Make use of you Babcock email address please",
+      });
+    }
 
     // Check if an OTP exists for this email in Redis
     const existingOtp = await redisClient.get(`otp:${email}`);
@@ -278,28 +284,45 @@ const send_OTP = async (req, res) => {
       });
     }
 
-    // Generate and store new OTP
+    // Generate new OTP (but don't store it yet)
     const token = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
 
-    // Store OTP in Redis with a 5-minute expiry
-    await redisClient.set(`otp:${email}`, token, { EX: 300 });
-
-    // Store OTP in MongoDB
-    await OTP.create({
-      token,
-      email,
-    });
-
-    // Send OTP email
+    // Send OTP email FIRST - only save if email succeeds
     try {
-      console.log(`Sending OTP ${token} to ${email}`);
-      await sendOTPMail(email, token);
+      console.log(`Attempting to send OTP ${token} to ${email}`);
+      const result = await sendOTPMail(email, token);
+
+      // Only store OTP after successful email delivery
+      if (result && result.success) {
+        // Store OTP in Redis with a 5-minute expiry
+        await redisClient.set(`otp:${email}`, token, { EX: 300 });
+
+        // Store OTP in MongoDB (fire and forget - don't block on this)
+        OTP.create({ token, email }).catch((err) => {
+          console.error(
+            `Failed to store OTP in MongoDB for ${email}:`,
+            err.message
+          );
+        });
+
+        console.log(`OTP ${token} successfully sent and stored for ${email}`);
+        return res.status(200).json({ message: "OTP sent successfully." });
+      } else {
+        console.error(
+          `Failed to send OTP to ${email}: Email service returned failure`
+        );
+        return res.status(500).json({ message: "Failed to send OTP email." });
+      }
     } catch (emailError) {
       console.error("Error sending OTP email:", emailError);
-      return res.status(500).json({ message: "Failed to send OTP email." });
+      return res.status(500).json({
+        message: "Failed to send OTP email. Please try again later.",
+        error:
+          process.env.NODE_ENV === "development"
+            ? emailError.message
+            : undefined,
+      });
     }
-
-    res.status(200).json({ message: "OTP sent successfully." });
   } catch (error) {
     console.error("Error in send_OTP:", error);
     res.status(500).json({ message: "Internal server error." });
@@ -341,27 +364,37 @@ const verify_OTP = async (req, res) => {
       });
     }
 
-    // If not in Redis, check MongoDB
-    const otpRecord = await OTP.findOne({ email, token });
+    // If not in Redis, check MongoDB (with timeout protection)
+    try {
+      const otpRecord = await Promise.race([
+        OTP.findOne({ email, token }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("MongoDB timeout")), 3000)
+        ),
+      ]);
 
-    if (!otpRecord) {
+      if (!otpRecord) {
+        return res.status(400).json({ message: "Invalid or expired OTP." });
+      }
+
+      // OTP is valid in MongoDB; delete it
+      await OTP.deleteOne({ _id: otpRecord._id });
+
+      // Generate reset token
+      const resetToken = jwt.sign(
+        { email }, // Payload
+        process.env.RESET_PASSWORD_TOKEN_SECRET,
+        { expiresIn: "15m" }
+      );
+
+      return res.status(200).json({
+        message: "OTP verified successfully.",
+        data: { resetToken }, // Send reset token
+      });
+    } catch (dbError) {
+      console.error("Error checking MongoDB for OTP:", dbError.message);
       return res.status(400).json({ message: "Invalid or expired OTP." });
     }
-
-    // OTP is valid in MongoDB; delete it
-    await OTP.deleteOne({ _id: otpRecord._id });
-
-    // Generate reset token
-    const resetToken = jwt.sign(
-      { email }, // Payload
-      process.env.RESET_PASSWORD_TOKEN_SECRET,
-      { expiresIn: "15m" }
-    );
-
-    res.status(200).json({
-      message: "OTP verified successfully.",
-      data: { resetToken }, // Send reset token
-    });
   } catch (error) {
     console.error("Error in verify_OTP:", error);
     res.status(500).json({ message: "Internal server error." });
@@ -453,6 +486,135 @@ const supervisor_reset_password = async function (req, res) {
 };
 
 /**
+ * Get all active OTPs (non-expired)
+ * This endpoint is useful for debugging and monitoring
+ */
+const get_active_otps = async (req, res) => {
+  try {
+    const result = {
+      redis_otps: [],
+      mongodb_otps: [],
+      total_count: 0,
+    };
+
+    // Get OTPs from Redis
+    try {
+      const keys = await redisClient.keys("otp:*");
+      for (const key of keys) {
+        const email = key.replace("otp:", "");
+        const otp = await redisClient.get(key);
+        const ttl = await redisClient.ttl(key);
+        result.redis_otps.push({
+          email,
+          otp,
+          expires_in_seconds: ttl,
+          source: "redis",
+        });
+      }
+    } catch (redisError) {
+      console.error("Error fetching OTPs from Redis:", redisError.message);
+    }
+
+    // Get OTPs from MongoDB
+    try {
+      const mongoOtps = await OTP.find({
+        createdAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) }, // Last 5 minutes
+      }).lean();
+
+      result.mongodb_otps = mongoOtps.map((otp) => ({
+        email: otp.email,
+        otp: otp.token,
+        created_at: otp.createdAt,
+        expires_at: new Date(otp.createdAt.getTime() + 5 * 60 * 1000),
+        source: "mongodb",
+      }));
+    } catch (mongoError) {
+      console.error("Error fetching OTPs from MongoDB:", mongoError.message);
+    }
+
+    result.total_count = result.redis_otps.length + result.mongodb_otps.length;
+
+    res.status(200).json({
+      message: "Active OTPs retrieved successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error in get_active_otps:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+/**
+ * Get OTP by email
+ * This endpoint is useful for debugging and testing
+ */
+const get_otp_by_email = async (req, res) => {
+  try {
+    const { email } = req.params;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const result = {
+      found: false,
+      redis_otp: null,
+      mongodb_otp: null,
+    };
+
+    // Check Redis first
+    try {
+      const redisKey = `otp:${email}`;
+      const otp = await redisClient.get(redisKey);
+      if (otp) {
+        const ttl = await redisClient.ttl(redisKey);
+        result.redis_otp = {
+          email,
+          otp,
+          expires_in_seconds: ttl,
+          source: "redis",
+        };
+        result.found = true;
+      }
+    } catch (redisError) {
+      console.error("Error fetching OTP from Redis:", redisError.message);
+    }
+
+    // Check MongoDB
+    try {
+      const mongoOtp = await OTP.findOne({ email }).lean();
+      if (mongoOtp) {
+        result.mongodb_otp = {
+          email: mongoOtp.email,
+          otp: mongoOtp.token,
+          created_at: mongoOtp.createdAt,
+          expires_at: new Date(mongoOtp.createdAt.getTime() + 5 * 60 * 1000),
+          source: "mongodb",
+        };
+        result.found = true;
+      }
+    } catch (mongoError) {
+      console.error("Error fetching OTP from MongoDB:", mongoError.message);
+    }
+
+    if (!result.found) {
+      return res.status(404).json({
+        message: "No active OTP found for this email",
+        data: result,
+      });
+    }
+
+    res.status(200).json({
+      message: "OTP retrieved successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error in get_otp_by_email:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+/**
  * @typedef userInfo
  * @property {ObjectId} _id
  */
@@ -465,4 +627,6 @@ module.exports = {
   verify_OTP,
   reset_password,
   supervisor_reset_password,
+  get_active_otps,
+  get_otp_by_email,
 };
