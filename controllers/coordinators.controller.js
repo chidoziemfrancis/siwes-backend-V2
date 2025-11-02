@@ -13,6 +13,7 @@ const mongoose = require("mongoose");
 const { request, response } = require("express");
 const bcrypt = require("bcrypt");
 const { existsSync, unlinkSync } = require("fs");
+const path = require("path");
 const jsonToCsvString = require("../utils/jsonToCsvString");
 const { ObjectId } = require("mongoose").Types;
 const { sendMailToSupervisorEmail } = require("./mail.controller");
@@ -1570,7 +1571,13 @@ const delete_form = async function (req, res) {
 
     await FORMS.deleteOne({ _id: ObjectId(formId) });
 
-    await cloudinary.uploader.destroy(publicId);
+    // Delete local file if it exists
+    if (form.pathToFile) {
+      const filePath = path.join(__dirname, "..", form.pathToFile);
+      if (existsSync(filePath)) {
+        unlinkSync(filePath);
+      }
+    }
 
     res.status(201).json({ message: "Form has been deleted" });
   } catch (error) {

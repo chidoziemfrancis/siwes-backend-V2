@@ -81,7 +81,8 @@ app.use(
   })
 );
 
-// Static file serving removed - this is a backend-only API
+// Serve static files from uploads directory for forms
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const PORT = process.env.PORT || 3000;
 const DB_URI = process.env.DB_URI;

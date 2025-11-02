@@ -4,3 +4,14 @@ node_modules/*
 build/
 tests/*
 *.DS_Store
+
+# File uploads
+uploads/forms/*.pdf
+uploads/forms/*.doc
+uploads/forms/*.docx
+uploads/forms/*.txt
+
+# Keep directory structure
+!uploads/
+!uploads/**/
+!uploads/forms/.gitkeep
