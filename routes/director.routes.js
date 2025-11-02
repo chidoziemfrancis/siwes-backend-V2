@@ -12,6 +12,16 @@ const {
   get_a_specific_student,
   update_director_details,
   change_password,
+  create_school,
+  get_all_schools,
+  get_a_specific_school,
+  update_school,
+  delete_school,
+  create_department,
+  get_all_departments,
+  get_a_specific_department,
+  update_department,
+  delete_department,
 } = require("./../controllers/director.controller");
 const { isDirector } = require("./../middlewares/auth.middleware");
 
@@ -59,7 +69,7 @@ const { isDirector } = require("./../middlewares/auth.middleware");
  *       401:
  *         description: Unauthorized
  */
-router.post("/add", isDirector, add_director);
+router.post("/add", add_director);
 
 /**
  * @swagger
@@ -288,6 +298,268 @@ router.get("/", isDirector, get_all_directors);
  *         description: Unauthorized
  */
 router.get("/get", isDirector, get_current_director);
+
+/**
+ * @swagger
+ * /directors/schools:
+ *   post:
+ *     summary: Create a new school
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: School created successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.post("/schools", isDirector, create_school);
+
+/**
+ * @swagger
+ * /directors/schools:
+ *   get:
+ *     summary: Get all schools
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all schools
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/schools", isDirector, get_all_schools);
+
+/**
+ * @swagger
+ * /directors/schools/{id}:
+ *   get:
+ *     summary: Get a specific school by ID
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: School details
+ *       404:
+ *         description: School not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/schools/:id", isDirector, get_a_specific_school);
+
+/**
+ * @swagger
+ * /directors/schools/{id}:
+ *   patch:
+ *     summary: Update a school
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: School updated successfully
+ *       404:
+ *         description: School not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.patch("/schools/:id", isDirector, update_school);
+
+/**
+ * @swagger
+ * /directors/schools/{id}:
+ *   delete:
+ *     summary: Delete a school
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: School deleted successfully
+ *       404:
+ *         description: School not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.delete("/schools/:id", isDirector, delete_school);
+
+/**
+ * @swagger
+ * /directors/departments:
+ *   post:
+ *     summary: Create a new department
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               schoolId:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Department created successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.post("/departments", isDirector, create_department);
+
+/**
+ * @swagger
+ * /directors/departments:
+ *   get:
+ *     summary: Get all departments (optionally filtered by schoolId)
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: schoolId
+ *         schema:
+ *           type: string
+ *         description: Filter departments by school ID
+ *     responses:
+ *       200:
+ *         description: List of departments
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/departments", isDirector, get_all_departments);
+
+/**
+ * @swagger
+ * /directors/departments/{id}:
+ *   get:
+ *     summary: Get a specific department by ID
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Department details
+ *       404:
+ *         description: Department not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/departments/:id", isDirector, get_a_specific_department);
+
+/**
+ * @swagger
+ * /directors/departments/{id}:
+ *   patch:
+ *     summary: Update a department
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               schoolId:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Department updated successfully
+ *       404:
+ *         description: Department not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.patch("/departments/:id", isDirector, update_department);
+
+/**
+ * @swagger
+ * /directors/departments/{id}:
+ *   delete:
+ *     summary: Delete a department
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Department deleted successfully
+ *       404:
+ *         description: Department not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.delete("/departments/:id", isDirector, delete_department);
 
 /**
  * @swagger

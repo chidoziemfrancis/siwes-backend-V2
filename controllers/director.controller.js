@@ -2,6 +2,8 @@ const DIRECTORS = require("../models/director.model");
 const COORDINATORS = require("../models/coordinator.model");
 const SUPERVISORS = require("./../models/supervisor.model");
 const STUDENTS = require("./../models/student.model");
+const SCHOOLS = require("../models/school.model");
+const DEPARTMENTS = require("../models/department.model");
 const { handleError } = require("../utils/handleError");
 const mongoose = require("mongoose");
 const { request, response } = require("express");
@@ -396,6 +398,288 @@ const change_password = async function (req, res) {
   }
 };
 
+/**
+ * creates a new school
+ * @param {request} req
+ * @param {response} res
+ */
+const create_school = async function (req, res) {
+  try {
+    const school = await SCHOOLS.create(req.body);
+    res.status(201).json({
+      message: "School created successfully",
+      school,
+    });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * gets all schools
+ * @param {request} req
+ * @param {response} res
+ */
+const get_all_schools = async function (req, res) {
+  try {
+    const schools = await SCHOOLS.find({});
+    if (schools.length === 0) {
+      res.status(404).json({ message: "No schools found" });
+      return;
+    }
+    res.status(200).json(schools);
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * gets a specific school by id
+ * @param {request} req
+ * @param {response} res
+ */
+const get_a_specific_school = async function (req, res) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: "Invalid id" });
+      return;
+    }
+    const school = await SCHOOLS.findOne({ _id: id });
+    if (school === null) {
+      res.status(404).json({ message: "School not found" });
+      return;
+    }
+    res.status(200).json(school);
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * updates a school
+ * @param {request} req
+ * @param {response} res
+ */
+const update_school = async function (req, res) {
+  try {
+    const id = req.params.id;
+    const update = req.body;
+    if (Object.keys(update).length === 0) {
+      res.status(400).json({ message: "Invalid update request" });
+      return;
+    }
+    let allowedFields = ["name", "description"];
+    let hasInvalidField = Object.keys(update).some(
+      (field) => !allowedFields.includes(field)
+    );
+    if (hasInvalidField) {
+      res.status(400).json({
+        message: "Your update failed as it contains certain invalid fields",
+      });
+      return;
+    }
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: "Invalid id" });
+      return;
+    }
+    const school = await SCHOOLS.updateOne({ _id: id }, update);
+    if (school.acknowledged === false) {
+      res.status(404).json({ message: "School not found" });
+      return;
+    }
+    res.status(200).json({ message: "School updated successfully" });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * deletes a school
+ * @param {request} req
+ * @param {response} res
+ */
+const delete_school = async function (req, res) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: "Invalid id" });
+      return;
+    }
+    // Delete all departments associated with this school
+    await DEPARTMENTS.deleteMany({ schoolId: id });
+    const school = await SCHOOLS.deleteOne({ _id: id });
+    if (school.deletedCount === 0) {
+      res.status(404).json({ message: "School not found" });
+      return;
+    }
+    res.status(200).json({ message: "School deleted successfully" });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * creates a new department
+ * @param {request} req
+ * @param {response} res
+ */
+const create_department = async function (req, res) {
+  try {
+    const { schoolId } = req.body;
+    if (!mongoose.Types.ObjectId.isValid(schoolId)) {
+      res.status(400).json({ message: "Invalid school ID" });
+      return;
+    }
+    // Verify school exists
+    const school = await SCHOOLS.findOne({ _id: schoolId });
+    if (school === null) {
+      res.status(404).json({ message: "School not found" });
+      return;
+    }
+    const department = await DEPARTMENTS.create(req.body);
+    res.status(201).json({
+      message: "Department created successfully",
+      department,
+    });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * gets all departments, optionally filtered by schoolId
+ * @param {request} req
+ * @param {response} res
+ */
+const get_all_departments = async function (req, res) {
+  try {
+    const { schoolId } = req.query;
+    let query = {};
+    if (schoolId) {
+      if (!mongoose.Types.ObjectId.isValid(schoolId)) {
+        res.status(400).json({ message: "Invalid school ID" });
+        return;
+      }
+      query.schoolId = schoolId;
+    }
+    const departments = await DEPARTMENTS.find(query).populate("schoolId", "name");
+    if (departments.length === 0) {
+      res.status(404).json({ message: "No departments found" });
+      return;
+    }
+    res.status(200).json(departments);
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * gets a specific department by id
+ * @param {request} req
+ * @param {response} res
+ */
+const get_a_specific_department = async function (req, res) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: "Invalid id" });
+      return;
+    }
+    const department = await DEPARTMENTS.findOne({ _id: id }).populate("schoolId", "name");
+    if (department === null) {
+      res.status(404).json({ message: "Department not found" });
+      return;
+    }
+    res.status(200).json(department);
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * updates a department
+ * @param {request} req
+ * @param {response} res
+ */
+const update_department = async function (req, res) {
+  try {
+    const id = req.params.id;
+    const update = req.body;
+    if (Object.keys(update).length === 0) {
+      res.status(400).json({ message: "Invalid update request" });
+      return;
+    }
+    let allowedFields = ["name", "description", "schoolId"];
+    let hasInvalidField = Object.keys(update).some(
+      (field) => !allowedFields.includes(field)
+    );
+    if (hasInvalidField) {
+      res.status(400).json({
+        message: "Your update failed as it contains certain invalid fields",
+      });
+      return;
+    }
+    // If updating schoolId, verify it exists
+    if (update.schoolId) {
+      if (!mongoose.Types.ObjectId.isValid(update.schoolId)) {
+        res.status(400).json({ message: "Invalid school ID" });
+        return;
+      }
+      const school = await SCHOOLS.findOne({ _id: update.schoolId });
+      if (school === null) {
+        res.status(404).json({ message: "School not found" });
+        return;
+      }
+    }
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: "Invalid id" });
+      return;
+    }
+    const department = await DEPARTMENTS.updateOne({ _id: id }, update);
+    if (department.acknowledged === false) {
+      res.status(404).json({ message: "Department not found" });
+      return;
+    }
+    res.status(200).json({ message: "Department updated successfully" });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * deletes a department
+ * @param {request} req
+ * @param {response} res
+ */
+const delete_department = async function (req, res) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: "Invalid id" });
+      return;
+    }
+    const department = await DEPARTMENTS.deleteOne({ _id: id });
+    if (department.deletedCount === 0) {
+      res.status(404).json({ message: "Department not found" });
+      return;
+    }
+    res.status(200).json({ message: "Department deleted successfully" });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   add_director,
   get_all_directors,
@@ -409,4 +693,14 @@ module.exports = {
   get_a_specific_student,
   update_director_details,
   change_password,
+  create_school,
+  get_all_schools,
+  get_a_specific_school,
+  update_school,
+  delete_school,
+  create_department,
+  get_all_departments,
+  get_a_specific_department,
+  update_department,
+  delete_department,
 };
