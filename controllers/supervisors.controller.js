@@ -689,8 +689,12 @@ const assign_grade = async function (req, res) {
 
     const studentGrade = await GRADES.findOne({ studentId: actualStudentId });
 
-    // grades have been collated previously
-    if (studentGrade !== null && studentGrade.total !== null) {
+    // grades have been collated previously - only block reports, allow inspection and defense
+    if (
+      studentGrade !== null &&
+      studentGrade.total !== null &&
+      type === "reports"
+    ) {
       res.status(400).json({
         message: "Grades cannot be updated as they have been collated already",
       });
@@ -987,17 +991,8 @@ const bulk_assign_defense_grade = async function (req, res) {
           continue;
         }
 
-        // Check if grades have been collated
-        const studentGrade = await GRADES.findOne({ studentId });
-
-        if (studentGrade !== null && studentGrade.total !== null) {
-          failedAssignments.push({
-            studentId,
-            reason:
-              "Grades cannot be updated as they have been collated already",
-          });
-          continue;
-        }
+        // Check if grades have been collated - defense grades can be updated even after collation
+        // (removed check to allow supervisors to update defense grades even if collated)
 
         // Assign defense grade to student
         const response = await GRADES.updateOne(
@@ -1242,9 +1237,9 @@ const upload_csv_assign_grades = async function (req, res) {
           continue;
         }
 
-        // Check if grades have been collated
+        // Check if grades have been collated - only block reports, allow inspection and defense
         const studentGrade = await GRADES.findOne({ studentId: student._id });
-        if (studentGrade && studentGrade.total !== null) {
+        if (studentGrade && studentGrade.total !== null && type === "reports") {
           failedAssignments.push({
             row: processedCount,
             studentId: studentCode,

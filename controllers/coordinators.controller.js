@@ -1495,9 +1495,10 @@ const collate_grades = async function (req, res) {
  * @param {response} res
  */
 const collate_all_grades = async function (req, res) {
-  const { _id: lastUpdatedBy } = req.user;
+  const { _id: lastUpdatedBy, faculty } = req.user;
 
   try {
+    // Update all grades with total
     const response = await GRADES.updateMany({}, [
       {
         $set: {
@@ -1516,9 +1517,110 @@ const collate_all_grades = async function (req, res) {
       return;
     }
 
-    res.status(200).json({
-      message: "Grades have been collated successfully for all students",
+    // Get all grades with student information for the coordinator's faculty
+    const gradesData = await GRADES.aggregate([
+      {
+        $lookup: {
+          from: "students",
+          localField: "studentId",
+          foreignField: "_id",
+          as: "studentInfo",
+        },
+      },
+      {
+        $unwind: {
+          path: "$studentInfo",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: {
+          "studentInfo.faculty": faculty,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          firstName: { $ifNull: ["$studentInfo.firstName", ""] },
+          middleName: { $ifNull: ["$studentInfo.middleName", ""] },
+          lastName: { $ifNull: ["$studentInfo.lastName", ""] },
+          matricNumber: { $ifNull: ["$studentInfo.matricNo", ""] },
+          department: { $ifNull: ["$studentInfo.department", ""] },
+          inspectionScore: { $ifNull: ["$inspectionScore", 0] },
+          weeklyReportsScore: { $ifNull: ["$weeklyReportsScore", 0] },
+          defenseScore: { $ifNull: ["$defenseScore", 0] },
+          total: { $ifNull: ["$total", 0] },
+        },
+      },
+      {
+        $sort: { matricNumber: 1 },
+      },
+    ]);
+
+    // Format the data for CSV
+    const formatName = (str) => {
+      if (!str) return "";
+      return str
+        .split(" ")
+        .map(
+          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        )
+        .join(" ");
+    };
+
+    const formattedData = gradesData.map((item) => {
+      // Combine first, middle, and last name
+      const firstName = formatName(item.firstName || "");
+      const middleName = formatName(item.middleName || "");
+      const lastName = formatName(item.lastName || "");
+      const fullName = [firstName, middleName, lastName]
+        .filter((name) => name.trim() !== "")
+        .join(" ");
+
+      // Format department (capitalize first letter of each word)
+      const formattedDepartment = item.department
+        ? item.department
+            .split(" ")
+            .map(
+              (word) =>
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            )
+            .join(" ")
+        : "";
+
+      return {
+        name: fullName,
+        matricNumber: item.matricNumber || "",
+        department: formattedDepartment,
+        inspectionScore: item.inspectionScore,
+        weeklyReportsScore: item.weeklyReportsScore,
+        defenseScore: item.defenseScore,
+        total: item.total,
+      };
     });
+
+    // If no students found, still return success message but no CSV
+    if (formattedData.length === 0) {
+      res.status(200).json({
+        message:
+          "Grades have been collated successfully, but no students found in your faculty",
+      });
+      return;
+    }
+
+    // Convert to CSV and send as response
+    const csvString = jsonToCsvString(formattedData);
+
+    res
+      .status(200)
+      .header("Content-Type", "text/csv")
+      .header(
+        "Content-Disposition",
+        `attachment; filename=grades_${faculty}_${
+          new Date().toISOString().split("T")[0]
+        }.csv`
+      )
+      .send(csvString);
   } catch (error) {
     handleError(error, res);
   }
