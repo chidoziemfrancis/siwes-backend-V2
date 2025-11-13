@@ -5,6 +5,10 @@ const supervisorsRoutes = require("./supervisors.routes");
 const directorsRoutes = require("./director.routes");
 const authRoutes = require("./auth.routes");
 const redisClient = require("../utils/redisClient");
+const {
+  get_public_schools,
+  get_public_departments,
+} = require("../controllers/general.controller");
 
 // render needs a route that will always return success
 router.get("/render", (req, res) => {
@@ -24,6 +28,9 @@ router.use("/student", studentsRoutes);
 router.use("/directors", directorsRoutes);
 
 router.use("/auth", authRoutes);
+
+router.get("/schools", get_public_schools);
+router.get("/departments", get_public_departments);
 
 router.get("/health", async (req, res) => {
   try {

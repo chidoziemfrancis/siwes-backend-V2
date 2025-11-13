@@ -464,7 +464,7 @@ const assign_inspection_supervisor = async function (req, res) {
  * @param {response} res
  */
 const get_all_students = async function (req, res) {
-  const { faculty } = req.user;
+  const { faculty, department, isMainCoordinator } = req.user;
 
   try {
     // get pagination parameters
@@ -511,9 +511,17 @@ const get_all_students = async function (req, res) {
       });
     }
 
+    // Build match criteria based on coordinator type
+    const matchCriteria = { faculty: faculty };
+
+    // If coordinator is not main coordinator, filter by department
+    if (!isMainCoordinator) {
+      matchCriteria.department = department;
+    }
+
     const pipeline = [
       {
-        $match: { faculty: faculty },
+        $match: matchCriteria,
       },
       {
         $project: {
@@ -655,7 +663,7 @@ const get_all_students = async function (req, res) {
       return res.status(404).json({ message: "No students found" });
     }
 
-    const totalStudents = await STUDENTS.countDocuments({ faculty });
+    const totalStudents = await STUDENTS.countDocuments(matchCriteria);
     const csvString = jsonToCsvString(students);
 
     // Return appropriate response based on pagination
@@ -684,7 +692,7 @@ const get_all_students = async function (req, res) {
  * @param {response} res
  */
 const download_all_students = async function (req, res) {
-  const { faculty } = req.user;
+  const { faculty, department, isMainCoordinator } = req.user;
   // Put this at the top or in a separate utils file
   function flattenObject(obj, parentKey = "", acc = {}) {
     for (const key in obj) {
@@ -746,9 +754,17 @@ const download_all_students = async function (req, res) {
       });
     }
 
+    // Build match criteria based on coordinator type
+    const matchCriteria = { faculty: faculty };
+
+    // If coordinator is not main coordinator, filter by department
+    if (!isMainCoordinator) {
+      matchCriteria.department = department;
+    }
+
     const pipeline = [
       {
-        $match: { faculty: faculty },
+        $match: matchCriteria,
       },
       {
         $project: {
@@ -843,7 +859,7 @@ const download_all_students = async function (req, res) {
       return res.status(404).json({ message: "No students found" });
     }
 
-    const totalStudents = await STUDENTS.countDocuments({ faculty });
+    const totalStudents = await STUDENTS.countDocuments(matchCriteria);
     // Convert the result to a CSV string
 
     // Set headers and send CSV response
@@ -1054,7 +1070,17 @@ const get_a_student = async function (req, res) {
  * @param {response} res
  */
 const get_defense_list = async function (req, res) {
+  const { faculty, department, isMainCoordinator } = req.user;
+
   try {
+    // Build match criteria based on coordinator type
+    const matchCriteria = { faculty: faculty };
+
+    // If coordinator is not main coordinator, filter by department
+    if (!isMainCoordinator) {
+      matchCriteria.department = department;
+    }
+
     const pipeline = [
       {
         $lookup: {
@@ -1063,6 +1089,9 @@ const get_defense_list = async function (req, res) {
           foreignField: "studentCode",
           as: "studentDetails",
           pipeline: [
+            {
+              $match: matchCriteria,
+            },
             {
               $project: {
                 name: {
@@ -1163,7 +1192,17 @@ const get_defense_list = async function (req, res) {
  * @param {response} res
  */
 const get_inspection_list = async function (req, res) {
+  const { faculty, department, isMainCoordinator } = req.user;
+
   try {
+    // Build match criteria based on coordinator type
+    const matchCriteria = { faculty: faculty };
+
+    // If coordinator is not main coordinator, filter by department
+    if (!isMainCoordinator) {
+      matchCriteria.department = department;
+    }
+
     const pipeline = [
       {
         $lookup: {
@@ -1172,6 +1211,9 @@ const get_inspection_list = async function (req, res) {
           foreignField: "studentCode",
           as: "studentDetails",
           pipeline: [
+            {
+              $match: matchCriteria,
+            },
             {
               $project: {
                 name: {
@@ -1693,6 +1735,8 @@ const delete_form = async function (req, res) {
  * @param {response} res
  */
 const search_for_students = async function (req, res) {
+  const { faculty, department, isMainCoordinator } = req.user;
+
   try {
     const { q: searchQuery } = req.query;
 
@@ -1710,6 +1754,14 @@ const search_for_students = async function (req, res) {
 
     // this holds the fields that I want to be able to search
     const indexedFields = ["firstName", "lastName", "middleName"];
+
+    // Build match criteria based on coordinator type
+    const matchCriteria = { faculty: faculty };
+
+    // If coordinator is not main coordinator, filter by department
+    if (!isMainCoordinator) {
+      matchCriteria.department = department;
+    }
 
     const pipeline = [
       {
@@ -1732,6 +1784,9 @@ const search_for_students = async function (req, res) {
             minimumShouldMatch: 1,
           },
         },
+      },
+      {
+        $match: matchCriteria,
       },
       {
         $project: {
@@ -1852,8 +1907,21 @@ const search_for_students = async function (req, res) {
  * @param {response} res
  */
 const download_all_student_data = async function (req, res) {
+  const { faculty, department, isMainCoordinator } = req.user;
+
   try {
+    // Build match criteria based on coordinator type
+    const matchCriteria = { faculty: faculty };
+
+    // If coordinator is not main coordinator, filter by department
+    if (!isMainCoordinator) {
+      matchCriteria.department = department;
+    }
+
     const students = await STUDENTS.aggregate([
+      {
+        $match: matchCriteria,
+      },
       {
         $project: {
           password: 0,
@@ -2410,12 +2478,20 @@ const download_csv_score_for_student_weekly_report = async function (req, res) {
  * @param {response} res
  */
 const download_student_inspection_supervisors = async function (req, res) {
-  const { faculty } = req.user;
+  const { faculty, department, isMainCoordinator } = req.user;
 
   try {
+    // Build match criteria based on coordinator type
+    const matchCriteria = { faculty: faculty };
+
+    // If coordinator is not main coordinator, filter by department
+    if (!isMainCoordinator) {
+      matchCriteria.department = department;
+    }
+
     const pipeline = [
       {
-        $match: { faculty: faculty },
+        $match: matchCriteria,
       },
       {
         $project: {

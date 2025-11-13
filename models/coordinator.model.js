@@ -61,6 +61,15 @@ const CoordinatorSchema = new mongoose.Schema(
       required: [true, "Faculty is required"],
       lowercase: true,
     },
+    department: {
+      type: String,
+      required: [true, "Department is required"],
+      lowercase: true,
+    },
+    isMainCoordinator: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

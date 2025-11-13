@@ -8,6 +8,8 @@ const {
   get_a_specific_supervisor,
   get_all_coordinators,
   get_a_specific_coordinator,
+  create_coordinator,
+  update_coordinator,
   get_all_students,
   get_a_specific_student,
   update_director_details,
@@ -151,6 +153,101 @@ router.get("/coordinators", isDirector, get_all_coordinators);
  *         description: Unauthorized
  */
 router.get("/coordinators/:id", isDirector, get_a_specific_coordinator);
+
+/**
+ * @swagger
+ * /directors/coordinators:
+ *   post:
+ *     summary: Create a new coordinator
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone1:
+ *                 type: string
+ *               phone2:
+ *                 type: string
+ *               office:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               faculty:
+ *                 type: string
+ *               department:
+ *                 type: string
+ *               isMainCoordinator:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Coordinator created successfully
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ */
+router.post("/coordinators", isDirector, create_coordinator);
+
+/**
+ * @swagger
+ * /directors/coordinators/{id}:
+ *   patch:
+ *     summary: Update coordinator details
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Coordinator ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone1:
+ *                 type: string
+ *               phone2:
+ *                 type: string
+ *               office:
+ *                 type: string
+ *               faculty:
+ *                 type: string
+ *               department:
+ *                 type: string
+ *               isMainCoordinator:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Coordinator updated successfully
+ *       404:
+ *         description: Coordinator not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.patch("/coordinators/:id", isDirector, update_coordinator);
 
 /**
  * @swagger

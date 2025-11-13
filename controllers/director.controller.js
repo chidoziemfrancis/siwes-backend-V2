@@ -167,6 +167,33 @@ const get_a_specific_supervisor = async function (req, res) {
 };
 
 /**
+ * creates a new coordinator
+ * @param {request} req
+ * @param {response} res
+ */
+const create_coordinator = async function (req, res) {
+  try {
+    const coordinator = await COORDINATORS.create(req.body);
+
+    res.status(201).json({
+      message: "Coordinator created successfully",
+      coordinator: {
+        _id: coordinator._id,
+        firstName: coordinator.firstName,
+        lastName: coordinator.lastName,
+        email: coordinator.email,
+        faculty: coordinator.faculty,
+        department: coordinator.department,
+        isMainCoordinator: coordinator.isMainCoordinator,
+      },
+    });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
  * gets all coordinators
  * @param {request} req
  * @param {response} res
@@ -216,6 +243,64 @@ const get_a_specific_coordinator = async function (req, res) {
     }
 
     res.status(200).json(coordinator);
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * updates coordinator details
+ * @param {request} req
+ * @param {response} res
+ */
+const update_coordinator = async function (req, res) {
+  try {
+    const id = req.params.id;
+    const update = req.body;
+
+    if (Object.keys(update).length === 0) {
+      res.status(400).json({ message: "Invalid update request" });
+      return;
+    }
+
+    // Allowed fields for director to update
+    let allowedFields = [
+      "firstName",
+      "lastName",
+      "phone1",
+      "phone2",
+      "office",
+      "email",
+      "faculty",
+      "department",
+      "isMainCoordinator",
+    ];
+    let hasInvalidField = Object.keys(update).some(
+      (field) => !allowedFields.includes(field)
+    );
+
+    if (hasInvalidField) {
+      res.status(400).json({
+        message: "Your update failed as it contains certain invalid fields",
+      });
+      return;
+    }
+
+    // check if the id is valid mongodb document id
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: "Invalid id" });
+      return;
+    }
+
+    const coordinator = await COORDINATORS.updateOne({ _id: id }, update);
+
+    if (coordinator.acknowledged === false) {
+      res.status(404).json({ message: "Coordinator not found" });
+      return;
+    }
+
+    res.status(200).json({ message: "Coordinator updated successfully" });
     return;
   } catch (error) {
     handleError(error, res);
@@ -569,7 +654,10 @@ const get_all_departments = async function (req, res) {
       }
       query.schoolId = schoolId;
     }
-    const departments = await DEPARTMENTS.find(query).populate("schoolId", "name");
+    const departments = await DEPARTMENTS.find(query).populate(
+      "schoolId",
+      "name"
+    );
     if (departments.length === 0) {
       res.status(404).json({ message: "No departments found" });
       return;
@@ -593,7 +681,10 @@ const get_a_specific_department = async function (req, res) {
       res.status(400).json({ message: "Invalid id" });
       return;
     }
-    const department = await DEPARTMENTS.findOne({ _id: id }).populate("schoolId", "name");
+    const department = await DEPARTMENTS.findOne({ _id: id }).populate(
+      "schoolId",
+      "name"
+    );
     if (department === null) {
       res.status(404).json({ message: "Department not found" });
       return;
@@ -687,8 +778,10 @@ module.exports = {
   get_a_specific_director,
   get_all_supervisors,
   get_a_specific_supervisor,
+  create_coordinator,
   get_all_coordinators,
   get_a_specific_coordinator,
+  update_coordinator,
   get_all_students,
   get_a_specific_student,
   update_director_details,
