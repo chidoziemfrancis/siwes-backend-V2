@@ -1073,12 +1073,21 @@ This endpoint returns a list of all the weekly reports for the specified student
 
 This endpoint updates the student grade collections with the grades for inspection, reports, and defense.
 
+**Supported Types:**
+- `inspection` - Full inspection score (0-20)
+- `mini_inspection` - Mini inspection score (0-10)
+- `main_inspection` - Main inspection score (0-10)
+- `reports` - Weekly reports score (0-20)
+- `defense` - Defense score (0-60)
+
+**Note:** The `inspectionScore` is automatically calculated as the sum of `miniInspectionScore` and `mainInspectionScore`.
+
 **Request Payload:**
 
 ```json
 {
-  "type": "inspection",
-  "score": 18,
+  "type": "mini_inspection",
+  "score": 9,
   "studentId": "60d52ebc2e0b7617c433df0a"
 }
 ```

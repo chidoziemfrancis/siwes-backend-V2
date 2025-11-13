@@ -655,8 +655,14 @@ router.post(
  *             properties:
  *               studentId:
  *                 type: string
- *               grade:
+ *                 description: ID of the student
+ *               type:
  *                 type: string
+ *                 enum: [inspection, mini_inspection, main_inspection, defense, reports]
+ *                 description: Type of grade (inspection 0-20, mini_inspection 0-10, main_inspection 0-10, defense 0-60, reports 0-20)
+ *               score:
+ *                 type: number
+ *                 description: Score value based on type
  *     responses:
  *       200:
  *         description: Grade assigned successfully

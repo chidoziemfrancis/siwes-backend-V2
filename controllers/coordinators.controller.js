@@ -1457,6 +1457,8 @@ const assign_grade = async function (req, res) {
 
     const validTypes = {
       inspection: "inspectionScore",
+      mini_inspection: "miniInspectionScore",
+      main_inspection: "mainInspectionScore",
       defense: "defenseScore",
       reports: "weeklyReportsScore",
     };
@@ -1469,6 +1471,17 @@ const assign_grade = async function (req, res) {
 
     if (score == null || typeof score == "undefined") {
       res.status(400).json({ message: "Please specify a score" });
+      return;
+    }
+
+    // Validate score ranges
+    if (
+      (type == "mini_inspection" || type == "main_inspection") &&
+      (score > 10 || score < 0)
+    ) {
+      res
+        .status(400)
+        .json({ message: `${type} score must be between 0 and 10` });
       return;
     }
 
@@ -1499,9 +1512,25 @@ const assign_grade = async function (req, res) {
       return;
     }
 
+    // Prepare update object
+    let updateObj = { [validTypes[type]]: score, lastUpdatedBy };
+
+    // If updating mini or main inspection, recalculate the total inspectionScore
+    if (type === "mini_inspection" || type === "main_inspection") {
+      const currentMiniScore = studentGrade?.miniInspectionScore || 0;
+      const currentMainScore = studentGrade?.mainInspectionScore || 0;
+      
+      // Calculate new inspectionScore
+      if (type === "mini_inspection") {
+        updateObj.inspectionScore = score + currentMainScore;
+      } else {
+        updateObj.inspectionScore = currentMiniScore + score;
+      }
+    }
+
     const response = await GRADES.updateOne(
       { studentId },
-      { [validTypes[type]]: score, lastUpdatedBy },
+      { $set: updateObj },
       { upsert: true }
     );
 
@@ -1614,6 +1643,8 @@ const collate_all_grades = async function (req, res) {
           lastName: { $ifNull: ["$studentInfo.lastName", ""] },
           matricNumber: { $ifNull: ["$studentInfo.matricNo", ""] },
           department: { $ifNull: ["$studentInfo.department", ""] },
+          miniInspectionScore: { $ifNull: ["$miniInspectionScore", 0] },
+          mainInspectionScore: { $ifNull: ["$mainInspectionScore", 0] },
           inspectionScore: { $ifNull: ["$inspectionScore", 0] },
           weeklyReportsScore: { $ifNull: ["$weeklyReportsScore", 0] },
           defenseScore: { $ifNull: ["$defenseScore", 0] },
@@ -1660,6 +1691,8 @@ const collate_all_grades = async function (req, res) {
         name: fullName,
         matricNumber: item.matricNumber || "",
         department: formattedDepartment,
+        miniInspectionScore: item.miniInspectionScore,
+        mainInspectionScore: item.mainInspectionScore,
         inspectionScore: item.inspectionScore,
         weeklyReportsScore: item.weeklyReportsScore,
         defenseScore: item.defenseScore,
@@ -2008,6 +2041,8 @@ const download_all_student_data = async function (req, res) {
           sortCode: "$bankDetails.sortCode",
           companyName: "$company.name",
           companyAddress: "$company.address",
+          miniInspectionScore: "$grade.miniInspectionScore",
+          mainInspectionScore: "$grade.mainInspectionScore",
           inspectionScore: "$grade.inspectionScore",
           weeklyReportsScore: "$grade.weeklyReportsScore",
           defenseScore: "$grade.defenseScore",

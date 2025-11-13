@@ -626,6 +626,8 @@ const assign_grade = async function (req, res) {
 
     const validTypes = {
       inspection: "inspectionScore",
+      mini_inspection: "miniInspectionScore",
+      main_inspection: "mainInspectionScore",
       defense: "defenseScore",
       reports: "weeklyReportsScore",
     };
@@ -645,7 +647,7 @@ const assign_grade = async function (req, res) {
       let listItem;
       if (type === "defense") {
         listItem = await DEFENSE_LIST.findById(studentId);
-      } else if (type === "inspection" || type === "reports") {
+      } else if (type === "inspection" || type === "reports" || type === "mini_inspection" || type === "main_inspection") {
         listItem = await INSPECTION_LIST.findById(studentId);
       }
 
@@ -667,6 +669,17 @@ const assign_grade = async function (req, res) {
 
     if (score == null || typeof score == "undefined") {
       res.status(400).json({ message: "Please specify a score" });
+      return;
+    }
+
+    // Validate score ranges
+    if (
+      (type == "mini_inspection" || type == "main_inspection") &&
+      (score > 10 || score < 0)
+    ) {
+      res
+        .status(400)
+        .json({ message: `${type} score must be between 0 and 10` });
       return;
     }
 
@@ -701,9 +714,25 @@ const assign_grade = async function (req, res) {
       return;
     }
 
+    // Prepare update object
+    let updateObj = { [validTypes[type]]: score, lastUpdatedBy };
+
+    // If updating mini or main inspection, recalculate the total inspectionScore
+    if (type === "mini_inspection" || type === "main_inspection") {
+      const currentMiniScore = studentGrade?.miniInspectionScore || 0;
+      const currentMainScore = studentGrade?.mainInspectionScore || 0;
+      
+      // Calculate new inspectionScore
+      if (type === "mini_inspection") {
+        updateObj.inspectionScore = score + currentMainScore;
+      } else {
+        updateObj.inspectionScore = currentMiniScore + score;
+      }
+    }
+
     const response = await GRADES.updateOne(
       { studentId: actualStudentId },
-      { $set: { [validTypes[type]]: score, lastUpdatedBy } },
+      { $set: updateObj },
       { upsert: true }
     );
 
@@ -1050,6 +1079,8 @@ const upload_csv_assign_grades = async function (req, res) {
     // Validate type parameter
     const validTypes = {
       inspection: "inspectionScore",
+      mini_inspection: "miniInspectionScore",
+      main_inspection: "mainInspectionScore",
       defense: "defenseScore",
       reports: "weeklyReportsScore",
     };
@@ -1177,6 +1208,19 @@ const upload_csv_assign_grades = async function (req, res) {
       // Validate score range based on type
       if (score !== null) {
         if (
+          (type == "mini_inspection" || type == "main_inspection") &&
+          (score > 10 || score < 0)
+        ) {
+          failedAssignments.push({
+            row: processedCount,
+            studentId: studentCode,
+            studentName,
+            reason: `${type} score must be between 0 and 10`,
+          });
+          continue;
+        }
+
+        if (
           (type == "inspection" || type == "reports") &&
           (score > 20 || score < 0)
         ) {
@@ -1220,7 +1264,7 @@ const upload_csv_assign_grades = async function (req, res) {
             supervisorId: lastUpdatedBy,
             studentCode: studentCode,
           });
-        } else if (type === "inspection" || type === "reports") {
+        } else if (type === "inspection" || type === "reports" || type === "mini_inspection" || type === "main_inspection") {
           isAssigned = await INSPECTION_LIST.findOne({
             supervisorId: lastUpdatedBy,
             studentCode: studentCode,
@@ -1250,10 +1294,26 @@ const upload_csv_assign_grades = async function (req, res) {
           continue;
         }
 
+        // Prepare update object
+        let updateObj = { [validTypes[type]]: score, lastUpdatedBy };
+
+        // If updating mini or main inspection, recalculate the total inspectionScore
+        if (type === "mini_inspection" || type === "main_inspection") {
+          const currentMiniScore = studentGrade?.miniInspectionScore || 0;
+          const currentMainScore = studentGrade?.mainInspectionScore || 0;
+          
+          // Calculate new inspectionScore
+          if (type === "mini_inspection") {
+            updateObj.inspectionScore = score + currentMainScore;
+          } else {
+            updateObj.inspectionScore = currentMiniScore + score;
+          }
+        }
+
         // Update or create grade record using the same technique as assign_grade
         const response = await GRADES.updateOne(
           { studentId: student._id },
-          { $set: { [validTypes[type]]: score, lastUpdatedBy } },
+          { $set: updateObj },
           { upsert: true }
         );
 
