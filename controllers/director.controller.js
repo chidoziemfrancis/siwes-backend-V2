@@ -276,6 +276,21 @@ const update_coordinator = async function (req, res) {
       "department",
       "isMainCoordinator",
     ];
+
+    // Handle password separately with hashing
+    if (update.password) {
+      if (update.password.trim().length < 8) {
+        res.status(400).json({
+          message: "Password must be at least 8 characters",
+        });
+        return;
+      }
+      // Hash password before updating
+      const salt = await bcrypt.genSalt(10);
+      update.password = await bcrypt.hash(update.password, salt);
+      allowedFields.push("password");
+    }
+
     let hasInvalidField = Object.keys(update).some(
       (field) => !allowedFields.includes(field)
     );
