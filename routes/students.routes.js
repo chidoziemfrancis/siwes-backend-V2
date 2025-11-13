@@ -6,6 +6,7 @@ const {
   add_weekly_reports,
   change_password,
   update_details,
+  update_profile_image,
 } = require("./../controllers/students.controller");
 const { isStudent } = require("./../middlewares/auth.middleware");
 
@@ -168,5 +169,7 @@ router.patch("/changePassword", isStudent, change_password);
  *         description: Unauthorized
  */
 router.patch("/details", isStudent, update_details);
+
+router.patch("/profile-image", isStudent, update_profile_image);
 
 module.exports = router;

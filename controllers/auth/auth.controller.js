@@ -18,6 +18,11 @@ const {
 const crypto = require("crypto");
 const redisClient = require("../../utils/redisClient");
 const Supervisor = require("./../../models/supervisor.model");
+const {
+  uploadImageFromBuffer,
+  deleteAsset,
+  ALLOWED_IMAGE_MIME_TYPES,
+} = require("../../utils/cloudinary");
 
 /**
  * Creates and appends the access and refresh tokens to the cookies of the client
@@ -124,8 +129,8 @@ const create_tokens = function (user, res, type) {
  * @param {response} res
  */
 const register = async function (req, res) {
-  const studentInfo = req.body;
-
+  const studentInfo = { ...req.body };
+  let uploadedProfileImagePublicId = null;
   try {
     if (
       typeof studentInfo !== "object" ||
@@ -133,6 +138,109 @@ const register = async function (req, res) {
     ) {
       res.status(400).json({ message: "Please fill all the required fields" });
       return;
+    }
+
+    if (
+      studentInfo.bankDetails &&
+      typeof studentInfo.bankDetails === "string"
+    ) {
+      try {
+        studentInfo.bankDetails = JSON.parse(studentInfo.bankDetails);
+      } catch (error) {
+        res.status(400).json({
+          message: "Unable to process bank details. Please try again.",
+        });
+        return;
+      }
+    }
+
+    if (
+      (!studentInfo.bankDetails ||
+        typeof studentInfo.bankDetails !== "object") &&
+      (studentInfo["bankDetails[name]"] ||
+        studentInfo["bankDetails[accountNumber]"] ||
+        studentInfo["bankDetails[sortCode]"])
+    ) {
+      studentInfo.bankDetails = {
+        name:
+          studentInfo["bankDetails[name]"] ||
+          studentInfo["bankDetails.name"] ||
+          "",
+        accountNumber:
+          studentInfo["bankDetails[accountNumber]"] ||
+          studentInfo["bankDetails.accountNumber"] ||
+          "",
+        sortCode:
+          studentInfo["bankDetails[sortCode]"] ||
+          studentInfo["bankDetails.sortCode"] ||
+          "",
+      };
+    }
+
+    if (
+      !studentInfo.bankDetails ||
+      typeof studentInfo.bankDetails !== "object" ||
+      Object.keys(studentInfo.bankDetails).length === 0
+    ) {
+      res.status(400).json({
+        message: "Bank details are required to complete registration",
+      });
+      return;
+    }
+
+    if (studentInfo.middleName === "") {
+      delete studentInfo.middleName;
+    }
+
+    if (
+      req.files &&
+      req.files.profileImage
+    ) {
+      const profileImage = Array.isArray(req.files.profileImage)
+        ? req.files.profileImage[0]
+        : req.files.profileImage;
+
+      if (
+        profileImage &&
+        !ALLOWED_IMAGE_MIME_TYPES.includes(profileImage.mimetype)
+      ) {
+        res.status(400).json({
+          message:
+            "Invalid image format. Please upload a JPG, PNG, or WEBP image.",
+        });
+        return;
+      }
+
+      if (profileImage && profileImage.size > 5 * 1024 * 1024) {
+        res.status(400).json({
+          message: "Image size must be 5MB or less.",
+        });
+        return;
+      }
+
+      if (profileImage) {
+        const uploadResult = await uploadImageFromBuffer(
+          profileImage.data,
+          profileImage.mimetype,
+          {
+            eager: [
+              {
+                width: 320,
+                height: 320,
+                crop: "fill",
+                gravity: "face",
+                quality: "auto",
+              },
+            ],
+          }
+        );
+
+        studentInfo.profileImageUrl = uploadResult.secure_url;
+        studentInfo.profileImagePublicId = uploadResult.public_id;
+        studentInfo.profileImageThumbnailUrl =
+          uploadResult.eager?.[0]?.secure_url || uploadResult.secure_url;
+        uploadedProfileImagePublicId = uploadResult.public_id;
+      }
     }
 
     let currentTime = Date.now();
@@ -163,6 +271,9 @@ const register = async function (req, res) {
       .status(200)
       .json({ message: "Registration successful", data: student._id });
   } catch (error) {
+    if (uploadedProfileImagePublicId) {
+      await deleteAsset(uploadedProfileImagePublicId);
+    }
     handleError(error, res);
   }
 };

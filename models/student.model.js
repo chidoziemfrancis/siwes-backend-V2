@@ -107,6 +107,15 @@ const StudentSchema = new mongoose.Schema(
       type: bankDetailsSchema,
       required: [true, "Bank details is required"],
     },
+    profileImageUrl: {
+      type: String,
+    },
+    profileImageThumbnailUrl: {
+      type: String,
+    },
+    profileImagePublicId: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

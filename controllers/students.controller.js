@@ -6,6 +6,11 @@ const COMPANY = require("./../models/company.model");
 const WEEKLY_REPORTS = require("./../models/weekly_report.model");
 const bcrypt = require("bcrypt");
 const {
+  uploadImageFromBuffer,
+  deleteAsset,
+  ALLOWED_IMAGE_MIME_TYPES,
+} = require("../utils/cloudinary");
+const {
   getCurrentWeek,
   getDateOfFirstDayOfTheWeek,
   isDate1GreaterThanDate2,
@@ -562,6 +567,93 @@ const update_details = async function (req, res) {
   }
 };
 
+const update_profile_image = async function (req, res) {
+  const { _id } = req.user;
+
+  try {
+    if (!req.files || !req.files.profileImage) {
+      res.status(400).json({ message: "Please upload a profile image" });
+      return;
+    }
+
+    const profileImage = Array.isArray(req.files.profileImage)
+      ? req.files.profileImage[0]
+      : req.files.profileImage;
+
+    if (!profileImage) {
+      res.status(400).json({ message: "Please upload a valid profile image" });
+      return;
+    }
+
+    if (!ALLOWED_IMAGE_MIME_TYPES.includes(profileImage.mimetype)) {
+      res.status(400).json({
+        message: "Invalid image format. Upload a JPG, PNG, or WEBP image.",
+      });
+      return;
+    }
+
+    if (profileImage.size > 5 * 1024 * 1024) {
+      res.status(400).json({ message: "Image size must not exceed 5MB" });
+      return;
+    }
+
+    const student = await STUDENTS.findById(_id);
+
+    if (!student) {
+      res.status(404).json({ message: "Student not found" });
+      return;
+    }
+
+    const uploadResult = await uploadImageFromBuffer(
+      profileImage.data,
+      profileImage.mimetype,
+      {
+        eager: [
+          {
+            width: 320,
+            height: 320,
+            crop: "fill",
+            gravity: "face",
+            quality: "auto",
+          },
+        ],
+      }
+    );
+
+    const previousPublicId = student.profileImagePublicId;
+    const profileImageThumbnailUrl =
+      uploadResult.eager?.[0]?.secure_url || uploadResult.secure_url;
+
+    // Use findByIdAndUpdate to only update profile image fields
+    // This avoids triggering validation on password and other fields
+    const updatedStudent = await STUDENTS.findByIdAndUpdate(
+      _id,
+      {
+        profileImageUrl: uploadResult.secure_url,
+        profileImagePublicId: uploadResult.public_id,
+        profileImageThumbnailUrl: profileImageThumbnailUrl,
+      },
+      { new: true, runValidators: false }
+    );
+
+    if (previousPublicId && previousPublicId !== uploadResult.public_id) {
+      await deleteAsset(previousPublicId);
+    }
+
+    res.status(200).json({
+      message: "Profile image updated successfully",
+      data: {
+        profileImageUrl: updatedStudent.profileImageUrl,
+        profileImageThumbnailUrl:
+          updatedStudent.profileImageThumbnailUrl ||
+          updatedStudent.profileImageUrl,
+      },
+    });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   get_details,
   get_weekly_reports,
@@ -569,4 +661,5 @@ module.exports = {
   add_weekly_reports,
   change_password,
   update_details,
+  update_profile_image,
 };

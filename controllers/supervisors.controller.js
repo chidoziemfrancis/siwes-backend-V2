@@ -88,6 +88,10 @@ const get_assigned_students_for_defense = async function (req, res) {
                 matricNo: 1,
                 studentCode: 1,
                 course: 1,
+                profileImageUrl: "$profileImageUrl",
+                profileImageThumbnailUrl: {
+                  $ifNull: ["$profileImageThumbnailUrl", "$profileImageUrl"],
+                },
               },
             },
           ],
@@ -258,6 +262,10 @@ const get_assigned_students_for_inspection = async function (req, res) {
                 course: 1,
                 email: 1,
                 phone: 1,
+                profileImageUrl: "$profileImageUrl",
+                profileImageThumbnailUrl: {
+                  $ifNull: ["$profileImageThumbnailUrl", "$profileImageUrl"],
+                },
               },
             },
           ],
