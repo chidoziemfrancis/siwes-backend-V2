@@ -105,6 +105,11 @@ const get_details = async function (req, res) {
         },
       },
       {
+        $addFields: {
+          inspectionDate: "$inspection_supervisor.assignedDate",
+        },
+      },
+      {
         $lookup: {
           from: "supervisors",
           localField: "inspection_supervisor.supervisorId",
@@ -143,11 +148,25 @@ const get_details = async function (req, res) {
       {
         $addFields: {
           inspection_supervisor: {
-            $arrayElemAt: ["$inspection_supervisor", 0],
+            $cond: {
+              if: { $gt: [{ $size: "$inspection_supervisor" }, 0] },
+              then: {
+                $mergeObjects: [
+                  { $arrayElemAt: ["$inspection_supervisor", 0] },
+                  { date: "$inspectionDate" },
+                ],
+              },
+              else: null,
+            },
           },
           defense_supervisor: {
             $arrayElemAt: ["$defense_supervisor", 0],
           },
+        },
+      },
+      {
+        $project: {
+          inspectionDate: 0,
         },
       },
     ]);
