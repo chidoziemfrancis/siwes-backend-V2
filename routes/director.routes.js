@@ -71,7 +71,7 @@ const { isDirector } = require("./../middlewares/auth.middleware");
  *       401:
  *         description: Unauthorized
  */
-router.post("/add", add_director);
+router.post("/add", isDirector, add_director);
 
 /**
  * @swagger
