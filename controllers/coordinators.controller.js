@@ -538,11 +538,18 @@ const get_all_students = async function (req, res) {
     }
 
     // Build match criteria based on coordinator type
-    const matchCriteria = { faculty: faculty };
+    // Normalize faculty and department to lowercase to match database schema
+    const matchCriteria = {
+      faculty:
+        typeof faculty === "string" ? faculty.toLowerCase().trim() : faculty,
+    };
 
     // If coordinator is not main coordinator, filter by department
-    if (!isMainCoordinator) {
-      matchCriteria.department = department;
+    if (!isMainCoordinator && department) {
+      matchCriteria.department =
+        typeof department === "string"
+          ? department.toLowerCase().trim()
+          : department;
     }
 
     const pipeline = [
@@ -781,11 +788,18 @@ const download_all_students = async function (req, res) {
     }
 
     // Build match criteria based on coordinator type
-    const matchCriteria = { faculty: faculty };
+    // Normalize faculty and department to lowercase to match database schema
+    const matchCriteria = {
+      faculty:
+        typeof faculty === "string" ? faculty.toLowerCase().trim() : faculty,
+    };
 
     // If coordinator is not main coordinator, filter by department
-    if (!isMainCoordinator) {
-      matchCriteria.department = department;
+    if (!isMainCoordinator && department) {
+      matchCriteria.department =
+        typeof department === "string"
+          ? department.toLowerCase().trim()
+          : department;
     }
 
     const pipeline = [
@@ -1100,11 +1114,18 @@ const get_defense_list = async function (req, res) {
 
   try {
     // Build match criteria based on coordinator type
-    const matchCriteria = { faculty: faculty };
+    // Normalize faculty and department to lowercase to match database schema
+    const matchCriteria = {
+      faculty:
+        typeof faculty === "string" ? faculty.toLowerCase().trim() : faculty,
+    };
 
     // If coordinator is not main coordinator, filter by department
-    if (!isMainCoordinator) {
-      matchCriteria.department = department;
+    if (!isMainCoordinator && department) {
+      matchCriteria.department =
+        typeof department === "string"
+          ? department.toLowerCase().trim()
+          : department;
     }
 
     const pipeline = [
@@ -1222,11 +1243,18 @@ const get_inspection_list = async function (req, res) {
 
   try {
     // Build match criteria based on coordinator type
-    const matchCriteria = { faculty: faculty };
+    // Normalize faculty and department to lowercase to match database schema
+    const matchCriteria = {
+      faculty:
+        typeof faculty === "string" ? faculty.toLowerCase().trim() : faculty,
+    };
 
     // If coordinator is not main coordinator, filter by department
-    if (!isMainCoordinator) {
-      matchCriteria.department = department;
+    if (!isMainCoordinator && department) {
+      matchCriteria.department =
+        typeof department === "string"
+          ? department.toLowerCase().trim()
+          : department;
     }
 
     const pipeline = [
@@ -1519,7 +1547,7 @@ const assign_grade = async function (req, res) {
     if (type === "mini_inspection" || type === "main_inspection") {
       const currentMiniScore = studentGrade?.miniInspectionScore || 0;
       const currentMainScore = studentGrade?.mainInspectionScore || 0;
-      
+
       // Calculate new inspectionScore
       if (type === "mini_inspection") {
         updateObj.inspectionScore = score + currentMainScore;
@@ -1815,11 +1843,18 @@ const search_for_students = async function (req, res) {
     const indexedFields = ["firstName", "lastName", "middleName"];
 
     // Build match criteria based on coordinator type
-    const matchCriteria = { faculty: faculty };
+    // Normalize faculty and department to lowercase to match database schema
+    const matchCriteria = {
+      faculty:
+        typeof faculty === "string" ? faculty.toLowerCase().trim() : faculty,
+    };
 
     // If coordinator is not main coordinator, filter by department
-    if (!isMainCoordinator) {
-      matchCriteria.department = department;
+    if (!isMainCoordinator && department) {
+      matchCriteria.department =
+        typeof department === "string"
+          ? department.toLowerCase().trim()
+          : department;
     }
 
     const pipeline = [
@@ -1970,11 +2005,18 @@ const download_all_student_data = async function (req, res) {
 
   try {
     // Build match criteria based on coordinator type
-    const matchCriteria = { faculty: faculty };
+    // Normalize faculty and department to lowercase to match database schema
+    const matchCriteria = {
+      faculty:
+        typeof faculty === "string" ? faculty.toLowerCase().trim() : faculty,
+    };
 
     // If coordinator is not main coordinator, filter by department
-    if (!isMainCoordinator) {
-      matchCriteria.department = department;
+    if (!isMainCoordinator && department) {
+      matchCriteria.department =
+        typeof department === "string"
+          ? department.toLowerCase().trim()
+          : department;
     }
 
     const students = await STUDENTS.aggregate([
@@ -2543,11 +2585,18 @@ const download_student_inspection_supervisors = async function (req, res) {
 
   try {
     // Build match criteria based on coordinator type
-    const matchCriteria = { faculty: faculty };
+    // Normalize faculty and department to lowercase to match database schema
+    const matchCriteria = {
+      faculty:
+        typeof faculty === "string" ? faculty.toLowerCase().trim() : faculty,
+    };
 
     // If coordinator is not main coordinator, filter by department
-    if (!isMainCoordinator) {
-      matchCriteria.department = department;
+    if (!isMainCoordinator && department) {
+      matchCriteria.department =
+        typeof department === "string"
+          ? department.toLowerCase().trim()
+          : department;
     }
 
     const pipeline = [
