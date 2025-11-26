@@ -49,9 +49,6 @@ const get_details = async function (req, res) {
       },
       {
         $project: {
-          firstName: 0,
-          lastName: 0,
-          middleName: 0,
           updatedAt: 0,
           createdAt: 0,
           _v: 0,
