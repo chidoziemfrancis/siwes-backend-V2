@@ -1368,3 +1368,5 @@ This endpoint allows coordinators to update the information for a particular stu
     ```json
     { "message": "Student not found" }
     ```
+.
+.
