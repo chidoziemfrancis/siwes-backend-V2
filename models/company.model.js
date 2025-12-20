@@ -15,9 +15,13 @@ const CompanySchema = new mongoose.Schema(
       lowercase: true,
       minLength: [3, "Address must be at least 3 characters"],
     },
+    isAbroad: {
+      type: Boolean,
+      default: false,
+    },
     state: {
       type: String,
-      required: [true, "State is required"],
+      required: false,
       lowercase: true,
       minLength: [3, "State must be at least 3 characters"],
     },
@@ -28,7 +32,7 @@ const CompanySchema = new mongoose.Schema(
     },
     street: {
       type: String,
-      required: [true, "Company Street is required"],
+      required: false,
     },
     email: {
       type: String,
@@ -69,6 +73,23 @@ const CompanySchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Add custom validation for conditional requirements
+CompanySchema.pre("validate", function (next) {
+  // If not abroad (i.e., in Nigeria), state, LGA and street are required
+  if (!this.isAbroad) {
+    if (!this.state || this.state.trim() === "") {
+      this.invalidate("state", "State is required for companies in Nigeria");
+    }
+    if (!this.LGA || this.LGA.trim() === "") {
+      this.invalidate("LGA", "LGA is required for companies in Nigeria");
+    }
+    if (!this.street || this.street.trim() === "") {
+      this.invalidate("street", "Street is required for companies in Nigeria");
+    }
+  }
+  next();
+});
 
 const Company = mongoose.model("Company", CompanySchema);
 
