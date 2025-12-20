@@ -23,7 +23,6 @@ const CompanySchema = new mongoose.Schema(
       type: String,
       required: false,
       lowercase: true,
-      minLength: [3, "State must be at least 3 characters"],
     },
     LGA: {
       type: String,
@@ -79,13 +78,17 @@ CompanySchema.pre("validate", function (next) {
   // If not abroad (i.e., in Nigeria), state, LGA and street are required
   if (!this.isAbroad) {
     if (!this.state || this.state.trim() === "") {
-      this.invalidate("state", "State is required for companies in Nigeria");
+      this.invalidate("state", "State is required");
+    } else if (this.state.length < 3) {
+      this.invalidate("state", "State must be at least 3 characters");
     }
+
     if (!this.LGA || this.LGA.trim() === "") {
-      this.invalidate("LGA", "LGA is required for companies in Nigeria");
+      this.invalidate("LGA", "LGA is required");
     }
+
     if (!this.street || this.street.trim() === "") {
-      this.invalidate("street", "Street is required for companies in Nigeria");
+      this.invalidate("street", "Company Street is required");
     }
   }
   next();
