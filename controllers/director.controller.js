@@ -4,6 +4,8 @@ const SUPERVISORS = require("./../models/supervisor.model");
 const STUDENTS = require("./../models/student.model");
 const SCHOOLS = require("../models/school.model");
 const DEPARTMENTS = require("../models/department.model");
+const INSPECTION_LIST = require("../models/inspection_list.model");
+const DEFENSE_LIST = require("../models/defense_list.model");
 const { handleError } = require("../utils/handleError");
 const mongoose = require("mongoose");
 const { request, response } = require("express");
@@ -111,7 +113,7 @@ const get_a_specific_director = async function (req, res) {
 };
 
 /**
- * Returns a list of all the supervisors
+ * Returns a list of all the supervisors with their assigned student counts
  * @param {request} req
  * @param {response} res
  */
@@ -127,7 +129,42 @@ const get_all_supervisors = async function (req, res) {
       return;
     }
 
-    res.status(200).json(supervisors);
+    // Calculate the number of assigned students for each supervisor
+    const supervisorsWithCounts = await Promise.all(
+      supervisors.map(async (supervisor) => {
+        // Count students in inspection list
+        const inspectionCount = await INSPECTION_LIST.countDocuments({
+          supervisorId: supervisor._id,
+        });
+
+        // Count students in defense list
+        const defenseCount = await DEFENSE_LIST.countDocuments({
+          supervisorId: supervisor._id,
+        });
+
+        // Use a Set to avoid counting duplicate students (if a student is in both lists)
+        const inspectionStudents = await INSPECTION_LIST.find(
+          { supervisorId: supervisor._id },
+          { studentCode: 1 }
+        );
+        const defenseStudents = await DEFENSE_LIST.find(
+          { supervisorId: supervisor._id },
+          { studentCode: 1 }
+        );
+
+        const uniqueStudentCodes = new Set([
+          ...inspectionStudents.map((s) => s.studentCode),
+          ...defenseStudents.map((s) => s.studentCode),
+        ]);
+
+        return {
+          ...supervisor.toObject(),
+          noOfAssignedStudents: uniqueStudentCodes.size,
+        };
+      })
+    );
+
+    res.status(200).json(supervisorsWithCounts);
     return;
   } catch (error) {
     handleError(error, res);
@@ -329,10 +366,48 @@ const update_coordinator = async function (req, res) {
  */
 const get_all_students = async function (req, res) {
   try {
-    const students = await STUDENTS.find(
-      {},
-      { password: 0, validation_secret: 0 }
-    );
+    const pipeline = [
+      {
+        $project: {
+          password: 0,
+          validation_secret: 0,
+        },
+      },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                address: 1,
+                isAbroad: 1,
+                country: 1,
+                state: 1,
+                LGA: 1,
+                street: 1,
+                email: 1,
+                phone: 1,
+                assignedDepartment: 1,
+                jobDescription: 1,
+                resumptionDate: 1,
+                expectedEndDate: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          company: { $arrayElemAt: ["$company", 0] },
+        },
+      },
+    ];
+
+    const students = await STUDENTS.aggregate(pipeline);
 
     if (students.length === 0) {
       res.status(404).json({ message: "No students found" });

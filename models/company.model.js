@@ -19,6 +19,10 @@ const CompanySchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    country: {
+      type: String,
+      required: false,
+    },
     state: {
       type: String,
       required: false,
@@ -75,6 +79,13 @@ const CompanySchema = new mongoose.Schema(
 
 // Add custom validation for conditional requirements
 CompanySchema.pre("validate", function (next) {
+  // If abroad, country is required
+  if (this.isAbroad) {
+    if (!this.country || this.country.trim() === "") {
+      this.invalidate("country", "Country is required");
+    }
+  }
+  
   // If not abroad (i.e., in Nigeria), state, LGA and street are required
   if (!this.isAbroad) {
     if (!this.state || this.state.trim() === "") {
