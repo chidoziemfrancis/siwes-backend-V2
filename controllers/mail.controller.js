@@ -53,7 +53,7 @@ const sendOTPMail = async (email, token) => {
     const mailTransporter = getTransporter();
 
     const mailOptions = {
-      from: `"BNXN from Babcock" <${process.env.EMAIL}>`,
+      from: `"SIWES TEAM from Babcock" <${process.env.EMAIL}>`,
       to: email,
       subject: "Account Security Information",
       template: "otp",
@@ -87,7 +87,7 @@ const sendErrorMail = async (error) => {
     const mailTransporter = getTransporter();
 
     const mailOptions = {
-      from: `"BNXN from Babcock" <${process.env.EMAIL}>`,
+      from: `"SIWES TEAM from Babcock" <${process.env.EMAIL}>`,
       to: process.env.EMAIL,
       subject: "Error Occured",
       template: "error",
@@ -116,7 +116,7 @@ const sendLoginAlertMail = async (email, loginTime) => {
     const mailTransporter = getTransporter();
 
     const mailOptions = {
-      from: `"BNXN from Babcock" <${process.env.EMAIL}>`,
+      from: `"SIWES TEAM from Babcock" <${process.env.EMAIL}>`,
       to: email,
       subject: "Login Alert",
       template: "login",
@@ -145,7 +145,7 @@ const sendWelcomeMail = async (email, firstName, lastName) => {
     const mailTransporter = getTransporter();
 
     const mailOptions = {
-      from: `"BNXN from Babcock" <${process.env.EMAIL}>`,
+      from: `"SIWES TEAM from Babcock" <${process.env.EMAIL}>`,
       to: email,
       subject: "Welcome to Babcock University's SIWES portal",
       template: "registration",
@@ -201,10 +201,51 @@ const sendMailToSupervisorEmail = async ({
   }
 };
 
+/**
+ * This sends a mail with login credentials to directors
+ * @param {string} email
+ * @param {string} firstName
+ * @param {string} lastName
+ * @param {string} password
+ * @returns
+ */
+const sendMailToDirectorEmail = async ({
+  email,
+  firstName,
+  lastName,
+  password,
+}) => {
+  try {
+    const mailTransporter = getTransporter();
+
+    const mailOptions = {
+      from: `"SIWES TEAM from Babcock" <${process.env.EMAIL}>`,
+      to: email,
+      subject: "Welcome to Babcock University's SIWES portal",
+      template: "director-registration",
+      context: {
+        firstName,
+        lastName,
+        email,
+        password,
+      },
+    };
+
+    await mailTransporter.sendMail(mailOptions);
+    console.log(`Director registration email sent to ${email}`);
+  } catch (error) {
+    console.error("Error sending director registration email:", error);
+    throw new Error(
+      `Failed to send director registration email: ${error.message}`
+    );
+  }
+};
+
 module.exports = {
   sendOTPMail,
   sendErrorMail,
   sendLoginAlertMail,
   sendWelcomeMail,
   sendMailToSupervisorEmail,
+  sendMailToDirectorEmail,
 };

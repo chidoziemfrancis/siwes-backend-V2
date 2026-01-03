@@ -7,6 +7,7 @@ const DEPARTMENTS = require("../models/department.model");
 const INSPECTION_LIST = require("../models/inspection_list.model");
 const DEFENSE_LIST = require("../models/defense_list.model");
 const { handleError } = require("../utils/handleError");
+const { sendMailToDirectorEmail } = require("./mail.controller");
 const mongoose = require("mongoose");
 const { request, response } = require("express");
 const bcrypt = require("bcrypt");
@@ -18,7 +19,27 @@ const bcrypt = require("bcrypt");
  */
 const add_director = async function (req, res) {
   try {
+    // Store the plain password before it gets hashed by the pre-save hook
+    const plainPassword = req.body.password;
+    const { firstName, lastName, email } = req.body;
+
+    // Create the director (password will be hashed by the pre-save hook)
     const director = await DIRECTORS.create(req.body);
+
+    // Send email with login credentials to the new director
+    try {
+      await sendMailToDirectorEmail({
+        email,
+        firstName,
+        lastName,
+        password: plainPassword,
+      });
+      console.log(`Director registration email sent successfully to ${email}`);
+    } catch (emailError) {
+      console.error("Error sending director registration email:", emailError);
+      // Note: We don't fail the director creation if email fails
+      // The director is already created, we just log the email error
+    }
 
     res.status(201).json({
       message: "Director added successfully",
