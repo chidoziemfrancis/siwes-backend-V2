@@ -882,6 +882,41 @@ const delete_department = async function (req, res) {
   }
 };
 
+/**
+ * deletes a director
+ * @param {request} req
+ * @param {response} res
+ */
+const delete_director = async function (req, res) {
+  try {
+    const id = req.params.id;
+
+    // Validate the id
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: "Invalid id" });
+      return;
+    }
+
+    // Prevent director from deleting themselves
+    if (req.user && req.user._id && req.user._id.toString() === id) {
+      res.status(400).json({ message: "You cannot delete your own account" });
+      return;
+    }
+
+    // Delete the director
+    const director = await DIRECTORS.deleteOne({ _id: id });
+    if (director.deletedCount === 0) {
+      res.status(404).json({ message: "Director not found" });
+      return;
+    }
+
+    res.status(200).json({ message: "Director deleted successfully" });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   add_director,
   get_all_directors,
@@ -907,4 +942,5 @@ module.exports = {
   get_a_specific_department,
   update_department,
   delete_department,
+  delete_director,
 };

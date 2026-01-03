@@ -24,6 +24,7 @@ const {
   get_a_specific_department,
   update_department,
   delete_department,
+  delete_director,
 } = require("./../controllers/director.controller");
 const { isDirector } = require("./../middlewares/auth.middleware");
 
@@ -681,5 +682,31 @@ router.delete("/departments/:id", isDirector, delete_department);
  *         description: Unauthorized
  */
 router.get("/:id", isDirector, get_a_specific_director);
+
+/**
+ * @swagger
+ * /directors/{id}:
+ *   delete:
+ *     summary: Delete a director
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Director deleted successfully
+ *       400:
+ *         description: Bad request - Invalid ID or cannot delete own account
+ *       404:
+ *         description: Director not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.delete("/:id", isDirector, delete_director);
 
 module.exports = router;
