@@ -39,6 +39,7 @@ const corsOption = {
       "http://localhost:3001",
       "https://babcock-siwes.com",
       "https://bucc-siwes-website.vercel.app",
+      "https://www.babcock-siwes.com/",
       "https://siwes-website.vercel.app",
     ];
 
