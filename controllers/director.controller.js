@@ -917,6 +917,103 @@ const delete_director = async function (req, res) {
   }
 };
 
+/**
+ * Creates multiple supervisors in bulk
+ * @param {request} req
+ * @param {response} res
+ */
+const bulk_create_supervisors = async function (req, res) {
+  try {
+    const { supervisors } = req.body;
+
+    // Validate input
+    if (!Array.isArray(supervisors) || supervisors.length === 0) {
+      res.status(400).json({
+        message: "supervisors must be a non-empty array",
+      });
+      return;
+    }
+
+    const defaultPassword = "siwes_supervisor";
+    const defaultOffice = "BUCODEL";
+
+    let successfulCreations = [];
+    let failedCreations = [];
+
+    // Process each supervisor
+    for (let i = 0; i < supervisors.length; i++) {
+      const supervisorData = supervisors[i];
+      const { firstName, lastName, phone, email, office } = supervisorData;
+
+      // Validate required fields
+      if (!firstName || !lastName || !phone || !email) {
+        failedCreations.push({
+          index: i,
+          data: supervisorData,
+          reason:
+            "Missing required fields: firstName, lastName, phone, or email",
+        });
+        continue;
+      }
+
+      // Prepare supervisor data with defaults
+      const supervisorToCreate = {
+        firstName: firstName.trim().toLowerCase(),
+        lastName: lastName.trim().toLowerCase(),
+        phone: phone.trim(),
+        email: email.trim().toLowerCase(),
+        password: defaultPassword,
+        office: office || defaultOffice,
+      };
+
+      try {
+        // Create supervisor (password will be hashed by pre-save hook)
+        const supervisor = await SUPERVISORS.create(supervisorToCreate);
+
+        successfulCreations.push({
+          index: i,
+          _id: supervisor._id,
+          firstName: supervisor.firstName,
+          lastName: supervisor.lastName,
+          email: supervisor.email,
+        });
+      } catch (error) {
+        // Handle duplicate email or validation errors
+        let reason = "Unknown error";
+        if (error.code === 11000) {
+          reason = "Email already exists";
+        } else if (error.errors) {
+          // Mongoose validation error
+          const firstError = Object.values(error.errors)[0];
+          reason = firstError.message;
+        } else {
+          reason = error.message;
+        }
+
+        failedCreations.push({
+          index: i,
+          data: supervisorData,
+          reason,
+        });
+      }
+    }
+
+    res.status(200).json({
+      message: "Bulk supervisor creation completed",
+      totalRequested: supervisors.length,
+      successfulCreations: successfulCreations.length,
+      failedCreations: failedCreations.length,
+      results: {
+        successful: successfulCreations,
+        failed: failedCreations.length > 0 ? failedCreations : undefined,
+      },
+    });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   add_director,
   get_all_directors,
@@ -943,4 +1040,5 @@ module.exports = {
   update_department,
   delete_department,
   delete_director,
+  bulk_create_supervisors,
 };

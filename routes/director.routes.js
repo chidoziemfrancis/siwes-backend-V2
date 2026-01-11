@@ -25,6 +25,7 @@ const {
   update_department,
   delete_department,
   delete_director,
+  bulk_create_supervisors,
 } = require("./../controllers/director.controller");
 const { isDirector } = require("./../middlewares/auth.middleware");
 
@@ -114,6 +115,49 @@ router.get("/supervisors", isDirector, get_all_supervisors);
  */
 
 router.get("/supervisors/:id", isDirector, get_a_specific_supervisor);
+
+/**
+ * @swagger
+ * /directors/supervisors/bulk:
+ *   post:
+ *     summary: Create multiple supervisors in bulk
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               supervisors:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - firstName
+ *                     - lastName
+ *                     - phone
+ *                     - email
+ *                   properties:
+ *                     firstName:
+ *                       type: string
+ *                     lastName:
+ *                       type: string
+ *                     phone:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *     responses:
+ *       200:
+ *         description: Bulk supervisor creation completed
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ */
+router.post("/supervisors/bulk", isDirector, bulk_create_supervisors);
 
 /**
  * @swagger
