@@ -140,6 +140,18 @@ const register = async function (req, res) {
       return;
     }
 
+    // Validate email format - must be a Babcock student email
+    if (
+      !studentInfo.email ||
+      !/^[a-zA-Z0-9._%+-]+@student\.babcock\.edu\.ng$/.test(studentInfo.email)
+    ) {
+      res.status(400).json({
+        message:
+          "Please use your Babcock student email (@student.babcock.edu.ng)",
+      });
+      return;
+    }
+
     if (
       studentInfo.bankDetails &&
       typeof studentInfo.bankDetails === "string"
