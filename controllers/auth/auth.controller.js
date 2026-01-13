@@ -277,7 +277,7 @@ const register = async function (req, res) {
 
     await create_tokens(student, res, "student");
 
-    await sendWelcomeMail(student.email, student.firstName, student.lastName);
+    // await sendWelcomeMail(student.email, student.firstName, student.lastName);
 
     res
       .status(200)
