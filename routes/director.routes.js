@@ -26,6 +26,8 @@ const {
   delete_department,
   delete_director,
   bulk_create_supervisors,
+  set_registration_deadline,
+  get_registration_deadline,
 } = require("./../controllers/director.controller");
 const { isDirector } = require("./../middlewares/auth.middleware");
 
@@ -702,6 +704,52 @@ router.patch("/departments/:id", isDirector, update_department);
  *         description: Unauthorized
  */
 router.delete("/departments/:id", isDirector, delete_department);
+
+/**
+ * @swagger
+ * /directors/registrationDeadline:
+ *   get:
+ *     summary: Get registration deadline
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Deadline retrieved successfully
+ *       404:
+ *         description: No deadline has been set
+ */
+router.get("/registrationDeadline", isDirector, get_registration_deadline);
+
+/**
+ * @swagger
+ * /directors/setRegistrationDeadline:
+ *   post:
+ *     summary: Set registration deadline
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               time:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: Deadline set successfully
+ *       400:
+ *         description: Cannot set deadline in the past
+ */
+router.post(
+    "/setRegistrationDeadline",
+    isDirector,
+    set_registration_deadline
+);
 
 /**
  * @swagger

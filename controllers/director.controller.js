@@ -6,6 +6,7 @@ const SCHOOLS = require("../models/school.model");
 const DEPARTMENTS = require("../models/department.model");
 const INSPECTION_LIST = require("../models/inspection_list.model");
 const DEFENSE_LIST = require("../models/defense_list.model");
+const DEADLINE = require("./../models/deadline.model");
 const { handleError } = require("../utils/handleError");
 const { sendMailToDirectorEmail } = require("./mail.controller");
 const mongoose = require("mongoose");
@@ -1014,6 +1015,77 @@ const bulk_create_supervisors = async function (req, res) {
   }
 };
 
+/**
+ * Accepts the deadline date and updates the deadline document
+ * @param {request} req
+ * @param {response} res
+ */
+const set_registration_deadline = async function (req, res) {
+  const { time } = req.body;
+  const { _id: updatedBy } = req.user;
+
+  try {
+    let currentTime = Date.now();
+
+    if (time < currentTime) {
+      res
+        .status(400)
+        .json({ message: "You cannot set a deadline into the past" });
+      return;
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(updatedBy)) {
+      res.status(401).json({
+        message:
+          "Something went wrong while authenticating your request, re-authenticate and try again",
+      });
+      return;
+    }
+
+    // clears the entire collection
+    await DEADLINE.deleteMany({});
+
+    await DEADLINE.create({ time, updatedBy });
+
+    res
+      .status(200)
+      .json({ message: "Registration deadline has been assigned" });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * Gets the current registration deadline
+ * @param {request} req
+ * @param {response} res
+ */
+const get_registration_deadline = async function (req, res) {
+  try {
+    const deadline = await DEADLINE.findOne({}).sort({ createdAt: -1 });
+
+    if (!deadline) {
+      res.status(404).json({
+        message: "No registration deadline has been set",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Registration deadline retrieved successfully",
+      deadline: {
+        time: deadline.time,
+        updatedAt: deadline.updatedAt,
+        updatedBy: deadline.updatedBy,
+      },
+    });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   add_director,
   get_all_directors,
@@ -1041,4 +1113,6 @@ module.exports = {
   delete_department,
   delete_director,
   bulk_create_supervisors,
+  set_registration_deadline,
+  get_registration_deadline,
 };
