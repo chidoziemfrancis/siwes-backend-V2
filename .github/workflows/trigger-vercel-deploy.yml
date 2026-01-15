@@ -1,0 +1,32 @@
+name: Trigger Vercel Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  trigger-vercel:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Update Vercel trigger file
+        run: |
+          echo "Triggered at $(date -u)" > .vercel-trigger
+
+      - name: Commit and push trigger
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add .vercel-trigger
+          git commit -m "chore: trigger vercel deploy" || echo "No changes to commit"
+          git push

@@ -5,6 +5,8 @@ build/
 tests/*
 *.DS_Store
 
+.vercel-trigger
+
 # File uploads
 uploads/forms/*.pdf
 uploads/forms/*.doc
