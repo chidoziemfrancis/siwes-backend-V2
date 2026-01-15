@@ -1,3 +1,10 @@
+// IMPORTANT: Make sure to import `instrument.js` at the top of your file.
+// This initializes Sentry before any other imports
+require("./instrument.js");
+
+// All other imports below
+const Sentry = require("@sentry/node");
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -11,8 +18,6 @@ const cloudinary = require("cloudinary").v2;
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swaggerConfig");
 const redisClient = require("./utils/redisClient");
-
-require("dotenv").config();
 
 // Only load Scalar in non-production environments (development/staging)
 // Scalar is an ES module and causes issues in production environments like Vercel
@@ -101,6 +106,11 @@ async function main() {
 
     mongoose.connection.on("error", (err) => {
       console.error("MongoDB connection error:", err);
+      if (process.env.SENTRY_DSN) {
+        Sentry.captureException(err, {
+          tags: { errorType: "MongoDBConnectionError" },
+        });
+      }
     });
 
     mongoose.connection.on("disconnected", () => {
@@ -158,10 +168,19 @@ async function main() {
         availableEndpoints: endpoints,
       });
     });
+
+    // The error handler must be registered before any other error middleware and after all controllers
+    if (process.env.SENTRY_DSN) {
+      Sentry.setupExpressErrorHandler(app);
+    }
   } catch (error) {
     console.log(`App failed to start due to ${error}`);
+    if (process.env.SENTRY_DSN) {
+      Sentry.captureException(error, {
+        tags: { errorType: "AppStartupError" },
+      });
+    }
   }
-  // Dara
 }
 
 main();

@@ -1,5 +1,6 @@
 const { response } = require("express");
 const { sendErrorMail } = require("../controllers/mail.controller");
+const Sentry = require("@sentry/node");
 
 /**
  * Transforms and send back a readable error message to the frontend client
@@ -7,6 +8,20 @@ const { sendErrorMail } = require("../controllers/mail.controller");
  * @param {response} res
  */
 const handleError = async function (error, res) {
+  // Capture error in Sentry with context (only if Sentry is initialized)
+  if (process.env.SENTRY_DSN) {
+    Sentry.captureException(error, {
+      tags: {
+        errorType: error.name || "UnknownError",
+        errorCode: error.code || "N/A",
+      },
+      extra: {
+        errorMessage: error.message,
+        errorStack: error.stack,
+      },
+    });
+  }
+
   // process error from mongodb schema validation
   if (error.name === "ValidationError") {
     // get all validation errors
