@@ -335,7 +335,10 @@ const login = async function (req, res) {
         break;
     }
     if (user === null) {
-      res.status(400).json({ message: "Invalid credentials" });
+      res.status(400).json({ 
+        message: "User not found. Please sign up first.",
+        code: "USER_NOT_FOUND"
+      });
       return;
     }
 
