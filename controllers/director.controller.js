@@ -1068,6 +1068,25 @@ const get_registration_deadline = async function (req, res) {
     if (!deadline) {
       res.status(404).json({
         message: "No registration deadline has been set",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Registration deadline retrieved successfully",
+      deadline: {
+        time: deadline.time,
+        updatedAt: deadline.updatedAt,
+        updatedBy: deadline.updatedBy,
+      },
+    });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
  * Allows director to change a student's password by email
  * @param {request} req
  * @param {response} res
@@ -1138,18 +1157,10 @@ const change_student_password = async function (req, res) {
     }
 
     res.status(200).json({
-      message: "Registration deadline retrieved successfully",
-      deadline: {
-        time: deadline.time,
-        updatedAt: deadline.updatedAt,
-        updatedBy: deadline.updatedBy,
-      },
-    });
-    return;
-  } catch (error) {
       message: "Student password changed successfully",
       studentEmail: email,
     });
+    return;
   } catch (error) {
     console.error("Error in change_student_password:", error);
     handleError(error, res);
