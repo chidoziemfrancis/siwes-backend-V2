@@ -3033,6 +3033,86 @@ const assign_defense_supervisor_by_course = async function (req, res) {
   }
 };
 
+/**
+ * Allows coordinator to change a student's password by email
+ * @param {request} req
+ * @param {response} res
+ */
+const change_student_password = async function (req, res) {
+  let { email, newPassword } = req.body;
+
+  // Validate and trim inputs
+  if (typeof email === "string") {
+    email = email.trim().toLowerCase();
+  }
+
+  if (typeof newPassword === "string") {
+    newPassword = newPassword.trim();
+  }
+
+  // Validate required fields
+  if (!email || !newPassword) {
+    res.status(400).json({
+      message: "Incomplete request, please provide email and newPassword",
+    });
+    return;
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    res.status(400).json({
+      message: "Invalid email format",
+    });
+    return;
+  }
+
+  // Validate password length
+  if (newPassword.length < 6) {
+    res.status(400).json({
+      message: "Password must be at least 6 characters long",
+    });
+    return;
+  }
+
+  try {
+    // Find student by email
+    const student = await STUDENTS.findOne({ email });
+
+    if (!student) {
+      res.status(404).json({
+        message: "Student not found with the provided email",
+      });
+      return;
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update student password
+    const { modifiedCount } = await STUDENTS.updateOne(
+      { _id: student._id },
+      { password: hashedPassword }
+    );
+
+    if (!modifiedCount) {
+      res.status(500).json({
+        message: "Something went wrong, please try again",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Student password changed successfully",
+      studentEmail: email,
+    });
+  } catch (error) {
+    console.error("Error in change_student_password:", error);
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   add_a_new_coordinator,
   get_all_coordinators,
@@ -3069,4 +3149,5 @@ module.exports = {
   download_student_inspection_supervisors,
   assign_right_defense_supervisor,
   assign_defense_supervisor_by_course,
+  change_student_password,
 };

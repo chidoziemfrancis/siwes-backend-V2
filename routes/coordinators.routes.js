@@ -35,6 +35,7 @@ const {
   download_student_inspection_supervisors,
   assign_right_defense_supervisor,
   assign_defense_supervisor_by_course,
+  change_student_password,
 } = require("./../controllers/coordinators.controller");
 const { isCoordinator } = require("./../middlewares/auth.middleware");
 const {
@@ -871,5 +872,41 @@ router.patch("/changePassword", isCoordinator, change_password);
  *         description: Unauthorized
  */
 router.patch("/students/:id", isCoordinator, update_student_details);
+
+/**
+ * @swagger
+ * /coordinators/changeStudentPassword:
+ *   patch:
+ *     summary: Change student password by email (Coordinator only)
+ *     tags: [Coordinators]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "student@student.babcock.edu.ng"
+ *               newPassword:
+ *                 type: string
+ *                 example: "newPassword123"
+ *     responses:
+ *       200:
+ *         description: Student password changed successfully
+ *       400:
+ *         description: Bad request (invalid email or password)
+ *       404:
+ *         description: Student not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.patch("/changeStudentPassword", isCoordinator, change_student_password);
 
 module.exports = router;
