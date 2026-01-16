@@ -1182,8 +1182,20 @@ const update_details = async function (req, res) {
 
 const update_profile_image = async function (req, res) {
   const { _id } = req.user;
+  let uploadedProfileImagePublicId = null;
 
   try {
+    // Check for express-fileupload file size limit errors
+    if (req.files && req.files.errors) {
+      const fileErrors = req.files.errors;
+      if (fileErrors.length > 0) {
+        res.status(400).json({
+          message: fileErrors[0] || "File upload error. Please ensure the file size does not exceed 5MB.",
+        });
+        return;
+      }
+    }
+
     if (!req.files || !req.files.profileImage) {
       res.status(400).json({ message: "Please upload a profile image" });
       return;
@@ -1193,20 +1205,49 @@ const update_profile_image = async function (req, res) {
       ? req.files.profileImage[0]
       : req.files.profileImage;
 
+    // Validate that profileImage exists and has required properties
     if (!profileImage) {
-      res.status(400).json({ message: "Please upload a valid profile image" });
+      res.status(400).json({ message: "Profile image file is missing or invalid." });
       return;
     }
 
-    if (!ALLOWED_IMAGE_MIME_TYPES.includes(profileImage.mimetype)) {
+    // Validate mimetype
+    if (!profileImage.mimetype || !ALLOWED_IMAGE_MIME_TYPES.includes(profileImage.mimetype)) {
       res.status(400).json({
-        message: "Invalid image format. Upload a JPG, PNG, or WEBP image.",
+        message: "Invalid image format. Please upload a JPG, PNG, or WEBP image.",
+      });
+      return;
+    }
+
+    // Validate file size
+    if (!profileImage.size || profileImage.size === 0) {
+      res.status(400).json({
+        message: "The uploaded image file is empty. Please upload a valid image.",
       });
       return;
     }
 
     if (profileImage.size > 5 * 1024 * 1024) {
-      res.status(400).json({ message: "Image size must not exceed 5MB" });
+      const fileSizeMB = (profileImage.size / (1024 * 1024)).toFixed(2);
+      res.status(400).json({
+        message: `Image size (${fileSizeMB}MB) exceeds the maximum allowed size of 5MB. Please upload a smaller image.`,
+      });
+      return;
+    }
+
+    // Validate that profileImage.data exists and is a Buffer
+    if (!profileImage.data || !Buffer.isBuffer(profileImage.data)) {
+      res.status(400).json({
+        message: "Invalid image data. The file may be corrupted. Please try uploading again.",
+      });
+      return;
+    }
+
+    // Validate buffer is not empty
+    if (profileImage.data.length === 0) {
+      res.status(400).json({
+        message: "The image file appears to be empty. Please upload a valid image.",
+      });
       return;
     }
 
@@ -1217,52 +1258,91 @@ const update_profile_image = async function (req, res) {
       return;
     }
 
-    const uploadResult = await uploadImageFromBuffer(
-      profileImage.data,
-      profileImage.mimetype,
-      {
-        eager: [
-          {
-            width: 320,
-            height: 320,
-            crop: "fill",
-            gravity: "face",
-            quality: "auto",
-          },
-        ],
+    // Upload to Cloudinary with error handling
+    try {
+      const uploadResult = await uploadImageFromBuffer(
+        profileImage.data,
+        profileImage.mimetype,
+        {
+          eager: [
+            {
+              width: 320,
+              height: 320,
+              crop: "fill",
+              gravity: "face",
+              quality: "auto",
+            },
+          ],
+        }
+      );
+
+      if (!uploadResult || !uploadResult.secure_url) {
+        res.status(500).json({
+          message: "Failed to upload image. Please try again later.",
+        });
+        return;
       }
-    );
 
-    const previousPublicId = student.profileImagePublicId;
-    const profileImageThumbnailUrl =
-      uploadResult.eager?.[0]?.secure_url || uploadResult.secure_url;
+      uploadedProfileImagePublicId = uploadResult.public_id;
+      const previousPublicId = student.profileImagePublicId;
+      const profileImageThumbnailUrl =
+        uploadResult.eager?.[0]?.secure_url || uploadResult.secure_url;
 
-    // Use findByIdAndUpdate to only update profile image fields
-    // This avoids triggering validation on password and other fields
-    const updatedStudent = await STUDENTS.findByIdAndUpdate(
-      _id,
-      {
-        profileImageUrl: uploadResult.secure_url,
-        profileImagePublicId: uploadResult.public_id,
-        profileImageThumbnailUrl: profileImageThumbnailUrl,
-      },
-      { new: true, runValidators: false }
-    );
+      // Use findByIdAndUpdate to only update profile image fields
+      // This avoids triggering validation on password and other fields
+      const updatedStudent = await STUDENTS.findByIdAndUpdate(
+        _id,
+        {
+          profileImageUrl: uploadResult.secure_url,
+          profileImagePublicId: uploadResult.public_id,
+          profileImageThumbnailUrl: profileImageThumbnailUrl,
+        },
+        { new: true, runValidators: false }
+      );
 
-    if (previousPublicId && previousPublicId !== uploadResult.public_id) {
-      await deleteAsset(previousPublicId);
+      // Delete previous image if it exists and is different
+      if (previousPublicId && previousPublicId !== uploadResult.public_id) {
+        await deleteAsset(previousPublicId);
+      }
+
+      res.status(200).json({
+        message: "Profile image updated successfully",
+        data: {
+          profileImageUrl: updatedStudent.profileImageUrl,
+          profileImageThumbnailUrl:
+            updatedStudent.profileImageThumbnailUrl ||
+            updatedStudent.profileImageUrl,
+        },
+      });
+    } catch (uploadError) {
+      console.error("Cloudinary upload error:", uploadError);
+      
+      // Handle specific Cloudinary errors
+      if (uploadError.message && uploadError.message.includes("Unsupported image format")) {
+        res.status(400).json({
+          message: "The image format is not supported. Please upload a JPG, PNG, or WEBP image.",
+        });
+        return;
+      }
+
+      if (uploadError.message && uploadError.message.includes("Invalid file buffer")) {
+        res.status(400).json({
+          message: "The image file appears to be corrupted. Please try uploading a different image.",
+        });
+        return;
+      }
+
+      // Generic Cloudinary error
+      res.status(500).json({
+        message: "Failed to upload image to storage. Please try again later or contact support if the problem persists.",
+      });
+      return;
     }
-
-    res.status(200).json({
-      message: "Profile image updated successfully",
-      data: {
-        profileImageUrl: updatedStudent.profileImageUrl,
-        profileImageThumbnailUrl:
-          updatedStudent.profileImageThumbnailUrl ||
-          updatedStudent.profileImageUrl,
-      },
-    });
   } catch (error) {
+    // Clean up uploaded image if registration fails
+    if (uploadedProfileImagePublicId) {
+      await deleteAsset(uploadedProfileImagePublicId);
+    }
     handleError(error, res);
   }
 };
