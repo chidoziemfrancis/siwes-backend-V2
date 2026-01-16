@@ -132,6 +132,17 @@ const register = async function (req, res) {
   const studentInfo = { ...req.body };
   let uploadedProfileImagePublicId = null;
   try {
+    // Check for express-fileupload file size limit errors
+    if (req.files && req.files.errors) {
+      const fileErrors = req.files.errors;
+      if (fileErrors.length > 0) {
+        res.status(400).json({
+          message: fileErrors[0] || "File upload error. Please ensure the file size does not exceed 5MB.",
+        });
+        return;
+      }
+    }
+
     if (
       typeof studentInfo !== "object" ||
       Object.keys(studentInfo).length === 0
@@ -212,10 +223,16 @@ const register = async function (req, res) {
         ? req.files.profileImage[0]
         : req.files.profileImage;
 
-      if (
-        profileImage &&
-        !ALLOWED_IMAGE_MIME_TYPES.includes(profileImage.mimetype)
-      ) {
+      // Validate that profileImage exists and has required properties
+      if (!profileImage) {
+        res.status(400).json({
+          message: "Profile image file is missing or invalid.",
+        });
+        return;
+      }
+
+      // Validate mimetype
+      if (!profileImage.mimetype || !ALLOWED_IMAGE_MIME_TYPES.includes(profileImage.mimetype)) {
         res.status(400).json({
           message:
             "Invalid image format. Please upload a JPG, PNG, or WEBP image.",
@@ -223,14 +240,40 @@ const register = async function (req, res) {
         return;
       }
 
-      if (profileImage && profileImage.size > 5 * 1024 * 1024) {
+      // Validate file size
+      if (!profileImage.size || profileImage.size === 0) {
         res.status(400).json({
-          message: "Image size must be 5MB or less.",
+          message: "The uploaded image file is empty. Please upload a valid image.",
         });
         return;
       }
 
-      if (profileImage) {
+      if (profileImage.size > 5 * 1024 * 1024) {
+        const fileSizeMB = (profileImage.size / (1024 * 1024)).toFixed(2);
+        res.status(400).json({
+          message: `Image size (${fileSizeMB}MB) exceeds the maximum allowed size of 5MB. Please upload a smaller image.`,
+        });
+        return;
+      }
+
+      // Validate that profileImage.data exists and is a Buffer
+      if (!profileImage.data || !Buffer.isBuffer(profileImage.data)) {
+        res.status(400).json({
+          message: "Invalid image data. The file may be corrupted. Please try uploading again.",
+        });
+        return;
+      }
+
+      // Validate buffer is not empty
+      if (profileImage.data.length === 0) {
+        res.status(400).json({
+          message: "The image file appears to be empty. Please upload a valid image.",
+        });
+        return;
+      }
+
+      // Upload to Cloudinary with error handling
+      try {
         const uploadResult = await uploadImageFromBuffer(
           profileImage.data,
           profileImage.mimetype,
@@ -247,11 +290,41 @@ const register = async function (req, res) {
           }
         );
 
+        if (!uploadResult || !uploadResult.secure_url) {
+          res.status(500).json({
+            message: "Failed to upload image. Please try again later.",
+          });
+          return;
+        }
+
         studentInfo.profileImageUrl = uploadResult.secure_url;
         studentInfo.profileImagePublicId = uploadResult.public_id;
         studentInfo.profileImageThumbnailUrl =
           uploadResult.eager?.[0]?.secure_url || uploadResult.secure_url;
         uploadedProfileImagePublicId = uploadResult.public_id;
+      } catch (uploadError) {
+        console.error("Cloudinary upload error:", uploadError);
+        
+        // Handle specific Cloudinary errors
+        if (uploadError.message && uploadError.message.includes("Unsupported image format")) {
+          res.status(400).json({
+            message: "The image format is not supported. Please upload a JPG, PNG, or WEBP image.",
+          });
+          return;
+        }
+
+        if (uploadError.message && uploadError.message.includes("Invalid file buffer")) {
+          res.status(400).json({
+            message: "The image file appears to be corrupted. Please try uploading a different image.",
+          });
+          return;
+        }
+
+        // Generic Cloudinary error
+        res.status(500).json({
+          message: "Failed to upload image to storage. Please try again later or contact support if the problem persists.",
+        });
+        return;
       }
     }
 
