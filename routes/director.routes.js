@@ -26,6 +26,7 @@ const {
   delete_department,
   delete_director,
   bulk_create_supervisors,
+  change_student_password,
 } = require("./../controllers/director.controller");
 const { isDirector } = require("./../middlewares/auth.middleware");
 
@@ -364,6 +365,55 @@ router.get("/students/:id", isDirector, get_a_specific_student);
  *         description: Unauthorized
  */
 router.patch("/changePassword", isDirector, change_password);
+
+/**
+ * @swagger
+ * /directors/changeStudentPassword:
+ *   patch:
+ *     summary: Change student password by email (Director only)
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "student@student.babcock.edu.ng"
+ *               newPassword:
+ *                 type: string
+ *                 example: "newPassword123"
+ *     responses:
+ *       200:
+ *         description: Student password changed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Student password changed successfully"
+ *                 studentEmail:
+ *                   type: string
+ *                   example: "student@student.babcock.edu.ng"
+ *       400:
+ *         description: Bad request - Invalid email format, missing fields, or password too short
+ *       404:
+ *         description: Student not found with the provided email
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.patch("/changeStudentPassword", isDirector, change_student_password);
 
 /**
  * @swagger
