@@ -2,6 +2,7 @@ const COORDINATORS = require("./../../models/coordinator.model");
 const STUDENTS = require("./../../models/student.model");
 const SUPERVISORS = require("./../../models/supervisor.model");
 const DIRECTORS = require("../../models/director.model");
+const SUPPORT = require("../../models/support.model");
 const DEADLINE = require("./../../models/deadline.model");
 const OTP = require("../../models/otp.model");
 const { request, response } = require("express");
@@ -402,6 +403,10 @@ const login = async function (req, res) {
 
       case "director":
         user = await DIRECTORS.findOne({ email });
+        break;
+
+      case "support":
+        user = await SUPPORT.findOne({ email });
         break;
 
       default:

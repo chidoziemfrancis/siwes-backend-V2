@@ -3113,6 +3113,123 @@ const change_student_password = async function (req, res) {
   }
 };
 
+/**
+ * Update student details by studentCode (Coordinator only)
+ * @param {request} req
+ * @param {response} res
+ */
+const update_student_details_by_code = async function (req, res) {
+  try {
+    const { studentCode, email, matricNo } = req.body;
+
+    // Validate required fields
+    if (!studentCode) {
+      res.status(400).json({
+        message: "Student code is required",
+      });
+      return;
+    }
+
+    // At least one field to update must be provided
+    if (!email && !matricNo) {
+      res.status(400).json({
+        message: "Please provide at least one field to update (email or matricNo)",
+      });
+      return;
+    }
+
+    // Find student by studentCode
+    const student = await STUDENTS.findOne({ studentCode });
+
+    if (!student) {
+      res.status(404).json({
+        message: "Student not found with the provided student code",
+      });
+      return;
+    }
+
+    // Prepare update object
+    const updateFields = {};
+
+    // Validate and add email if provided
+    if (email) {
+      const trimmedEmail = email.trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      
+      if (!emailRegex.test(trimmedEmail)) {
+        res.status(400).json({
+          message: "Invalid email format",
+        });
+        return;
+      }
+
+      // Check if email is already taken by another student
+      const existingStudentWithEmail = await STUDENTS.findOne({
+        email: trimmedEmail,
+        _id: { $ne: student._id },
+      });
+
+      if (existingStudentWithEmail) {
+        res.status(400).json({
+          message: "Email is already taken by another student",
+        });
+        return;
+      }
+
+      updateFields.email = trimmedEmail;
+    }
+
+    // Validate and add matricNo if provided
+    if (matricNo) {
+      const trimmedMatricNo = matricNo.trim().toLowerCase();
+      
+      if (trimmedMatricNo.length < 7) {
+        res.status(400).json({
+          message: "Matric number must be at least 7 characters long",
+        });
+        return;
+      }
+
+      // Check if matricNo is already taken by another student
+      const existingStudentWithMatricNo = await STUDENTS.findOne({
+        matricNo: trimmedMatricNo,
+        _id: { $ne: student._id },
+      });
+
+      if (existingStudentWithMatricNo) {
+        res.status(400).json({
+          message: "Matric number is already taken by another student",
+        });
+        return;
+      }
+
+      updateFields.matricNo = trimmedMatricNo;
+    }
+
+    // Update student details
+    const { modifiedCount } = await STUDENTS.updateOne(
+      { _id: student._id },
+      { $set: updateFields }
+    );
+
+    if (!modifiedCount) {
+      res.status(400).json({
+        message: "No changes were made. The provided values may be the same as existing values.",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Student details updated successfully",
+      studentCode: studentCode,
+      updatedFields: Object.keys(updateFields),
+    });
+  } catch (error) {
+    console.error("Error in update_student_details_by_code:", error);
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   add_a_new_coordinator,
   get_all_coordinators,
@@ -3150,4 +3267,5 @@ module.exports = {
   assign_right_defense_supervisor,
   assign_defense_supervisor_by_course,
   change_student_password,
+  update_student_details_by_code,
 };

@@ -3,6 +3,7 @@ const coordinatorsRoutes = require("./coordinators.routes");
 const studentsRoutes = require("./students.routes");
 const supervisorsRoutes = require("./supervisors.routes");
 const directorsRoutes = require("./director.routes");
+const supportRoutes = require("./support.routes");
 const authRoutes = require("./auth.routes");
 const redisClient = require("../utils/redisClient");
 const {
@@ -26,6 +27,9 @@ router.use("/student", studentsRoutes);
 
 // Director specific routes
 router.use("/directors", directorsRoutes);
+
+// Support specific routes
+router.use("/support", supportRoutes);
 
 router.use("/auth", authRoutes);
 

@@ -4,6 +4,7 @@ const COORDINATORS = require("./../models/coordinator.model");
 const STUDENTS = require("./../models/student.model");
 const SUPERVISORS = require("./../models/supervisor.model");
 const DIRECTORS = require("./../models/director.model");
+const SUPPORT = require("./../models/support.model");
 const bcrypt = require("bcrypt");
 
 /**
@@ -31,6 +32,10 @@ const verify_token_status = function (token, type) {
 
         case "director":
           userInfo = await DIRECTORS.findOne({ _id: token.id });
+          break;
+
+        case "support":
+          userInfo = await SUPPORT.findOne({ _id: token.id });
           break;
 
         default:
@@ -113,6 +118,13 @@ const assign_new_tokens = function (user, res, type) {
         
         case "director":
           updateInfo = await DIRECTORS.updateOne(
+            { _id: user._id },
+            { validation_secret: clientPayload.secret }
+          );
+          break;
+
+        case "support":
+          updateInfo = await SUPPORT.updateOne(
             { _id: user._id },
             { validation_secret: clientPayload.secret }
           );
@@ -306,6 +318,30 @@ const isDirector = async function (req, res, next) {
 };
 
 /**
+ * Determines if a user is a support
+ * @param {request} req
+ * @param {response} res
+ * @param {*} next
+ */
+const isSupport = async function (req, res, next) {
+  try {
+    const data = await decode_jwt(req, res, "support");
+
+    const user = await SUPPORT.findOne({ _id: data.id });
+
+    if (user === null) {
+      throw new Error("access denied");
+    }
+
+    req.user = user;
+
+    next();
+  } catch (error) {
+    res.status(401).json({ message: error.message });
+  }
+};
+
+/**
  * @typedef userInfo
  * @property {ObjectId} _id
  */
@@ -315,4 +351,5 @@ module.exports = {
   isCoordinator,
   isStudent,
   isDirector,
+  isSupport,
 };
