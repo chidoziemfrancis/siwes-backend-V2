@@ -87,6 +87,12 @@ const create_tokens = function (user, res, type) {
             updateQuery
           );
           break;
+        case "support":
+          updateInfo = await SUPPORT.updateOne(
+            { _id: user._id },
+            updateQuery
+          );
+          break;
         default:
           break;
       }
@@ -374,7 +380,7 @@ const login = async function (req, res) {
 
   try {
     if (
-      ["student", "coordinator", "supervisor", "director"].includes(type) ===
+      ["student", "coordinator", "supervisor", "director", "support"].includes(type) ===
       false
     ) {
       res.status(400).json({ message: "Invalid request" });
