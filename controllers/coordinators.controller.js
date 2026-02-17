@@ -320,12 +320,17 @@ const create_supervisor = async function (req, res) {
   try {
     const supervisor = await SUPERVISORS.create(req.body);
 
-    await sendMailToSupervisorEmail(req.body);
-
     res.status(201).json({
-      message: "Supervisor added successfully",
+      message: "Supervisor added succepssfully",
       supervisor: supervisor._id,
     });
+
+    // Send email after success - don't fail the request if email fails
+    try {
+      await sendMailToSupervisorEmail(req.body);
+    } catch (emailError) {
+      console.error("Failed to send supervisor email:", emailError);
+    }
     return;
   } catch (error) {
     handleError(error, res);
