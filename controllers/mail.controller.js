@@ -202,6 +202,46 @@ const sendMailToSupervisorEmail = async ({
 };
 
 /**
+ * This sends a mail with login credentials to coordinators
+ * @param {string} email
+ * @param {string} firstName
+ * @param {string} lastName
+ * @param {string} password
+ * @returns
+ */
+const sendMailToCoordinatorEmail = async ({
+  email,
+  firstName,
+  lastName,
+  password,
+}) => {
+  try {
+    const mailTransporter = getTransporter();
+
+    const mailOptions = {
+      from: `"SIWES TEAM from Babcock" <${process.env.EMAIL}>`,
+      to: email,
+      subject: "Welcome to Babcock University's SIWES portal",
+      template: "coordinator-registration",
+      context: {
+        firstName,
+        lastName,
+        email,
+        password,
+      },
+    };
+
+    await mailTransporter.sendMail(mailOptions);
+    console.log(`Coordinator registration email sent to ${email}`);
+  } catch (error) {
+    console.error("Error sending coordinator registration email:", error);
+    throw new Error(
+      `Failed to send coordinator registration email: ${error.message}`
+    );
+  }
+};
+
+/**
  * This sends a mail with login credentials to directors
  * @param {string} email
  * @param {string} firstName
@@ -247,5 +287,6 @@ module.exports = {
   sendLoginAlertMail,
   sendWelcomeMail,
   sendMailToSupervisorEmail,
+  sendMailToCoordinatorEmail,
   sendMailToDirectorEmail,
 };

@@ -8,7 +8,10 @@ const INSPECTION_LIST = require("../models/inspection_list.model");
 const DEFENSE_LIST = require("../models/defense_list.model");
 const DEADLINE = require("./../models/deadline.model");
 const { handleError } = require("../utils/handleError");
-const { sendMailToDirectorEmail } = require("./mail.controller");
+const {
+  sendMailToDirectorEmail,
+  sendMailToCoordinatorEmail,
+} = require("./mail.controller");
 const mongoose = require("mongoose");
 const { request, response } = require("express");
 const bcrypt = require("bcrypt");
@@ -233,6 +236,22 @@ const get_a_specific_supervisor = async function (req, res) {
 const create_coordinator = async function (req, res) {
   try {
     const coordinator = await COORDINATORS.create(req.body);
+
+    // Send email with login credentials to the new coordinator
+    try {
+      await sendMailToCoordinatorEmail({
+        email: req.body.email,
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        password: req.body.password,
+      });
+      console.log(
+        `Coordinator registration email sent successfully to ${req.body.email}`
+      );
+    } catch (emailError) {
+      console.error("Error sending coordinator registration email:", emailError);
+      // Note: We don't fail the coordinator creation if email fails
+    }
 
     res.status(201).json({
       message: "Coordinator created successfully",
@@ -1087,6 +1106,98 @@ const get_registration_deadline = async function (req, res) {
 };
 
 /**
+ * Deletes a coordinator by email (Director only)
+ * @param {request} req
+ * @param {response} res
+ */
+const delete_coordinator_by_email = async function (req, res) {
+  let { email } = req.body;
+
+  if (typeof email === "string") {
+    email = email.trim().toLowerCase();
+  }
+
+  if (!email) {
+    res.status(400).json({
+      message: "Incomplete request, please provide email",
+    });
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    res.status(400).json({
+      message: "Invalid email format",
+    });
+    return;
+  }
+
+  try {
+    const result = await COORDINATORS.deleteOne({ email });
+    if (result.deletedCount === 0) {
+      res.status(404).json({
+        message: "Coordinator not found with the provided email",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Coordinator deleted successfully",
+      coordinatorEmail: email,
+    });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
+ * Deletes a supervisor by email (Director only)
+ * @param {request} req
+ * @param {response} res
+ */
+const delete_supervisor_by_email = async function (req, res) {
+  let { email } = req.body;
+
+  if (typeof email === "string") {
+    email = email.trim().toLowerCase();
+  }
+
+  if (!email) {
+    res.status(400).json({
+      message: "Incomplete request, please provide email",
+    });
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    res.status(400).json({
+      message: "Invalid email format",
+    });
+    return;
+  }
+
+  try {
+    const result = await SUPERVISORS.deleteOne({ email });
+    if (result.deletedCount === 0) {
+      res.status(404).json({
+        message: "Supervisor not found with the provided email",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Supervisor deleted successfully",
+      supervisorEmail: email,
+    });
+    return;
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+/**
  * Allows director to change a student's password by email
  * @param {request} req
  * @param {response} res
@@ -1193,6 +1304,8 @@ module.exports = {
   update_department,
   delete_department,
   delete_director,
+  delete_coordinator_by_email,
+  delete_supervisor_by_email,
   bulk_create_supervisors,
   set_registration_deadline,
   get_registration_deadline,

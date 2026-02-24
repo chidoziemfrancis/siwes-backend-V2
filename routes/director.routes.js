@@ -25,6 +25,8 @@ const {
   update_department,
   delete_department,
   delete_director,
+  delete_coordinator_by_email,
+  delete_supervisor_by_email,
   bulk_create_supervisors,
   set_registration_deadline,
   get_registration_deadline,
@@ -296,6 +298,70 @@ router.post("/coordinators", isDirector, create_coordinator);
  *         description: Unauthorized
  */
 router.patch("/coordinators/:id", isDirector, update_coordinator);
+
+/**
+ * @swagger
+ * /directors/coordinators/by-email:
+ *   delete:
+ *     summary: Delete a coordinator by email (Director only)
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "coordinator@example.com"
+ *     responses:
+ *       200:
+ *         description: Coordinator deleted successfully
+ *       400:
+ *         description: Bad request - Invalid email format or missing email
+ *       404:
+ *         description: Coordinator not found with the provided email
+ *       401:
+ *         description: Unauthorized
+ */
+router.delete("/coordinators/by-email", isDirector, delete_coordinator_by_email);
+
+/**
+ * @swagger
+ * /directors/supervisors/by-email:
+ *   delete:
+ *     summary: Delete a supervisor by email (Director only)
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "supervisor@example.com"
+ *     responses:
+ *       200:
+ *         description: Supervisor deleted successfully
+ *       400:
+ *         description: Bad request - Invalid email format or missing email
+ *       404:
+ *         description: Supervisor not found with the provided email
+ *       401:
+ *         description: Unauthorized
+ */
+router.delete("/supervisors/by-email", isDirector, delete_supervisor_by_email);
 
 /**
  * @swagger

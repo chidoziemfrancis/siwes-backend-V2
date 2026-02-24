@@ -45,7 +45,7 @@ const corsOption = {
       "https://babcock-siwes.com",
       "https://www.babcock-siwes.com",
       "https://bucc-siwes-website.vercel.app",
-      "https://siwes-website.vercel.app",
+      "https://babcock-siwes.com/",
     ];
 
     if (!origin || allowedOrigins.includes(origin)) {
