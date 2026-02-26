@@ -2397,6 +2397,20 @@ const assign_score_for_student_weekly_report = async function (req, res) {
  * @param {response} res
  */
 const fetch_weekly_report_scores = async function (req, res) {
+  const { faculty, department, isMainCoordinator } = req.user;
+
+  const matchCriteria = {
+    "studentInfo.faculty":
+      typeof faculty === "string" ? faculty.toLowerCase().trim() : faculty,
+  };
+
+  if (!isMainCoordinator && department) {
+    matchCriteria["studentInfo.department"] =
+      typeof department === "string"
+        ? department.toLowerCase().trim()
+        : department;
+  }
+
   try {
     const final_result = await WEEKLYREPORTS.aggregate([
       {
@@ -2409,6 +2423,9 @@ const fetch_weekly_report_scores = async function (req, res) {
       },
       {
         $unwind: "$studentInfo",
+      },
+      {
+        $match: matchCriteria,
       },
       {
         $group: {

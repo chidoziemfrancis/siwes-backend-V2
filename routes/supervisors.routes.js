@@ -14,6 +14,8 @@ const {
   upload_csv_assign_grades,
   download_form,
   download_assigned_supervisor_students,
+  fetch_supervisor_weekly_report_scores,
+  get_supervisor_weekly_reports,
 } = require("./../controllers/supervisors.controller");
 
 /**
@@ -384,6 +386,56 @@ router.get(
   "/inspection/download-assigned",
   isSupervisor,
   download_assigned_supervisor_students
+);
+
+/**
+ * @swagger
+ * /supervisor/weeklyReportScore/fetch:
+ *   get:
+ *     summary: Fetch weekly report scores for students assigned to the supervisor
+ *     tags: [Supervisors]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Weekly report scores calculated successfully
+ *       404:
+ *         description: No weekly reports found
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  "/weeklyReportScore/fetch",
+  isSupervisor,
+  fetch_supervisor_weekly_report_scores
+);
+
+/**
+ * @swagger
+ * /supervisor/getWeeklyReports/{studentCode}:
+ *   get:
+ *     summary: Get weekly reports for a specific student assigned to the supervisor
+ *     tags: [Supervisors]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: studentCode
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Weekly reports retrieved successfully
+ *       403:
+ *         description: Forbidden - student not assigned to this supervisor
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  "/getWeeklyReports/:studentCode",
+  isSupervisor,
+  get_supervisor_weekly_reports
 );
 
 module.exports = router;

@@ -4,6 +4,7 @@ const INSPECTION_LIST = require("../models/inspection_list.model");
 const FORMS = require("./../models/form.model");
 const GRADES = require("./../models/grade.model");
 const STUDENTS = require("./../models/student.model");
+const WEEKLYREPORTS = require("./../models/weekly_report.model");
 const { handleError } = require("../utils/handleError");
 const mongoose = require("mongoose");
 const { request, response } = require("express");
@@ -1358,6 +1359,161 @@ const upload_csv_assign_grades = async function (req, res) {
   }
 };
 
+/**
+ * Fetches weekly report scores for students assigned to the authenticated supervisor
+ * @param {request} req
+ * @param {response} res
+ */
+const fetch_supervisor_weekly_report_scores = async function (req, res) {
+  const { _id } = req.user;
+
+  if (!mongoose.Types.ObjectId.isValid(_id)) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const final_result = await INSPECTION_LIST.aggregate([
+      {
+        $match: {
+          supervisorId: mongoose.Types.ObjectId(`${_id}`),
+        },
+      },
+      {
+        $lookup: {
+          from: "weekly_reports",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "weeklyReports",
+        },
+      },
+      {
+        $unwind: {
+          path: "$weeklyReports",
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $lookup: {
+          from: "students",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "studentInfo",
+        },
+      },
+      {
+        $unwind: "$studentInfo",
+      },
+      {
+        $group: {
+          _id: "$studentCode",
+          reportCount: { $sum: 1 },
+          firstName: { $first: "$studentInfo.firstName" },
+          lastName: { $first: "$studentInfo.lastName" },
+          course: { $first: "$studentInfo.course" },
+          matricNumber: { $first: "$studentInfo.matricNo" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          studentCode: "$_id",
+          firstName: 1,
+          lastName: 1,
+          matricNumber: 1,
+          course: 1,
+          reportCount: 1,
+          marks: {
+            $switch: {
+              branches: [
+                {
+                  case: { $gte: ["$reportCount", 10] },
+                  then: 20,
+                },
+                {
+                  case: {
+                    $and: [
+                      { $gte: ["$reportCount", 8] },
+                      { $lt: ["$reportCount", 10] },
+                    ],
+                  },
+                  then: 17,
+                },
+                {
+                  case: {
+                    $and: [
+                      { $gte: ["$reportCount", 6] },
+                      { $lt: ["$reportCount", 8] },
+                    ],
+                  },
+                  then: 14,
+                },
+                {
+                  case: {
+                    $and: [
+                      { $gte: ["$reportCount", 5] },
+                      { $lt: ["$reportCount", 6] },
+                    ],
+                  },
+                  then: 10,
+                },
+              ],
+              default: 0,
+            },
+          },
+        },
+      },
+    ]);
+
+    if (final_result.length === 0) {
+      return res.status(404).json({
+        message: "No weekly reports found for your assigned students",
+        data: [],
+      });
+    }
+
+    res.status(200).json({
+      message: "Weekly report scores calculated successfully",
+      data: final_result,
+    });
+  } catch (error) {
+    console.error("Error in aggregation pipeline: ", error);
+    handleError(error, res);
+  }
+};
+
+/**
+ * Returns all weekly reports for a specific student assigned to the supervisor
+ * @param {request} req
+ * @param {response} res
+ */
+const get_supervisor_weekly_reports = async function (req, res) {
+  const { _id } = req.user;
+  const { studentCode } = req.params;
+
+  try {
+    if (!/[A-Za-z]+\-\d{4}\-\d{4}/.test(studentCode)) {
+      return res.status(400).json({ message: "Invalid student code" });
+    }
+
+    const isAssigned = await INSPECTION_LIST.findOne({
+      supervisorId: _id,
+      studentCode,
+    });
+
+    if (!isAssigned) {
+      return res.status(403).json({
+        message: "You are not the inspection supervisor for this student",
+      });
+    }
+
+    const reports = await WEEKLYREPORTS.find({ studentCode });
+
+    res.status(200).json({ reports });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   get_a_supervisor,
   get_assigned_students_for_defense,
@@ -1372,4 +1528,6 @@ module.exports = {
   upload_csv_assign_grades,
   download_form,
   download_assigned_supervisor_students,
+  fetch_supervisor_weekly_report_scores,
+  get_supervisor_weekly_reports,
 };
