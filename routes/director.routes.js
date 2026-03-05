@@ -31,6 +31,7 @@ const {
   set_registration_deadline,
   get_registration_deadline,
   change_student_password,
+  get_system_summary,
 } = require("./../controllers/director.controller");
 const { isDirector } = require("./../middlewares/auth.middleware");
 
@@ -558,6 +559,22 @@ router.get("/", isDirector, get_all_directors);
  *         description: Unauthorized
  */
 router.get("/get", isDirector, get_current_director);
+
+/**
+ * @swagger
+ * /directors/summary:
+ *   get:
+ *     summary: Get detailed system breakdown summary (Director only)
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: System summary with overview, breakdowns, and deadline
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/summary", isDirector, get_system_summary);
 
 /**
  * @swagger

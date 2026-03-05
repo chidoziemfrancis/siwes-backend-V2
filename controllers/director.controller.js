@@ -7,6 +7,10 @@ const DEPARTMENTS = require("../models/department.model");
 const INSPECTION_LIST = require("../models/inspection_list.model");
 const DEFENSE_LIST = require("../models/defense_list.model");
 const DEADLINE = require("./../models/deadline.model");
+const WEEKLY_REPORT = require("../models/weekly_report.model");
+const GRADE = require("../models/grade.model");
+const COMPANY = require("../models/company.model");
+const SUPPORT = require("../models/support.model");
 const { handleError } = require("../utils/handleError");
 const {
   sendMailToDirectorEmail,
@@ -1278,6 +1282,88 @@ const change_student_password = async function (req, res) {
   }
 };
 
+/**
+ * Returns a detailed breakdown summary of the SIWES system for the director dashboard
+ * @param {request} req
+ * @param {response} res
+ */
+const get_system_summary = async function (req, res) {
+  try {
+    const [
+      totalDirectors,
+      totalCoordinators,
+      totalSupervisors,
+      totalStudents,
+      totalSchools,
+      totalDepartments,
+      totalSupport,
+      totalCompanies,
+      totalWeeklyReports,
+      studentsWithInspection,
+      studentsWithDefense,
+      studentsWithGrades,
+      studentsByDepartment,
+      studentsByFaculty,
+      registrationDeadline,
+    ] = await Promise.all([
+      DIRECTORS.countDocuments(),
+      COORDINATORS.countDocuments(),
+      SUPERVISORS.countDocuments(),
+      STUDENTS.countDocuments(),
+      SCHOOLS.countDocuments(),
+      DEPARTMENTS.countDocuments(),
+      SUPPORT.countDocuments(),
+      COMPANY.countDocuments(),
+      WEEKLY_REPORT.countDocuments(),
+      INSPECTION_LIST.countDocuments(),
+      DEFENSE_LIST.countDocuments(),
+      GRADE.countDocuments(),
+      STUDENTS.aggregate([
+        { $group: { _id: "$department", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+      STUDENTS.aggregate([
+        { $group: { _id: "$faculty", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+      DEADLINE.findOne({}).sort({ createdAt: -1 }).select("time"),
+    ]);
+
+    const studentsWithoutGrades = totalStudents - studentsWithGrades;
+
+    res.status(200).json({
+      overview: {
+        totalDirectors,
+        totalCoordinators,
+        totalSupervisors,
+        totalStudents,
+        totalSchools,
+        totalDepartments,
+        totalSupport,
+        totalCompanies,
+        totalWeeklyReports,
+        studentsWithInspection,
+        studentsWithDefense,
+        studentsWithGrades,
+        studentsWithoutGrades,
+      },
+      studentsByDepartment: studentsByDepartment.map((d) => ({
+        department: d._id,
+        count: d.count,
+      })),
+      studentsByFaculty: studentsByFaculty.map((f) => ({
+        faculty: f._id,
+        count: f.count,
+      })),
+      registrationDeadline: registrationDeadline?.time || null,
+    });
+    return;
+  } catch (error) {
+    console.error("Error in get_system_summary:", error);
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   add_director,
   get_all_directors,
@@ -1310,4 +1396,5 @@ module.exports = {
   set_registration_deadline,
   get_registration_deadline,
   change_student_password,
+  get_system_summary,
 };
