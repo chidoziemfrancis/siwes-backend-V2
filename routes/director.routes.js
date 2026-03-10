@@ -31,6 +31,7 @@ const {
   set_registration_deadline,
   get_registration_deadline,
   change_student_password,
+  bulk_update_students_department_faculty,
   get_system_summary,
 } = require("./../controllers/director.controller");
 const { isDirector } = require("./../middlewares/auth.middleware");
@@ -379,6 +380,48 @@ router.delete("/supervisors/by-email", isDirector, delete_supervisor_by_email);
  *         description: Unauthorized
  */
 router.get("/students", isDirector, get_all_students);
+
+/**
+ * @swagger
+ * /directors/students/bulkUpdateDepartmentFaculty:
+ *   patch:
+ *     summary: Bulk update department and/or faculty for multiple students (Director only)
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studentIds
+ *             properties:
+ *               studentIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of student IDs to update
+ *               department:
+ *                 type: string
+ *                 description: New department value (optional)
+ *               faculty:
+ *                 type: string
+ *                 description: New faculty value (optional)
+ *     responses:
+ *       200:
+ *         description: Bulk update completed
+ *       400:
+ *         description: Bad request - invalid input
+ *       401:
+ *         description: Unauthorized
+ */
+router.patch(
+  "/students/bulkUpdateDepartmentFaculty",
+  isDirector,
+  bulk_update_students_department_faculty
+);
 
 /**
  * @swagger

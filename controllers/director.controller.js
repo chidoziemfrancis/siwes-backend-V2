@@ -1283,6 +1283,162 @@ const change_student_password = async function (req, res) {
 };
 
 /**
+ * Bulk update department and/or faculty for multiple students (Director only)
+ * @param {request} req
+ * @param {response} res
+ */
+const bulk_update_students_department_faculty = async function (req, res) {
+  try {
+    const { studentIds, department, faculty } = req.body;
+
+    // Validate that at least one of department or faculty is provided
+    if (!department && !faculty) {
+      res.status(400).json({
+        message:
+          "At least one of department or faculty must be provided for the update",
+      });
+      return;
+    }
+
+    // Validate studentIds array
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      res.status(400).json({
+        message: "studentIds must be a non-empty array",
+      });
+      return;
+    }
+
+    // Validate each student ID
+    const validIds = studentIds.filter((id) =>
+      mongoose.Types.ObjectId.isValid(id)
+    );
+    if (validIds.length !== studentIds.length) {
+      res.status(400).json({
+        message: "One or more invalid student IDs provided",
+      });
+      return;
+    }
+
+    const updateFields = {};
+    if (department && typeof department === "string" && department.trim()) {
+      updateFields.department = department.trim().toLowerCase();
+    }
+    if (faculty && typeof faculty === "string" && faculty.trim()) {
+      updateFields.faculty = faculty.trim().toLowerCase();
+    }
+
+    if (Object.keys(updateFields).length === 0) {
+      res.status(400).json({
+        message:
+          "At least one of department or faculty must be a non-empty string",
+      });
+      return;
+    }
+
+    let successfulUpdates = 0;
+    let failedUpdates = [];
+
+    for (const studentId of validIds) {
+      try {
+        const student = await STUDENTS.findOne({ _id: studentId });
+        if (!student) {
+          failedUpdates.push({
+            studentId,
+            reason: "Student not found",
+          });
+          continue;
+        }
+
+        const updateData = { ...updateFields };
+
+        // If department is being updated, regenerate studentCode
+        if (updateData.department) {
+          const year = new Date(Date.now()).getFullYear();
+          const newStudentCode = `${updateData.department
+            .split(" ")
+            .join("-")}-${year}-${student.matricNo.replace(/\//, "")}`;
+          updateData.studentCode = newStudentCode;
+
+          // Check for studentCode uniqueness (in case of duplicate department+matric)
+          const existingWithCode = await STUDENTS.findOne({
+            studentCode: newStudentCode,
+            _id: { $ne: studentId },
+          });
+          if (existingWithCode) {
+            failedUpdates.push({
+              studentId,
+              reason: `Student code conflict: ${newStudentCode} already exists`,
+            });
+            continue;
+          }
+        }
+
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+          await STUDENTS.updateOne(
+            { _id: studentId },
+            { $set: updateData },
+            { session }
+          );
+
+          // If studentCode changed, update related collections
+          if (updateData.studentCode && student.studentCode !== updateData.studentCode) {
+            const oldStudentCode = student.studentCode;
+
+            await COMPANY.updateOne(
+              { studentCode: oldStudentCode },
+              { $set: { studentCode: updateData.studentCode } },
+              { session }
+            );
+            await INSPECTION_LIST.updateMany(
+              { studentCode: oldStudentCode },
+              { $set: { studentCode: updateData.studentCode } },
+              { session }
+            );
+            await DEFENSE_LIST.updateMany(
+              { studentCode: oldStudentCode },
+              { $set: { studentCode: updateData.studentCode } },
+              { session }
+            );
+            await WEEKLY_REPORT.updateMany(
+              { studentCode: oldStudentCode },
+              { $set: { studentCode: updateData.studentCode } },
+              { session }
+            );
+          }
+
+          await session.commitTransaction();
+          successfulUpdates++;
+        } catch (txError) {
+          await session.abortTransaction();
+          throw txError;
+        } finally {
+          session.endSession();
+        }
+      } catch (error) {
+        failedUpdates.push({
+          studentId,
+          reason: error.message || "Unknown error",
+        });
+      }
+    }
+
+    res.status(200).json({
+      message: "Bulk update completed",
+      totalRequested: studentIds.length,
+      successfulUpdates,
+      failedUpdates:
+        failedUpdates.length > 0 ? failedUpdates : undefined,
+    });
+  } catch (error) {
+    console.error("Error in bulk_update_students_department_faculty:", error);
+    handleError(error, res);
+  }
+};
+
+/**
  * Returns a detailed breakdown summary of the SIWES system for the director dashboard
  * @param {request} req
  * @param {response} res
@@ -1396,5 +1552,6 @@ module.exports = {
   set_registration_deadline,
   get_registration_deadline,
   change_student_password,
+  bulk_update_students_department_faculty,
   get_system_summary,
 };
