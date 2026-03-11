@@ -1822,7 +1822,17 @@ const delete_form = async function (req, res) {
 };
 
 /**
- * Searches for students
+ * Escapes special regex characters in a string for safe use in $regex
+ * @param {string} str - The string to escape
+ * @returns {string} - Escaped string safe for regex
+ */
+const escapeRegex = (str) => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+/**
+ * Searches for students by firstName, lastName, middleName
+ * Uses regex-based search (works without Atlas Search index)
  * @param {request} req
  * @param {response} res
  */
@@ -1844,9 +1854,6 @@ const search_for_students = async function (req, res) {
       return;
     }
 
-    // this holds the fields that I want to be able to search
-    const indexedFields = ["firstName", "lastName", "middleName"];
-
     // Build match criteria based on coordinator type
     // Normalize faculty and department to lowercase to match database schema
     const matchCriteria = {
@@ -1862,30 +1869,23 @@ const search_for_students = async function (req, res) {
           : department;
     }
 
+    // Regex-based search: case-insensitive match on firstName, lastName, middleName
+    // Works without Atlas Search index; escapes user input for safety
+    const escapedQuery = escapeRegex(searchQuery.trim());
+    const searchRegex = new RegExp(escapedQuery, "i");
+    const nameSearchCriteria = {
+      $or: [
+        { firstName: { $regex: searchRegex } },
+        { lastName: { $regex: searchRegex } },
+        { middleName: { $regex: searchRegex } },
+      ],
+    };
+
     const pipeline = [
       {
-        $search: {
-          index: "text-autocomplete", // name of the index
-          compound: {
-            should: [
-              ...indexedFields.map((path) => ({
-                autocomplete: {
-                  path: `${path}`,
-                  query: `${searchQuery}`,
-                  fuzzy: {
-                    maxEdits: 2, // can change up to 2 characters
-                    prefixLength: 2, // the first 2 characters must match
-                    maxExpansions: 100, // considers a max result space of 100
-                  },
-                },
-              })),
-            ],
-            minimumShouldMatch: 1,
-          },
+        $match: {
+          $and: [matchCriteria, nameSearchCriteria],
         },
-      },
-      {
-        $match: matchCriteria,
       },
       {
         $project: {
@@ -1893,14 +1893,6 @@ const search_for_students = async function (req, res) {
           validation_secret: 0,
           createdAt: 0,
           updatedAt: 0,
-          score: {
-            $meta: "searchScore",
-          },
-        },
-      },
-      {
-        $sort: {
-          score: -1,
         },
       },
       {
