@@ -1507,24 +1507,30 @@ const assign_grade = async function (req, res) {
       return;
     }
 
-    // Validate score ranges
-    if (
-      (type == "mini_inspection" || type == "main_inspection") &&
-      (score > 10 || score < 0)
-    ) {
+    // Validate score ranges (mini: 0-20, main: 0-10)
+    if (type == "mini_inspection" && (score > 20 || score < 0)) {
       res
         .status(400)
-        .json({ message: `${type} score must be between 0 and 10` });
+        .json({ message: "mini_inspection score must be between 0 and 20" });
+      return;
+    }
+    if (type == "main_inspection" && (score > 10 || score < 0)) {
+      res
+        .status(400)
+        .json({ message: "main_inspection score must be between 0 and 10" });
       return;
     }
 
-    if (
-      (type == "inspection" || type == "reports") &&
-      (score > 20 || score < 0)
-    ) {
+    if (type == "reports" && (score > 20 || score < 0)) {
       res
         .status(400)
-        .json({ message: `${type} score must be between 0 and 20` });
+        .json({ message: "reports score must be between 0 and 20" });
+      return;
+    }
+    if (type == "inspection" && (score > 30 || score < 0)) {
+      res
+        .status(400)
+        .json({ message: "inspection score must be between 0 and 30" });
       return;
     }
 
