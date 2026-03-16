@@ -54,17 +54,58 @@ const uploadImageFromBuffer = async (
   return cloudinary.uploader.upload(dataUri, uploadOptions);
 };
 
+const PDF_MIME_TYPE = "application/pdf";
+const { Readable } = require("stream");
+
+/**
+ * Uploads a PDF buffer to Cloudinary using upload_stream (more reliable for binary data).
+ * @param {Buffer} fileBuffer
+ * @param {object} options - { folder, publicId }
+ * @returns {Promise<{ secure_url: string, public_id: string }>}
+ */
+const uploadPdfFromBuffer = async (fileBuffer, options = {}) => {
+  if (!fileBuffer || !Buffer.isBuffer(fileBuffer)) {
+    throw new Error("Invalid file buffer provided for PDF upload");
+  }
+
+  const uploadOptions = {
+    folder: options.folder || "siwes/forms",
+    resource_type: "raw",
+    overwrite: false,
+    ...options.extra,
+  };
+
+  if (options.publicId) {
+    uploadOptions.public_id = options.publicId;
+  }
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      uploadOptions,
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+    const bufferStream = Readable.from(fileBuffer);
+    bufferStream.pipe(uploadStream);
+  });
+};
+
 /**
  * Deletes an asset from Cloudinary.
  * @param {string | null | undefined} publicId
+ * @param {object} options - { resource_type: "raw" } for non-image assets
  */
-const deleteAsset = async (publicId) => {
+const deleteAsset = async (publicId, options = {}) => {
   if (!publicId) {
     return;
   }
 
   try {
-    await cloudinary.uploader.destroy(publicId);
+    await cloudinary.uploader.destroy(publicId, {
+      resource_type: options.resource_type || "image",
+    });
   } catch (error) {
     console.error("Failed to delete Cloudinary asset:", error.message);
   }
@@ -72,8 +113,10 @@ const deleteAsset = async (publicId) => {
 
 module.exports = {
   uploadImageFromBuffer,
+  uploadPdfFromBuffer,
   deleteAsset,
   ALLOWED_IMAGE_MIME_TYPES,
+  PDF_MIME_TYPE,
 };
 
 

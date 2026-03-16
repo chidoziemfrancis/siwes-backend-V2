@@ -18,6 +18,7 @@ const jsonToCsvString = require("../utils/jsonToCsvString");
 const { ObjectId } = require("mongoose").Types;
 const { sendMailToSupervisorEmail } = require("./mail.controller");
 const cloudinary = require("cloudinary").v2;
+const { deleteAsset } = require("../utils/cloudinary");
 
 /**
  * adds a new coordinator
@@ -1813,8 +1814,12 @@ const delete_form = async function (req, res) {
 
     await FORMS.deleteOne({ _id: ObjectId(formId) });
 
-    // Delete local file if it exists
-    if (form.pathToFile) {
+    // Delete from Cloudinary if stored there (pathToFile is full URL)
+    if (form.publicId && form.pathToFile?.startsWith("http")) {
+      await deleteAsset(form.publicId, { resource_type: "raw" });
+    }
+    // Delete local file if it exists (legacy forms)
+    else if (form.pathToFile) {
       const filePath = path.join(__dirname, "..", form.pathToFile);
       if (existsSync(filePath)) {
         unlinkSync(filePath);

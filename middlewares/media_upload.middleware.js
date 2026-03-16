@@ -1,7 +1,6 @@
-const { response, request } = require("express");
-const fs = require("fs").promises;
-const path = require("path");
 const crypto = require("crypto");
+const fs = require("fs");
+const { uploadPdfFromBuffer } = require("../utils/cloudinary");
 
 const processFileUpload = async function (req, res, next) {
   try {
@@ -10,40 +9,46 @@ const processFileUpload = async function (req, res, next) {
       return;
     }
 
-    if (req.files.file.mimetype !== "application/pdf") {
+    const file = Array.isArray(req.files.file) ? req.files.file[0] : req.files.file;
+    if (!file) {
+      res.status(400).json({ message: "No file in request" });
+      return;
+    }
+
+    if (file.mimetype !== "application/pdf") {
       res.status(400).json({ message: "Only PDF files are allowed" });
       return;
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(__dirname, "..", "uploads", "forms");
-    await fs.mkdir(uploadsDir, { recursive: true });
+    const fileBuffer = file.data ?? (file.tempFilePath ? fs.readFileSync(file.tempFilePath) : null);
+    if (!fileBuffer || !Buffer.isBuffer(fileBuffer)) {
+      console.error("File upload: invalid buffer", { hasData: !!file.data, hasTempPath: !!file.tempFilePath });
+      res.status(400).json({ message: "Invalid file data received" });
+      return;
+    }
 
-    // Generate unique filename
-    const fileExtension = path.extname(req.files.file.name);
     const uniqueId = crypto.randomBytes(16).toString("hex");
-    const fileName = `${uniqueId}${fileExtension}`;
-    const filePath = path.join(uploadsDir, fileName);
+    const fileExtension = file.name ? file.name.split(".").pop().toLowerCase() : "pdf";
+    const publicId = `siwes/forms/${uniqueId}`;
 
-    // Save file to disk
-    await fs.writeFile(filePath, req.files.file.data);
+    const uploadResult = await uploadPdfFromBuffer(fileBuffer, {
+      folder: "siwes/forms",
+      publicId,
+    });
 
-    // Generate public URL path
-    const publicPath = `/uploads/forms/${fileName}`;
-    const publicId = `forms/${uniqueId}`; // Keep publicId for backward compatibility
-
-    // Update the req.body
     req.body = {
       ...req.body,
-      name: req.files.file.name.toLowerCase(),
-      pathToFile: publicPath,
-      publicId: publicId,
+      name: (file.name || `form.${fileExtension}`).toLowerCase(),
+      pathToFile: uploadResult.secure_url,
+      publicId: uploadResult.public_id,
     };
     next();
   } catch (error) {
-    console.error("File upload error:", error);
+    console.error("File upload error:", error?.message || error);
+    const isDev = process.env.NODE_ENV !== "production";
     res.status(500).json({
       message: "Something went wrong while uploading file. Please try again.",
+      ...(isDev && error?.message && { detail: error.message }),
     });
     return;
   }
