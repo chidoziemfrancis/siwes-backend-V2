@@ -2,7 +2,7 @@
  * Rate limiting middleware to protect against brute force, scraping, and automation tools (Puppeteer, etc.)
  * Uses Redis for distributed rate limiting when available; falls back to in-memory when Redis is unavailable.
  */
-const { rateLimit } = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 
 let RedisStore;
 try {
@@ -27,10 +27,8 @@ function createRateLimiter(options = {}) {
     message: { success: false, message },
     standardHeaders: true,
     legacyHeaders: false,
-    // Use IP; for apps behind proxy (Vercel, etc.) trust X-Forwarded-For
-    keyGenerator: (req) => {
-      return req.ip || req.connection?.remoteAddress || "unknown";
-    },
+    // Use ipKeyGenerator for IPv6-safe rate limiting (prevents bypass via IPv6 rotation)
+    keyGenerator: (req) => ipKeyGenerator(req.ip),
     // Skip rate limiting for health checks and docs
     skip: (req) => {
       const path = req.path || req.url || "";
