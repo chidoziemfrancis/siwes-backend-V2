@@ -18,6 +18,12 @@ const cloudinary = require("cloudinary").v2;
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swaggerConfig");
 const redisClient = require("./utils/redisClient");
+const helmet = require("helmet");
+const {
+  generalLimiter,
+  authLimiter,
+} = require("./middlewares/rateLimit.middleware");
+const { blockBots } = require("./middlewares/botDetection.middleware");
 
 // Only load Scalar in non-production environments (development/staging)
 // Scalar is an ES module and causes issues in production environments like Vercel
@@ -34,6 +40,9 @@ if (process.env.NODE_ENV !== "production") {
 mongoose.set("strictQuery", false);
 
 const app = express();
+
+// Trust proxy for correct IP in rate limiting (Vercel, load balancers, etc.)
+app.set("trust proxy", 1);
 
 const corsOption = {
   credentials: true,
@@ -71,6 +80,7 @@ if (apiReference) {
 }
 
 app.use(cors(corsOption));
+app.use(helmet({ contentSecurityPolicy: false })); // CSP disabled to allow API docs; enable for stricter security
 app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -154,7 +164,9 @@ async function main() {
       }
     })();
 
-    app.use("/api", apiRoutes);
+    // Anti-automation: rate limiting + bot detection (Puppeteer, Playwright, etc.)
+    app.use("/api/auth", authLimiter);
+    app.use("/api", blockBots, generalLimiter, apiRoutes);
 
     // Catch-all route for API requests
     app.get("*", (req, res) => {
