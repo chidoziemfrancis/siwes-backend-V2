@@ -19,10 +19,7 @@ const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swaggerConfig");
 const redisClient = require("./utils/redisClient");
 const helmet = require("helmet");
-const {
-  generalLimiter,
-  authLimiter,
-} = require("./middlewares/rateLimit.middleware");
+const { generalLimiter } = require("./middlewares/rateLimit.middleware");
 const { blockBots } = require("./middlewares/botDetection.middleware");
 
 // Only load Scalar in non-production environments (development/staging)
@@ -165,7 +162,6 @@ async function main() {
     })();
 
     // Anti-automation: rate limiting + bot detection (Puppeteer, Playwright, etc.)
-    app.use("/api/auth", authLimiter);
     app.use("/api", blockBots, generalLimiter, apiRoutes);
 
     // Catch-all route for API requests

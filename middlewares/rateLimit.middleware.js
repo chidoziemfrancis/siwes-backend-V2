@@ -59,21 +59,13 @@ function createRateLimiter(options = {}) {
   return rateLimit(baseConfig);
 }
 
-// General API rate limiter - stricter for unauthenticated endpoints
+// General API rate limiter
 const generalLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 150,
 });
 
-// Stricter limiter for auth endpoints (login, register) - protect against credential stuffing
-const authLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  message: "Too many authentication attempts. Please try again later.",
-});
-
 module.exports = {
   generalLimiter,
-  authLimiter,
   createRateLimiter,
 };
