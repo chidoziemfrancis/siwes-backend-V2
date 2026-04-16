@@ -18,12 +18,69 @@ const {
 } = require("../../controllers/mail.controller");
 const crypto = require("crypto");
 const redisClient = require("../../utils/redisClient");
-const Supervisor = require("./../../models/supervisor.model");
 const {
   uploadImageFromBuffer,
   deleteAsset,
   ALLOWED_IMAGE_MIME_TYPES,
 } = require("../../utils/cloudinary");
+
+const STAFF_ACCOUNT_TYPES = [
+  "supervisor",
+  "coordinator",
+  "director",
+  "support",
+];
+
+const normalizeEmail = (email) =>
+  typeof email === "string" ? email.trim().toLowerCase() : "";
+
+const isStudentEmail = (email) =>
+  /^[a-z0-9._%+-]+@student\.babcock\.edu\.ng$/i.test(email);
+
+const inferAccountTypeFromEmail = (email) => {
+  if (isStudentEmail(email)) return "student";
+  return null;
+};
+
+function normalizeAccountTypeForRequest(email, bodyAccountType) {
+  const inferred = inferAccountTypeFromEmail(email);
+  if (inferred) {
+    if (bodyAccountType && bodyAccountType !== "student") {
+      return { error: "account_type_mismatch" };
+    }
+    return { accountType: "student" };
+  }
+  if (!bodyAccountType || !STAFF_ACCOUNT_TYPES.includes(bodyAccountType)) {
+    return { error: "account_type_required" };
+  }
+  return { accountType: bodyAccountType };
+}
+
+async function findUserByAccountType(email, accountType) {
+  switch (accountType) {
+    case "student":
+      return await STUDENTS.findOne({ email });
+    case "supervisor":
+      return await SUPERVISORS.findOne({ email });
+    case "coordinator":
+      return await COORDINATORS.findOne({ email });
+    case "director":
+      return await DIRECTORS.findOne({ email });
+    case "support":
+      return await SUPPORT.findOne({ email });
+    default:
+      return null;
+  }
+}
+
+async function resolveAccountTypeFromEmail(email) {
+  if (await STUDENTS.findOne({ email })) return "student";
+  if (await SUPERVISORS.findOne({ email })) return "supervisor";
+  if (await COORDINATORS.findOne({ email })) return "coordinator";
+  if (await DIRECTORS.findOne({ email })) return "director";
+  if (await SUPPORT.findOne({ email })) return "support";
+  return null;
+}
 
 /**
  * Creates and appends the access and refresh tokens to the cookies of the client
@@ -471,43 +528,69 @@ const logout = async function (req, res) {
  */
 const send_OTP = async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = normalizeEmail(req.body?.email);
+    const resend = Boolean(req.body?.resend);
 
     if (!email) {
       return res.status(400).json({ message: "Invalid email address." });
     }
-    if (
-      !email ||
-      !/^[a-zA-Z0-9._%+-]+@student\.babcock\.edu\.ng$/.test(email)
-    ) {
+
+    if (!isStudentEmail(email)) {
+      if (!/^[a-z0-9._%+-]+@babcock\.edu\.ng$/i.test(email)) {
+        return res.status(400).json({
+          message:
+            "Use your Babcock email (@student.babcock.edu.ng for students, or @babcock.edu.ng for staff).",
+        });
+      }
+    }
+
+    const typeResult = normalizeAccountTypeForRequest(
+      email,
+      req.body?.accountType
+    );
+    if (typeResult.error === "account_type_mismatch") {
       return res.status(400).json({
         message:
-          "Invalid email address. Make use of you Babcock email address please",
+          "This email is a student address. Select Student as account type.",
+      });
+    }
+    if (typeResult.error === "account_type_required") {
+      return res.status(400).json({
+        message:
+          "For staff email, select your role (supervisor, coordinator, director, or support).",
+      });
+    }
+    const { accountType } = typeResult;
+
+    const user = await findUserByAccountType(email, accountType);
+    if (!user) {
+      return res.status(404).json({
+        message: "No account found for this email.",
       });
     }
 
-    // Check if an OTP exists for this email in Redis
-    const existingOtp = await redisClient.get(`otp:${email}`);
-    if (existingOtp) {
-      return res.status(429).json({
-        message: "An OTP has already been sent. Please check your email.",
-      });
+    if (resend) {
+      await redisClient.del(`otp:${email}`);
+      await OTP.deleteMany({ email });
+    } else {
+      const existingOtp = await redisClient.get(`otp:${email}`);
+      if (existingOtp) {
+        return res.status(429).json({
+          message:
+            "An OTP has already been sent. Please check your email or use Resend.",
+        });
+      }
     }
 
-    // Generate new OTP (but don't store it yet)
-    const token = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Send OTP email FIRST - only save if email succeeds
     try {
       console.log(`Attempting to send OTP ${token} to ${email}`);
       const result = await sendOTPMail(email, token);
 
-      // Only store OTP after successful email delivery
       if (result && result.success) {
-        // Store OTP in Redis with a 5-minute expiry
         await redisClient.set(`otp:${email}`, token, { EX: 300 });
 
-        // Store OTP in MongoDB (fire and forget - don't block on this)
         OTP.create({ token, email }).catch((err) => {
           console.error(
             `Failed to store OTP in MongoDB for ${email}:`,
@@ -544,40 +627,57 @@ const send_OTP = async (req, res) => {
  */
 const verify_OTP = async (req, res) => {
   try {
-    const { email, token } = req.body;
+    const email = normalizeEmail(req.body?.email);
+    const token = req.body?.token;
 
     if (!email || !token) {
       return res
         .status(400)
         .json({ message: "Please Input a valid email or token." });
     }
-    // if (!email || !/student.babcock.edu.ng$/.test(email) || !token) {
-    //   return res.status(400).json({ message: "Invalid input." });
-    // }
 
-    // Check OTP in Redis
+    const typeResult = normalizeAccountTypeForRequest(
+      email,
+      req.body?.accountType
+    );
+    if (typeResult.error === "account_type_mismatch") {
+      return res.status(400).json({
+        message:
+          "This email is a student address. Select Student as account type.",
+      });
+    }
+    if (typeResult.error === "account_type_required") {
+      return res.status(400).json({
+        message:
+          "For staff email, select your role (supervisor, coordinator, director, or support).",
+      });
+    }
+    const { accountType } = typeResult;
+
+    const user = await findUserByAccountType(email, accountType);
+    if (!user) {
+      return res.status(404).json({ message: "No account found for this email." });
+    }
+
     const storedOtp = await redisClient.get(`otp:${email}`);
-    if (storedOtp === token) {
-      // OTP is valid; delete it from Redis
+    if (storedOtp === String(token)) {
       await redisClient.del(`otp:${email}`);
 
-      // Generate reset token
       const resetToken = jwt.sign(
-        { email }, // Payload
-        process.env.RESET_PASSWORD_TOKEN_SECRET, // Secret
-        { expiresIn: "15m" } // Token expiry
+        { email, accountType },
+        process.env.RESET_PASSWORD_TOKEN_SECRET,
+        { expiresIn: "15m" }
       );
 
       return res.status(200).json({
         message: "OTP verified successfully.",
-        data: { resetToken }, // Send reset token
+        data: { resetToken },
       });
     }
 
-    // If not in Redis, check MongoDB (with timeout protection)
     try {
       const otpRecord = await Promise.race([
-        OTP.findOne({ email, token }),
+        OTP.findOne({ email, token: String(token) }),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error("MongoDB timeout")), 3000)
         ),
@@ -587,19 +687,17 @@ const verify_OTP = async (req, res) => {
         return res.status(400).json({ message: "Invalid or expired OTP." });
       }
 
-      // OTP is valid in MongoDB; delete it
       await OTP.deleteOne({ _id: otpRecord._id });
 
-      // Generate reset token
       const resetToken = jwt.sign(
-        { email }, // Payload
+        { email, accountType },
         process.env.RESET_PASSWORD_TOKEN_SECRET,
         { expiresIn: "15m" }
       );
 
       return res.status(200).json({
         message: "OTP verified successfully.",
-        data: { resetToken }, // Send reset token
+        data: { resetToken },
       });
     } catch (dbError) {
       console.error("Error checking MongoDB for OTP:", dbError.message);
@@ -612,25 +710,36 @@ const verify_OTP = async (req, res) => {
 };
 
 /**
- * Allows a student specifically to reset their password if they forget it
+ * Reset password after OTP verification (all account types)
  */
 const reset_password = async function (req, res) {
   try {
-    const { email, password, token } = req.body;
+    const email = normalizeEmail(req.body?.email);
+    const { password, token } = req.body;
 
-    if (
-      !email ||
-      !password ||
-      !token
-      // /student.babcock.edu.ng$/.test(email) == false
-    ) {
+    if (!email || !password || !token) {
       res.status(400).json({ message: "Invalid request" });
       return;
     }
 
     const decoded = jwt.verify(token, process.env.RESET_PASSWORD_TOKEN_SECRET);
 
-    if (decoded.email !== email) {
+    if (normalizeEmail(decoded.email) !== email) {
+      res.status(400).json({ message: "Invalid request" });
+      return;
+    }
+
+    let accountType = decoded.accountType;
+    if (!accountType) {
+      accountType = await resolveAccountTypeFromEmail(email);
+    }
+    if (!accountType) {
+      res.status(400).json({ message: "Invalid request" });
+      return;
+    }
+
+    const user = await findUserByAccountType(email, accountType);
+    if (!user) {
       res.status(400).json({ message: "Invalid request" });
       return;
     }
@@ -638,47 +747,26 @@ const reset_password = async function (req, res) {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    await STUDENTS.updateOne({ email }, { password: hashedPassword });
-
-    res.status(200).json({ message: "Password changed successfully" });
-  } catch (error) {
-    if (error.name === "TokenExpiredError") {
-      res.status(400).json({
-        message:
-          "Reset token is expired, please try to reset the password again starting from OTP verification",
-      });
-      return;
+    switch (accountType) {
+      case "student":
+        await STUDENTS.updateOne({ email }, { password: hashedPassword });
+        break;
+      case "supervisor":
+        await SUPERVISORS.updateOne({ email }, { password: hashedPassword });
+        break;
+      case "coordinator":
+        await COORDINATORS.updateOne({ email }, { password: hashedPassword });
+        break;
+      case "director":
+        await DIRECTORS.updateOne({ email }, { password: hashedPassword });
+        break;
+      case "support":
+        await SUPPORT.updateOne({ email }, { password: hashedPassword });
+        break;
+      default:
+        res.status(400).json({ message: "Invalid request" });
+        return;
     }
-
-    handleError(error, res);
-    console.log(error);
-  }
-};
-const supervisor_reset_password = async function (req, res) {
-  try {
-    const { email, password, token } = req.body;
-
-    if (
-      !email ||
-      !password ||
-      !token
-      // /student.babcock.edu.ng$/.test(email) == false
-    ) {
-      res.status(400).json({ message: "Invalid request" });
-      return;
-    }
-
-    const decoded = jwt.verify(token, process.env.RESET_PASSWORD_TOKEN_SECRET);
-
-    if (decoded.email !== email) {
-      res.status(400).json({ message: "Invalid request" });
-      return;
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    await Supervisor.updateOne({ email }, { password: hashedPassword });
 
     res.status(200).json({ message: "Password changed successfully" });
   } catch (error) {
@@ -760,7 +848,7 @@ const get_active_otps = async (req, res) => {
  */
 const get_otp_by_email = async (req, res) => {
   try {
-    const { email } = req.params;
+    const email = normalizeEmail(req.params?.email);
 
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
@@ -836,7 +924,6 @@ module.exports = {
   send_OTP,
   verify_OTP,
   reset_password,
-  supervisor_reset_password,
   get_active_otps,
   get_otp_by_email,
 };

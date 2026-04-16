@@ -6,7 +6,6 @@ const {
   send_OTP,
   verify_OTP,
   reset_password,
-  supervisor_reset_password,
   get_active_otps,
   get_otp_by_email,
 } = require("./../controllers/auth/auth.controller");
@@ -175,7 +174,7 @@ router.patch("/forgotPassword/changePassword", reset_password);
 
 router.patch(
   "/forgotPassword/changePassword/supervisor",
-  supervisor_reset_password
+  reset_password
 );
 
 /**

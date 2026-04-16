@@ -6,6 +6,7 @@ const {
   get_a_specific_director,
   get_all_supervisors,
   get_a_specific_supervisor,
+  get_students_by_supervisor,
   get_all_coordinators,
   get_a_specific_coordinator,
   create_coordinator,
@@ -120,6 +121,33 @@ router.get("/supervisors", isDirector, get_all_supervisors);
  *       401:
  *         description: Unauthorized
  */
+
+/**
+ * @swagger
+ * /directors/supervisors/{id}/students:
+ *   get:
+ *     summary: Get all students assigned to a specific supervisor
+ *     tags: [Directors]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Supervisor ID
+ *     responses:
+ *       200:
+ *         description: List of students under the supervisor
+ *       400:
+ *         description: Invalid supervisor ID
+ *       404:
+ *         description: Supervisor not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/supervisors/:id/students", isDirector, get_students_by_supervisor);
 
 router.get("/supervisors/:id", isDirector, get_a_specific_supervisor);
 

@@ -3255,6 +3255,101 @@ const update_student_details_by_code = async function (req, res) {
   }
 };
 
+/**
+ * Returns all students assigned to a specific supervisor (by inspection list)
+ * @param {request} req
+ * @param {response} res
+ */
+const get_students_by_supervisor = async function (req, res) {
+  const { id: supervisorId } = req.params;
+  const { faculty, department, isMainCoordinator } = req.user;
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(supervisorId)) {
+      return res.status(400).json({ message: "Invalid supervisor id" });
+    }
+
+    const supervisorExists = await SUPERVISORS.findOne({ _id: supervisorId });
+    if (!supervisorExists) {
+      return res.status(404).json({ message: "Supervisor not found" });
+    }
+
+    const facultyNormalized =
+      typeof faculty === "string" ? faculty.toLowerCase().trim() : faculty;
+
+    const matchStudent = { faculty: facultyNormalized };
+    if (!isMainCoordinator && department) {
+      matchStudent.department =
+        typeof department === "string"
+          ? department.toLowerCase().trim()
+          : department;
+    }
+
+    const pipeline = [
+      {
+        $match: { supervisorId: new ObjectId(supervisorId) },
+      },
+      {
+        $lookup: {
+          from: "students",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "student",
+        },
+      },
+      {
+        $unwind: {
+          path: "$student",
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $replaceRoot: { newRoot: "$student" },
+      },
+      {
+        $match: matchStudent,
+      },
+      {
+        $project: {
+          password: 0,
+          validation_secret: 0,
+        },
+      },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                address: 1,
+                email: 1,
+                phone: 1,
+                state: 1,
+                LGA: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          company: { $arrayElemAt: ["$company", 0] },
+        },
+      },
+    ];
+
+    const students = await INSPECTION_LIST.aggregate(pipeline);
+
+    return res.status(200).json({ students });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   add_a_new_coordinator,
   get_all_coordinators,
@@ -3293,4 +3388,5 @@ module.exports = {
   assign_defense_supervisor_by_course,
   change_student_password,
   update_student_details_by_code,
+  get_students_by_supervisor,
 };

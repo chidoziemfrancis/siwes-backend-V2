@@ -1520,6 +1520,88 @@ const get_system_summary = async function (req, res) {
   }
 };
 
+/**
+ * Returns all students assigned to a specific supervisor (by inspection list)
+ * @param {request} req
+ * @param {response} res
+ */
+const get_students_by_supervisor = async function (req, res) {
+  const { id: supervisorId } = req.params;
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(supervisorId)) {
+      return res.status(400).json({ message: "Invalid supervisor id" });
+    }
+
+    const supervisorExists = await SUPERVISORS.findOne({ _id: supervisorId });
+    if (!supervisorExists) {
+      return res.status(404).json({ message: "Supervisor not found" });
+    }
+
+    const { ObjectId } = mongoose.Types;
+
+    const pipeline = [
+      {
+        $match: { supervisorId: new ObjectId(supervisorId) },
+      },
+      {
+        $lookup: {
+          from: "students",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "student",
+        },
+      },
+      {
+        $unwind: {
+          path: "$student",
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $replaceRoot: { newRoot: "$student" },
+      },
+      {
+        $project: {
+          password: 0,
+          validation_secret: 0,
+        },
+      },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "company",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                address: 1,
+                email: 1,
+                phone: 1,
+                state: 1,
+                LGA: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          company: { $arrayElemAt: ["$company", 0] },
+        },
+      },
+    ];
+
+    const students = await INSPECTION_LIST.aggregate(pipeline);
+
+    return res.status(200).json({ students });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
 module.exports = {
   add_director,
   get_all_directors,
@@ -1554,4 +1636,5 @@ module.exports = {
   change_student_password,
   bulk_update_students_department_faculty,
   get_system_summary,
+  get_students_by_supervisor,
 };

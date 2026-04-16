@@ -9,6 +9,7 @@ const {
   upload_inspection_forms,
   create_supervisor,
   get_all_supervisors,
+  get_students_by_supervisor,
   get_defense_list,
   get_inspection_list,
   assign_defense_supervisor,
@@ -139,6 +140,37 @@ router.get("/inspectionList", isCoordinator, get_inspection_list);
  *         description: Unauthorized
  */
 router.get("/supervisors", isCoordinator, get_all_supervisors);
+
+/**
+ * @swagger
+ * /coordinators/supervisors/{id}/students:
+ *   get:
+ *     summary: Get all students assigned to a specific supervisor
+ *     tags: [Coordinators]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Supervisor ID
+ *     responses:
+ *       200:
+ *         description: List of students under the supervisor
+ *       400:
+ *         description: Invalid supervisor ID
+ *       404:
+ *         description: Supervisor not found
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  "/supervisors/:id/students",
+  isCoordinator,
+  get_students_by_supervisor
+);
 
 /**
  * @swagger
