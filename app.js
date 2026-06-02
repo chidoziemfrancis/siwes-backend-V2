@@ -43,23 +43,7 @@ app.set("trust proxy", 1);
 
 const corsOption = {
   credentials: true,
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      "http://localhost:3000",
-      "http://localhost:3060",
-      "http://localhost:3001",
-      "https://siwes-website.vercel.app",
-      "https://www.babcock-siwes.com",
-      "https://bucc-siwes-website.vercel.app",
-      "https://babcock-siwes.com",
-    ];
-
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: true,
 };
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
