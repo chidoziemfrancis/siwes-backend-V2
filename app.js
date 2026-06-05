@@ -148,6 +148,19 @@ async function main() {
     // Anti-automation: rate limiting + bot detection (Puppeteer, Playwright, etc.)
     app.use("/api", blockBots, generalLimiter, apiRoutes);
 
+    // Base URL route
+    app.get("/", (req, res) => {
+      const endpoints = ["/api", "/api-docs"];
+      if (apiReference) {
+        endpoints.push("/reference");
+      }
+      res.status(200).json({
+        success: true,
+        message: "Welcome to the SIWES API service.",
+        endpoints: endpoints,
+      });
+    });
+
     // Catch-all route for API requests
     app.get("*", (req, res) => {
       const endpoints = ["/api", "/api-docs"];
