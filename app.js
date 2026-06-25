@@ -41,9 +41,17 @@ const app = express();
 // Trust proxy for correct IP in rate limiting (Vercel, load balancers, etc.)
 app.set("trust proxy", 1);
 
+const allowedOrigins = ["https://siwes.babcock.edu.ng"];
+
 const corsOption = {
   credentials: true,
-  origin: true,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
 };
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -174,7 +182,6 @@ async function main() {
       });
     });
 
-    // The error handler must be registered before any other error middleware and after all controllers
     if (process.env.SENTRY_DSN) {
       Sentry.setupExpressErrorHandler(app);
     }
