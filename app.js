@@ -41,7 +41,11 @@ const app = express();
 // Trust proxy for correct IP in rate limiting (Vercel, load balancers, etc.)
 app.set("trust proxy", 1);
 
-const allowedOrigins = ["https://siwes.babcock.edu.ng"];
+const allowedOrigins = [
+  "https://siwes.babcock.edu.ng",
+  "http://localhost:3000",
+  "http://localhost:3060",
+];
 
 const corsOption = {
   credentials: true,
