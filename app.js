@@ -22,8 +22,7 @@ const helmet = require("helmet");
 const { generalLimiter } = require("./middlewares/rateLimit.middleware");
 const { blockBots } = require("./middlewares/botDetection.middleware");
 
-// Only load Scalar in non-production environments (development/staging)
-// Scalar is an ES module and causes issues in production environments like Vercel
+
 let apiReference = null;
 if (process.env.NODE_ENV !== "production") {
   try {
@@ -73,7 +72,7 @@ if (apiReference) {
 }
 
 app.use(cors(corsOption));
-app.use(helmet({ contentSecurityPolicy: false })); // CSP disabled to allow API docs; enable for stricter security
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));

@@ -2042,24 +2042,6 @@ const download_all_student_data = async function (req, res) {
       },
       {
         $lookup: {
-          from: "grades",
-          localField: "_id",
-          foreignField: "studentId",
-          as: "grade",
-          pipeline: [
-            {
-              $project: {
-                studentId: 0,
-                __v: 0,
-                createdAt: 0,
-                updatedAt: 0,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $lookup: {
           from: "companies",
           localField: "studentCode",
           foreignField: "studentCode",
@@ -2067,8 +2049,44 @@ const download_all_student_data = async function (req, res) {
           pipeline: [
             {
               $project: {
-                name: 1,
-                address: 1,
+                _id: 0,
+                __v: 0,
+                createdAt: 0,
+                updatedAt: 0,
+                studentCode: 0,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: "inspection_lists",
+          localField: "studentCode",
+          foreignField: "studentCode",
+          as: "inspectionInfo",
+        },
+      },
+      {
+        $addFields: {
+          company: { $arrayElemAt: ["$company", 0] },
+          inspectionInfo: { $arrayElemAt: ["$inspectionInfo", 0] },
+        },
+      },
+      {
+        $lookup: {
+          from: "supervisors",
+          localField: "inspectionInfo.supervisorId",
+          foreignField: "_id",
+          as: "supervisor",
+          pipeline: [
+            {
+              $project: {
+                firstName: 1,
+                lastName: 1,
+                email: 1,
+                phone: 1,
+                office: 1,
               },
             },
           ],
@@ -2076,36 +2094,100 @@ const download_all_student_data = async function (req, res) {
       },
       {
         $addFields: {
-          grade: {
-            $arrayElemAt: ["$grade", 0],
-          },
-          company: {
-            $arrayElemAt: ["$company", 0],
-          },
+          supervisor: { $arrayElemAt: ["$supervisor", 0] },
         },
       },
       {
         $addFields: {
-          accountNo: "$bankDetails.accountNumber",
-          bankname: "$bankDetails.name",
+          // Personal information
+          lastName: {
+            $concat: [
+              { $toUpper: { $substrCP: ["$lastName", 0, 1] } },
+              {
+                $substrCP: [
+                  "$lastName",
+                  1,
+                  { $subtract: [{ $strLenCP: "$lastName" }, 1] },
+                ],
+              },
+            ],
+          },
+          // Bank Details
+          bankName: "$bankDetails.name",
+          accountNumber: "$bankDetails.accountNumber",
           sortCode: "$bankDetails.sortCode",
+          // Company information
           companyName: "$company.name",
           companyAddress: "$company.address",
-          miniInspectionScore: "$grade.miniInspectionScore",
-          mainInspectionScore: "$grade.mainInspectionScore",
-          inspectionScore: "$grade.inspectionScore",
-          weeklyReportsScore: "$grade.weeklyReportsScore",
-          defenseScore: "$grade.defenseScore",
-          totalScore: "$grade.total",
-          lastUpdatedBy: "$grade.lastUpdatedBy",
+          companyEmail: "$company.email",
+          companyPhone: "$company.phone",
+          companyAssignedDepartment: "$company.assignedDepartment",
+          companyJobDescription: "$company.jobDescription",
+          companyIsAbroad: "$company.isAbroad",
+          companyCountry: "$company.country",
+          companyState: "$company.state",
+          companyLGA: "$company.LGA",
+          companyStreet: "$company.street",
+          companyResumptionDate: "$company.resumptionDate",
+          companyExpectedEndDate: "$company.expectedEndDate",
+          // Supervisor information
+          supervisorFirstName: "$supervisor.firstName",
+          supervisorLastName: "$supervisor.lastName",
+          supervisorEmail: "$supervisor.email",
+          supervisorPhone: "$supervisor.phone",
+          supervisorOffice: "$supervisor.office",
         },
       },
       {
         $project: {
           bankDetails: 0,
           company: 0,
-          grade: 0,
+          inspectionInfo: 0,
+          supervisor: 0,
           _id: 0,
+        },
+      },
+      {
+        // Reorder fields into Personal / Academic / Bank / Company / Supervisor sections
+        $project: {
+          // Personal information
+          firstName: 1,
+          middleName: 1,
+          lastName: 1,
+          email: 1,
+          phone: 1,
+          sex: 1,
+          matricNo: 1,
+          // Academic information
+          faculty: 1,
+          department: 1,
+          course: 1,
+          level: 1,
+          studentCode: 1,
+          // Bank details
+          bankName: 1,
+          accountNumber: 1,
+          sortCode: 1,
+          // Company information
+          companyName: 1,
+          companyAddress: 1,
+          companyEmail: 1,
+          companyPhone: 1,
+          companyAssignedDepartment: 1,
+          companyJobDescription: 1,
+          companyIsAbroad: 1,
+          companyCountry: 1,
+          companyState: 1,
+          companyLGA: 1,
+          companyStreet: 1,
+          companyResumptionDate: 1,
+          companyExpectedEndDate: 1,
+          // Supervisor information
+          supervisorFirstName: 1,
+          supervisorLastName: 1,
+          supervisorEmail: 1,
+          supervisorPhone: 1,
+          supervisorOffice: 1,
         },
       },
     ]);
